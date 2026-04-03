@@ -72,3 +72,17 @@ export async function resetPassword(payload: { token: string; newPassword: strin
   }
   return response.json();
 }
+
+export async function createUser(payload: { email: string; name: string; role: string; projectName?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'User creation failed');
+  }
+  return response.json();
+}
