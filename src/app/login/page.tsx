@@ -33,6 +33,7 @@ export default function LoginPage() {
       await login({ email, password });
       const user = await getMe();
       localStorage.setItem("userName", user.name);
+      localStorage.setItem("userRole", user.role);
       localStorage.setItem("userEmail", email);
       localStorage.setItem("userPassword", password);
       router.push("/dashboard");

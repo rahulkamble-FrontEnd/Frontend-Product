@@ -2,19 +2,34 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logout } from "@/lib/api";
+import { logout, createUser } from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Create User Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newUserData, setNewUserData] = useState({
+    email: "",
+    name: "",
+    role: "customer",
+    projectName: ""
+  });
+  const [isCreating, setIsCreating] = useState(false);
+  const [createMsg, setCreateMsg] = useState("");
+  const [createError, setCreateError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
+    const storedRole = localStorage.getItem("userRole");
     if (!storedName) {
       router.push("/login");
     } else {
       setUserName(storedName);
+      setUserRole(storedRole || "");
     }
   }, [router]);
 
@@ -31,6 +46,26 @@ export default function DashboardPage() {
       router.push("/login");
     } finally {
       setIsLoggingOut(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreating(true);
+    setCreateMsg("");
+    setCreateError("");
+    try {
+      await createUser(newUserData);
+      setCreateMsg("User created successfully!");
+      setNewUserData({ email: "", name: "", role: "customer", projectName: "" });
+      setTimeout(() => {
+        setIsCreateModalOpen(false);
+        setCreateMsg("");
+      }, 2000);
+    } catch (err: any) {
+      setCreateError(err.message || "Failed to create user.");
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -82,6 +117,22 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
+            {userRole === "admin" && (
+                <>
+                  <button 
+                    onClick={() => router.push("/users")}
+                    className="hidden rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black md:block shadow-sm hover:bg-black hover:text-white transition-all mr-1"
+                  >
+                    Manage Users
+                  </button>
+                  <button 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="hidden rounded-md bg-black px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#ffcb05] md:block shadow-sm hover:opacity-90 mr-1"
+                  >
+                    Create User
+                  </button>
+                </>
+            )}
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
               Shop on call
             </button>
@@ -174,6 +225,88 @@ export default function DashboardPage() {
             Karigari Laminates
          </h3>
       </section>
+
+      {/* User Creation Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Create New User</h2>
+              <button 
+                onClick={() => {
+                   setIsCreateModalOpen(false);
+                   setCreateError("");
+                   setCreateMsg("");
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newUserData.name}
+                  onChange={(e) => setNewUserData({ ...newUserData, name: e.target.value })}
+                  placeholder="e.g. Priya"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newUserData.email}
+                  onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                  placeholder="e.g. priya@gmail.com"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newUserData.role}
+                    onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="designer">Designer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Project Name</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newUserData.projectName}
+                    onChange={(e) => setNewUserData({ ...newUserData, projectName: e.target.value })}
+                    placeholder="e.g. 3BHK Kondapur"
+                  />
+                </div>
+              </div>
+
+              {createError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{createError}</div>}
+              {createMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{createMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="w-full rounded-full bg-[#ffcb05] py-3.5 text-sm font-black uppercase tracking-widest text-black shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isCreating ? "Creating User..." : "Confirm & Create"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating WhatsApp Button */}
       <div className="fixed bottom-6 right-6 z-50">
