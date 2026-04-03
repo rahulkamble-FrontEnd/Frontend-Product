@@ -86,3 +86,33 @@ export async function createUser(payload: { email: string; name: string; role: s
   }
   return response.json();
 }
+
+export async function getUsers(role?: string) {
+  let url = `${BASE_URL.replace('/auth', '')}/users`;
+  if (role) {
+    url += `?role=${role}`;
+  }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch users');
+  }
+  return response.json();
+}
+
+export async function deleteUser(id: string) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to deactivate user');
+  }
+  return response.json();
+}

@@ -118,12 +118,20 @@ export default function DashboardPage() {
           {/* Actions */}
           <div className="flex items-center gap-4">
             {userRole === "admin" && (
-                <button 
-                  onClick={() => setIsCreateModalOpen(true)}
-                  className="hidden rounded-md bg-black px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#ffcb05] md:block shadow-sm hover:opacity-90"
-                >
-                  Create User
-                </button>
+                <>
+                  <button 
+                    onClick={() => router.push("/users")}
+                    className="hidden rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black md:block shadow-sm hover:bg-black hover:text-white transition-all mr-1"
+                  >
+                    Manage Users
+                  </button>
+                  <button 
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="hidden rounded-md bg-black px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#ffcb05] md:block shadow-sm hover:opacity-90 mr-1"
+                  >
+                    Create User
+                  </button>
+                </>
             )}
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
               Shop on call
