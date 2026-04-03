@@ -116,3 +116,17 @@ export async function deleteUser(id: string) {
   }
   return response.json();
 }
+
+export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update user');
+  }
+  return response.json();
+}

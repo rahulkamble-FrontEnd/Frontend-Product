@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, deleteUser } from "@/lib/api";
+import { getUsers, deleteUser, updateUser } from "@/lib/api";
 
 type User = {
   id: string;
@@ -12,6 +12,7 @@ type User = {
   projectName?: string;
   isActive: boolean;
   createdAt: string;
+  assignedDesigner?: { id: string; name: string };
 };
 
 export default function UsersPage() {
@@ -21,18 +22,38 @@ export default function UsersPage() {
   const [error, setError] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [userRole, setUserRole] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+
+  // Edit Modal State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [designers, setDesigners] = useState<User[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState("");
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
     const storedName = localStorage.getItem("userName");
+    const storedEmail = localStorage.getItem("userEmail");
 
     if (!storedName || storedRole !== "admin") {
       router.push("/dashboard");
     } else {
       setUserRole(storedRole);
+      setAdminEmail(storedEmail || "");
       fetchUsers();
+      fetchDesigners();
     }
   }, [router]);
+
+  const fetchDesigners = async () => {
+    try {
+      const data = await getUsers("designer");
+      setDesigners(data);
+    } catch (err) {
+      console.error("Failed to fetch designers", err);
+    }
+  };
 
   const fetchUsers = async (filter?: string) => {
     setLoading(true);
@@ -57,10 +78,43 @@ export default function UsersPage() {
     
     try {
       await deleteUser(id);
-      // Re-fetch users to show updated status
       fetchUsers(roleFilter);
     } catch (err: any) {
       setError(err.message || "Failed to deactivate user.");
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setIsUpdating(true);
+    setUpdateMsg("");
+    setError("");
+
+    try {
+      const payload: any = {
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+        projectName: editingUser.projectName || "",
+      };
+
+      if (editingUser.role === "customer" && (editingUser as any).assignedDesignerId) {
+        payload.assignedDesignerId = (editingUser as any).assignedDesignerId;
+      }
+
+      await updateUser(editingUser.id, payload);
+      setUpdateMsg("User updated successfully!");
+      fetchUsers(roleFilter);
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setUpdateMsg("");
+        setEditingUser(null);
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message || "Update failed.");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -121,6 +175,7 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Email</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Role</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Project</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Assign Designer</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Date Created</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
@@ -155,6 +210,15 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">{user.projectName || "N/A"}</td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {user.assignedDesigner ? (
+                          <div className="flex flex-col">
+                             <span className="font-bold text-[#4d2c1e]">{user.assignedDesigner.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-300 italic">None</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5">
                           <div className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
@@ -167,19 +231,34 @@ export default function UsersPage() {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        {user.isActive && user.role !== "admin" && (
-                          <button 
-                            onClick={() => handleDeactivate(user.id)}
-                            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 hover:underline"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                        {!user.isActive && (
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300 italic">
-                             Deactivated
-                           </span>
-                        )}
+                        <div className="flex justify-end gap-3">
+                          {user.email !== adminEmail && (
+                            <button 
+                              onClick={() => {
+                                setEditingUser({ ...user });
+                                setIsEditModalOpen(true);
+                                setError("");
+                                setUpdateMsg("");
+                              }}
+                              className="text-[10px] font-black uppercase tracking-widest text-[#4d2c1e] hover:underline"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {user.isActive && user.role !== "admin" && (
+                            <button 
+                              onClick={() => handleDeactivate(user.id)}
+                              className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 hover:underline"
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                          {!user.isActive && (
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-gray-300 italic">
+                               Deactivated
+                             </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -195,6 +274,100 @@ export default function UsersPage() {
           </div>
         </div>
       </main>
+      {/* Edit User Modal */}
+      {isEditModalOpen && editingUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Edit Profile</h2>
+              <button 
+                onClick={() => {
+                   setIsEditModalOpen(false);
+                   setEditingUser(null);
+                }}
+                className="text-gray-400 hover:text-black"
+                disabled={isUpdating}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={editingUser.name}
+                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={editingUser.role}
+                    onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="designer">Designer</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Project Name</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={editingUser.projectName || ""}
+                    onChange={(e) => setEditingUser({ ...editingUser, projectName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {editingUser.role === "customer" && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Assign Designer</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={(editingUser as any).assignedDesignerId || (editingUser.assignedDesigner?.id || "")}
+                    onChange={(e) => setEditingUser({ ...editingUser, assignedDesignerId: e.target.value } as any)}
+                  >
+                    <option value="">Select a designer</option>
+                    {designers.map(d => (
+                      <option key={d.id} value={d.id}>{d.name} ({d.email})</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {updateMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{updateMsg}</div>}
+              {error && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{error}</div>}
+
+              <button
+                type="submit"
+                disabled={isUpdating}
+                className="w-full rounded-full bg-[#ffcb05] py-3.5 text-sm font-black uppercase tracking-widest text-black shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isUpdating ? "Saving Changes..." : "Save Changes"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
