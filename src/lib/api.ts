@@ -130,3 +130,61 @@ export async function updateUser(id: string, payload: { name: string; email: str
   }
   return response.json();
 }
+
+export async function createCategory(payload: { name: string; type: 'material' | 'furniture'; parent_id?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Category creation failed');
+  }
+  return response.json();
+}
+
+export async function getCategories(type?: 'material' | 'furniture') {
+  let url = `${BASE_URL.replace('/auth', '')}/categories`;
+  if (type) {
+    url += `?type=${type}`;
+  }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch categories');
+  }
+  return response.json();
+}
+
+export async function deleteCategory(id: string) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to deactivate category');
+  }
+  return response.json();
+}
+
+export async function updateCategory(id: string, payload: { name?: string; type: 'material' | 'furniture'; parent_id?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update category');
+  }
+  return response.json();
+}

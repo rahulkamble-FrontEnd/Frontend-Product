@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logout, createUser } from "@/lib/api";
+import { logout, createUser, createCategory } from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,6 +21,17 @@ export default function DashboardPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState("");
   const [createError, setCreateError] = useState("");
+
+  // Category Modal State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCatData, setNewCatData] = useState({
+    name: "",
+    type: "material" as "material" | "furniture",
+    parent_id: ""
+  });
+  const [isCreatingCat, setIsCreatingCat] = useState(false);
+  const [catMsg, setCatMsg] = useState("");
+  const [catError, setCatError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -66,6 +77,35 @@ export default function DashboardPage() {
       setCreateError(err.message || "Failed to create user.");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingCat(true);
+    setCatMsg("");
+    setCatError("");
+    try {
+      // API expects name, type, and optionally parent_id
+      const payload: any = { 
+        name: newCatData.name, 
+        type: newCatData.type 
+      };
+      if (newCatData.parent_id.trim()) {
+        payload.parent_id = newCatData.parent_id.trim();
+      }
+      
+      await createCategory(payload);
+      setCatMsg("Category created successfully!");
+      setNewCatData({ name: "", type: "material", parent_id: "" });
+      setTimeout(() => {
+        setIsCategoryModalOpen(false);
+        setCatMsg("");
+      }, 2000);
+    } catch (err: any) {
+      setCatError(err.message || "Failed to create category.");
+    } finally {
+      setIsCreatingCat(false);
     }
   };
 
@@ -126,10 +166,22 @@ export default function DashboardPage() {
                     Manage Users
                   </button>
                   <button 
+                    onClick={() => router.push("/categories")}
+                    className="hidden rounded-md border-2 border-[#4d2c1e] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#4d2c1e] md:block shadow-sm hover:bg-[#4d2c1e] hover:text-white transition-all mr-1"
+                  >
+                    Manage Categories
+                  </button>
+                  <button 
                     onClick={() => setIsCreateModalOpen(true)}
                     className="hidden rounded-md bg-black px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#ffcb05] md:block shadow-sm hover:opacity-90 mr-1"
                   >
                     Create User
+                  </button>
+                  <button 
+                    onClick={() => setIsCategoryModalOpen(true)}
+                    className="hidden rounded-md bg-[#4d2c1e] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#ffcb05] md:block shadow-sm hover:opacity-95 mr-1"
+                  >
+                    Create Category
                   </button>
                 </>
             )}
@@ -302,6 +354,76 @@ export default function DashboardPage() {
                 className="w-full rounded-full bg-[#ffcb05] py-3.5 text-sm font-black uppercase tracking-widest text-black shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
                 {isCreating ? "Creating User..." : "Confirm & Create"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Category Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Create New Category</h2>
+              <button 
+                onClick={() => {
+                   setIsCategoryModalOpen(false);
+                   setCatError("");
+                   setCatMsg("");
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category Name</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newCatData.name}
+                  onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
+                  placeholder="e.g. Laminates"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
+                <select
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newCatData.type}
+                  onChange={(e) => setNewCatData({ ...newCatData, type: e.target.value as any })}
+                >
+                  <option value="material">Material</option>
+                  <option value="furniture">Furniture</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent ID (Optional)</label>
+                <input
+                  type="text"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newCatData.parent_id}
+                  onChange={(e) => setNewCatData({ ...newCatData, parent_id: e.target.value })}
+                  placeholder="e.g. csaaa1scasa"
+                />
+              </div>
+
+              {catError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{catError}</div>}
+              {catMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{catMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={isCreatingCat}
+                className="w-full rounded-full bg-[#ffcb05] py-3.5 text-sm font-black uppercase tracking-widest text-black shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isCreatingCat ? "Creating Category..." : "Confirm & Create"}
               </button>
             </form>
           </div>
