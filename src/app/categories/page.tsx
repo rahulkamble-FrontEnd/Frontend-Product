@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCategories, createCategory, deleteCategory, updateCategory } from "@/lib/api";
+import { getCategories, createCategory, deleteCategory, updateCategory, getCategoryBySlug } from "@/lib/api";
 
 type Category = {
   id: string;
@@ -37,6 +37,11 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isUpdatingCat, setIsUpdatingCat] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
+
+  // Detail Modal State
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedCatDetails, setSelectedCatDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
@@ -136,6 +141,21 @@ export default function CategoriesPage() {
       setError(err.message || "Failed to update category.");
     } finally {
       setIsUpdatingCat(false);
+    }
+  };
+
+  const handleViewDetails = async (slug: string) => {
+    setLoadingDetails(true);
+    setIsDetailModalOpen(true);
+    setError("");
+    try {
+      const data = await getCategoryBySlug(slug);
+      setSelectedCatDetails(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load category details.");
+      setIsDetailModalOpen(false);
+    } finally {
+      setLoadingDetails(false);
     }
   };
 
@@ -247,6 +267,12 @@ export default function CategoriesPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-3">
+                          <button 
+                            onClick={() => handleViewDetails(cat.slug)}
+                            className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:underline"
+                          >
+                            Details
+                          </button>
                           <button 
                             onClick={() => {
                               setEditingCategory({ ...cat });
@@ -422,6 +448,81 @@ export default function CategoriesPage() {
                 {isUpdatingCat ? "Saving Changes..." : "Save Changes"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Category Details Modal (Hierarchy) */}
+      {isDetailModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-8 shadow-2xl">
+             <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Category Details</h2>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Hierarchy & Info</p>
+              </div>
+              <button 
+                onClick={() => {
+                   setIsDetailModalOpen(false);
+                   setSelectedCatDetails(null);
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            {loadingDetails ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-4">
+                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
+                 <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Loading hierarchy...</span>
+              </div>
+            ) : selectedCatDetails && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-6 rounded-xl bg-gray-50 p-6 border border-gray-100">
+                   <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
+                      <p className="text-sm font-black text-gray-900">{selectedCatDetails.name}</p>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Slug</label>
+                      <p className="text-xs font-mono text-gray-500">{selectedCatDetails.slug}</p>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
+                      <p className="mt-1"><span className="rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">{selectedCatDetails.type}</span></p>
+                   </div>
+                   <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                      <p className="text-xs font-bold text-green-600 uppercase tracking-widest">Active</p>
+                   </div>
+                </div>
+
+                <div>
+                   <h3 className="text-xs font-black uppercase tracking-widest text-[#4d2c1e] mb-3 flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                      Sub-Categories (Children)
+                   </h3>
+                   <div className="max-h-48 overflow-y-auto pr-2 space-y-2">
+                      {selectedCatDetails.children && selectedCatDetails.children.length > 0 ? (
+                        selectedCatDetails.children.map((child: any) => (
+                          <div key={child.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                             <div className="flex items-center gap-3">
+                                <div className="h-2 w-2 rounded-full bg-black" />
+                                <span className="text-xs font-bold text-gray-700">{child.name}</span>
+                             </div>
+                             <span className="text-[9px] font-mono text-gray-300">{child.slug}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-8 text-center rounded-xl border border-dashed border-gray-200">
+                           <p className="text-xs font-bold text-gray-400 italic">No sub-categories found.</p>
+                        </div>
+                      )}
+                   </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

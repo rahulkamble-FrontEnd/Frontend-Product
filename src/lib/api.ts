@@ -188,3 +188,16 @@ export async function updateCategory(id: string, payload: { name?: string; type:
   }
   return response.json();
 }
+
+export async function getCategoryBySlug(slug: string) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${slug}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch category details');
+  }
+  return response.json();
+}
