@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logout, createUser, createCategory } from "@/lib/api";
+import { logout, createUser, createCategory, createProduct, type CreateProductPayload } from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -33,6 +33,27 @@ export default function DashboardPage() {
   const [catMsg, setCatMsg] = useState("");
   const [catError, setCatError] = useState("");
 
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [newProductData, setNewProductData] = useState({
+    name: "",
+    sku: "",
+    brand: "",
+    description: "",
+    materialType: "",
+    colorName: "",
+    dimensions: "",
+    status: "draft",
+    performanceRating: 4,
+    durabilityRating: 3.5,
+    priceCategory: 2,
+    maintenanceRating: 4,
+    prosText: "",
+    consText: ""
+  });
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [productMsg, setProductMsg] = useState("");
+  const [productError, setProductError] = useState("");
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
@@ -52,7 +73,7 @@ export default function DashboardPage() {
       await logout({ email, password });
       localStorage.clear();
       router.push("/login");
-    } catch (err) {
+    } catch {
       localStorage.clear();
       router.push("/login");
     } finally {
@@ -73,8 +94,8 @@ export default function DashboardPage() {
         setIsCreateModalOpen(false);
         setCreateMsg("");
       }, 2000);
-    } catch (err: any) {
-      setCreateError(err.message || "Failed to create user.");
+    } catch (err: unknown) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create user.");
     } finally {
       setIsCreating(false);
     }
@@ -86,8 +107,7 @@ export default function DashboardPage() {
     setCatMsg("");
     setCatError("");
     try {
-      // API expects name, type, and optionally parent_id
-      const payload: any = { 
+      const payload: { name: string; type: "material" | "furniture"; parent_id?: string } = {
         name: newCatData.name, 
         type: newCatData.type 
       };
@@ -102,10 +122,77 @@ export default function DashboardPage() {
         setIsCategoryModalOpen(false);
         setCatMsg("");
       }, 2000);
-    } catch (err: any) {
-      setCatError(err.message || "Failed to create category.");
+    } catch (err: unknown) {
+      setCatError(err instanceof Error ? err.message : "Failed to create category.");
     } finally {
       setIsCreatingCat(false);
+    }
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCreatingProduct(true);
+    setProductMsg("");
+    setProductError("");
+
+    if (userRole !== "admin") {
+      setIsCreatingProduct(false);
+      setProductError("Only admin can create products.");
+      return;
+    }
+
+    const splitList = (value: string) =>
+      value
+        .split(/\r?\n|,/g)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    try {
+      const payload: CreateProductPayload = {
+        name: newProductData.name,
+        sku: newProductData.sku,
+        brand: newProductData.brand,
+        description: newProductData.description,
+        materialType: newProductData.materialType,
+        colorName: newProductData.colorName,
+        dimensions: newProductData.dimensions,
+        status: newProductData.status,
+        performanceRating: Number(newProductData.performanceRating),
+        durabilityRating: Number(newProductData.durabilityRating),
+        priceCategory: Number(newProductData.priceCategory),
+        maintenanceRating: Number(newProductData.maintenanceRating),
+        pros: splitList(newProductData.prosText),
+        cons: splitList(newProductData.consText)
+      };
+
+      const created = await createProduct(payload);
+      setProductMsg(
+        `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`
+      );
+      setNewProductData({
+        name: "",
+        sku: "",
+        brand: "",
+        description: "",
+        materialType: "",
+        colorName: "",
+        dimensions: "",
+        status: "draft",
+        performanceRating: 4,
+        durabilityRating: 3.5,
+        priceCategory: 2,
+        maintenanceRating: 4,
+        prosText: "",
+        consText: ""
+      });
+      setTimeout(() => {
+        setIsProductModalOpen(false);
+        setProductMsg("");
+      }, 2000);
+    } catch (err: unknown) {
+      setProductError(err instanceof Error ? err.message : "Failed to create product.");
+    } finally {
+      setIsCreatingProduct(false);
     }
   };
 
@@ -182,6 +269,12 @@ export default function DashboardPage() {
                     className="hidden rounded-md bg-[#4d2c1e] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#ffcb05] md:block shadow-sm hover:opacity-95 mr-1"
                   >
                     Create Category
+                  </button>
+                  <button 
+                    onClick={() => setIsProductModalOpen(true)}
+                    className="hidden rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white md:block shadow-sm hover:opacity-95"
+                  >
+                    Create Product
                   </button>
                 </>
             )}
@@ -397,7 +490,10 @@ export default function DashboardPage() {
                   required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={newCatData.type}
-                  onChange={(e) => setNewCatData({ ...newCatData, type: e.target.value as any })}
+                  onChange={(e) => {
+                    const nextType = e.target.value === "furniture" ? "furniture" : "material";
+                    setNewCatData({ ...newCatData, type: nextType });
+                  }}
                 >
                   <option value="material">Material</option>
                   <option value="furniture">Furniture</option>
@@ -424,6 +520,205 @@ export default function DashboardPage() {
                 className="w-full rounded-full bg-[#ffcb05] py-3.5 text-sm font-black uppercase tracking-widest text-black shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
                 {isCreatingCat ? "Creating Category..." : "Confirm & Create"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
+              <button
+                onClick={() => {
+                  setIsProductModalOpen(false);
+                  setProductError("");
+                  setProductMsg("");
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.name}
+                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                    placeholder="e.g. Classic Sheesham Wood Coffee Table"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.status}
+                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SKU</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.sku}
+                    onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
+                    placeholder="e.g. COF-SHM-055"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.brand}
+                    onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
+                    placeholder="e.g. RusticHome"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.materialType}
+                    onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
+                    placeholder="e.g. Sheesham Wood"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.colorName}
+                    onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
+                    placeholder="e.g. Natural Brown"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.dimensions}
+                    onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
+                    placeholder="e.g. 100cm x 60cm x 45cm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
+                <textarea
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                  value={newProductData.description}
+                  onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
+                  placeholder="A sturdy and elegant coffee table made from solid sheesham wood."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.performanceRating}
+                    onChange={(e) => setNewProductData({ ...newProductData, performanceRating: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.durabilityRating}
+                    onChange={(e) => setNewProductData({ ...newProductData, durabilityRating: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
+                  <input
+                    type="number"
+                    step="1"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.priceCategory}
+                    onChange={(e) => setNewProductData({ ...newProductData, priceCategory: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.maintenanceRating}
+                    onChange={(e) => setNewProductData({ ...newProductData, maintenanceRating: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros</label>
+                  <textarea
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                    value={newProductData.prosText}
+                    onChange={(e) => setNewProductData({ ...newProductData, prosText: e.target.value })}
+                    placeholder={"Strong build\nNatural finish\nCompact design"}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons</label>
+                  <textarea
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                    value={newProductData.consText}
+                    onChange={(e) => setNewProductData({ ...newProductData, consText: e.target.value })}
+                    placeholder={"Needs polishing over time"}
+                  />
+                </div>
+              </div>
+
+              {productError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productError}</div>}
+              {productMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{productMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={isCreatingProduct}
+                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isCreatingProduct ? "Creating Product..." : "Confirm & Create"}
               </button>
             </form>
           </div>
