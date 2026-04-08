@@ -5,7 +5,38 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/
  * All requests include credentials: 'include' for cross-origin cookie support.
  */
 
-export async function login(payload: any) {
+export type CreateProductPayload = {
+  name: string;
+  sku: string;
+  brand: string;
+  description: string;
+  materialType: string;
+  colorName: string;
+  dimensions: string;
+  status: string;
+  performanceRating: number;
+  durabilityRating: number;
+  priceCategory: number;
+  maintenanceRating: number;
+  pros: string[];
+  cons: string[];
+};
+
+export async function createProduct(payload: CreateProductPayload) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Product creation failed');
+  }
+  return response.json();
+}
+
+export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -19,7 +50,7 @@ export async function login(payload: any) {
   return response.json();
 }
 
-export async function logout(payload: any) {
+export async function logout(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/logout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -127,6 +158,77 @@ export async function updateUser(id: string, payload: { name: string; email: str
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to update user');
+  }
+  return response.json();
+}
+
+export async function createCategory(payload: { name: string; type: 'material' | 'furniture'; parent_id?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Category creation failed');
+  }
+  return response.json();
+}
+
+export async function getCategories(type?: 'material' | 'furniture') {
+  let url = `${BASE_URL.replace('/auth', '')}/categories`;
+  if (type) {
+    url += `?type=${type}`;
+  }
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch categories');
+  }
+  return response.json();
+}
+
+export async function deleteCategory(id: string) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to deactivate category');
+  }
+  return response.json();
+}
+
+export async function updateCategory(id: string, payload: { name?: string; type: 'material' | 'furniture'; parent_id?: string }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update category');
+  }
+  return response.json();
+}
+
+export async function getCategoryBySlug(slug: string) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${slug}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch category details');
   }
   return response.json();
 }
