@@ -80,6 +80,46 @@ export type ProductListResponse = {
   limit: number;
 };
 
+export type ProductCompareCategory = {
+  categoryId: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+};
+
+export type ProductCompareItem = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  brand: string;
+  materialType: string;
+  finishType: string | null;
+  colorName: string;
+  thickness: string | null;
+  dimensions: string;
+  performanceRating: number;
+  durabilityRating: number;
+  priceCategory: number;
+  maintenanceRating: number;
+  primaryImageUrl: string | null;
+  categories: ProductCompareCategory[];
+};
+
+export type ProductCompareFieldValue = string | number | null;
+
+export type ProductCompareField = {
+  key: string;
+  values: ProductCompareFieldValue[];
+};
+
+export type ProductCompareResponse = {
+  ids: string[];
+  missingIds: string[];
+  products: ProductCompareItem[];
+  fields: ProductCompareField[];
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -110,6 +150,27 @@ export async function getProducts(params?: {
     throw new Error(errorData.message || 'Failed to fetch products');
   }
   return response.json() as Promise<ProductListResponse>;
+}
+
+export async function getProductsCompare(ids: string[]) {
+  const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+  if (uniqueIds.length < 2 || uniqueIds.length > 4) {
+    throw new Error('Compare requires 2 to 4 product ids');
+  }
+
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/products/compare`);
+  url.searchParams.set('ids', uniqueIds.join(','));
+
+  const response = await fetch(url.toString(), {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to compare products');
+  }
+  return response.json() as Promise<ProductCompareResponse>;
 }
 
 export async function getProductImages(productId: string) {

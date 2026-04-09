@@ -11,10 +11,12 @@ import {
   uploadProductImage,
   bindProductCategories,
   getProducts,
+  getProductsCompare,
   getCategories,
   type CreateProductPayload,
   type ProductImageUploadResponse,
-  type ProductListItem
+  type ProductListItem,
+  type ProductCompareResponse
 } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -119,6 +121,12 @@ export default function DashboardPage() {
     includeCategories: false
   });
 
+  const [compareSelectedIds, setCompareSelectedIds] = useState<Set<string>>(new Set());
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [compareError, setCompareError] = useState("");
+  const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
+
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
@@ -144,6 +152,47 @@ export default function DashboardPage() {
       if (normalized.length > 0) return pickBestImageUrl(normalized);
     }
     return null;
+  };
+
+  const compareSelectedList = Array.from(compareSelectedIds);
+  const isSelectedForCompare = (id: string) => compareSelectedIds.has(id);
+
+  const toggleCompareSelection = (id: string) => {
+    setCompareError("");
+    setCompareSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (next.size >= 4) {
+        setCompareError("You can compare maximum 4 products.");
+        return next;
+      }
+      next.add(id);
+      return next;
+    });
+  };
+
+  const clearCompareSelection = () => {
+    setCompareSelectedIds(new Set());
+    setCompareError("");
+    setCompareData(null);
+  };
+
+  const openCompare = async () => {
+    setCompareError("");
+    setIsCompareOpen(true);
+    setIsComparing(true);
+    setCompareData(null);
+    try {
+      const data = await getProductsCompare(Array.from(compareSelectedIds));
+      setCompareData(data);
+    } catch (err: unknown) {
+      setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
+    } finally {
+      setIsComparing(false);
+    }
   };
 
   const filtersKey = (f: {
@@ -966,10 +1015,20 @@ export default function DashboardPage() {
 
                     <button
                       type="button"
-                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
-                      onClick={(e) => e.stopPropagation()}
+                      className={[
+                        "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-sm",
+                        isSelectedForCompare(p.id) ? "bg-black text-white" : "bg-white/90 text-gray-900"
+                      ].join(" ")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCompareSelection(p.id);
+                      }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                      {isSelectedForCompare(p.id) ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3H5a2 2 0 0 0-2 2v5"/><path d="M14 3h5a2 2 0 0 1 2 2v5"/><path d="M21 14v5a2 2 0 0 1-2 2h-5"/><path d="M3 14v5a2 2 0 0 0 2 2h5"/></svg>
+                      )}
                     </button>
                   </div>
 
@@ -988,8 +1047,139 @@ export default function DashboardPage() {
           )}
         </div>
 
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+              Compare: {compareSelectedList.length}/4 selected
+            </div>
+            {compareSelectedList.length > 0 && (
+              <div className="text-[11px] font-bold text-gray-600 break-all">
+                {compareSelectedList.join(", ")}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={compareSelectedList.length < 2 || isComparing}
+              onClick={openCompare}
+              className="rounded-full bg-black px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+            >
+              {isComparing ? "Comparing..." : "Compare"}
+            </button>
+            <button
+              type="button"
+              disabled={compareSelectedList.length === 0}
+              onClick={clearCompareSelection}
+              className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {compareError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {compareError}
+          </div>
+        )}
+
         <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
       </section>
+
+      {isCompareOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Compare Products</h2>
+                <div className="mt-1 text-[11px] font-bold text-gray-600 break-all">
+                  {compareSelectedList.join(", ")}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsCompareOpen(false);
+                  setCompareError("");
+                }}
+                className="text-gray-400 hover:text-black"
+                type="button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            {isComparing && (
+              <div className="text-sm font-bold text-gray-600 py-10 text-center">Loading comparison...</div>
+            )}
+
+            {!isComparing && compareError && (
+              <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{compareError}</div>
+            )}
+
+            {!isComparing && compareData && (
+              <div className="space-y-4">
+                {compareData.missingIds?.length > 0 && (
+                  <div className="text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg">
+                    Missing IDs: {compareData.missingIds.join(", ")}
+                  </div>
+                )}
+
+                <div className="overflow-auto rounded-xl border border-gray-100">
+                  <table className="min-w-full text-left">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="border-b border-gray-100">
+                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500">Field</th>
+                        {compareData.products.map((p) => {
+                          const url = typeof p.primaryImageUrl === "string" && cleanUrl(p.primaryImageUrl) ? cleanUrl(p.primaryImageUrl) : null;
+                          return (
+                            <th key={p.id} className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-gray-100">
+                                  {url ? (
+                                    <Image src={url} alt={p.name} fill sizes="48px" className="object-cover" />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      No Image
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-[220px]">
+                                  <div className="text-[11px] font-black text-gray-900 leading-snug">{p.name}</div>
+                                  <div className="mt-0.5 text-[10px] font-bold text-gray-500">SKU: {p.sku}</div>
+                                  <div className="mt-0.5 text-[10px] font-bold text-gray-400 break-all">{p.id}</div>
+                                </div>
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {compareData.fields.map((field) => (
+                        <tr key={field.key} className="border-b border-gray-100">
+                          <td className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 whitespace-nowrap">
+                            {field.key}
+                          </td>
+                          {compareData.products.map((p, idx) => {
+                            const v = field.values?.[idx];
+                            const display = v === null || typeof v === "undefined" ? "-" : String(v);
+                            return (
+                              <td key={`${field.key}-${p.id}`} className="px-4 py-3 text-[12px] font-bold text-gray-800">
+                                {display}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* User Creation Modal */}
       {isCreateModalOpen && (
