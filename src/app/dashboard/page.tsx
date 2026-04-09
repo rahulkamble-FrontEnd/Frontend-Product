@@ -1,14 +1,32 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { logout, createUser, createCategory, createProduct, type CreateProductPayload } from "@/lib/api";
+import {
+  logout,
+  createUser,
+  createCategory,
+  createProduct,
+  uploadProductImage,
+  bindProductCategories,
+  getProducts,
+  getProductsCompare,
+  getCategories,
+  type CreateProductPayload,
+  type ProductImageUploadResponse,
+  type ProductListItem,
+  type ProductCompareResponse
+} from "@/lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
+  const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
+  const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,6 +71,206 @@ export default function DashboardPage() {
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [productMsg, setProductMsg] = useState("");
   const [productError, setProductError] = useState("");
+  const [createProductImageFile, setCreateProductImageFile] = useState<File | null>(null);
+  const [createdProductImage, setCreatedProductImage] = useState<ProductImageUploadResponse | null>(null);
+
+  const [isUploadImageModalOpen, setIsUploadImageModalOpen] = useState(false);
+  const [uploadProductId, setUploadProductId] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadMsg, setUploadMsg] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<ProductImageUploadResponse | null>(null);
+
+  const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
+  const [bindProductId, setBindProductId] = useState("");
+  type Category = { id: string; name: string; type: "material" | "furniture" };
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
+  const [isBindingCats, setIsBindingCats] = useState(false);
+  const [bindMsg, setBindMsg] = useState("");
+  const [bindError, setBindError] = useState("");
+  const [createSelectedCategoryIds, setCreateSelectedCategoryIds] = useState<Set<string>>(new Set());
+  const [isCreateCategoriesDropdownOpen, setIsCreateCategoriesDropdownOpen] = useState(false);
+
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsLimit, setProductsLimit] = useState(20);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [productsError, setProductsError] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft">("");
+  const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
+  const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [filterQ, setFilterQ] = useState("");
+  const [filterIncludeImages, setFilterIncludeImages] = useState(true);
+  const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<{
+    status?: "" | "active" | "draft";
+    categoryType?: "" | "material" | "furniture";
+    categoryId?: string;
+    q?: string;
+    includeImages: boolean;
+    includeCategories: boolean;
+  }>({
+    status: "",
+    categoryType: "",
+    categoryId: "",
+    q: "",
+    includeImages: true,
+    includeCategories: false
+  });
+
+  const [compareSelectedIds, setCompareSelectedIds] = useState<Set<string>>(new Set());
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+  const [compareError, setCompareError] = useState("");
+  const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
+
+  const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+
+  const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
+    const list = Array.isArray(images) ? images : [];
+    const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
+    if (primary?.url) return cleanUrl(primary.url);
+    const byOrder = [...list].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+    const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
+    return first?.url ? cleanUrl(first.url) : null;
+  };
+
+  const inlineProductImageUrl = (p: ProductListItem) => {
+    const obj = p as unknown as Record<string, unknown>;
+    const url = obj.imageUrl;
+    if (typeof url === "string" && cleanUrl(url)) return cleanUrl(url);
+    const primaryUrl = obj.primaryImageUrl;
+    if (typeof primaryUrl === "string" && cleanUrl(primaryUrl)) return cleanUrl(primaryUrl);
+    const images = obj.images;
+    if (Array.isArray(images)) {
+      const normalized = images
+        .map((raw) => raw as ProductImageUploadResponse)
+        .filter((img) => typeof img?.url === "string" && cleanUrl(img.url));
+      if (normalized.length > 0) return pickBestImageUrl(normalized);
+    }
+    return null;
+  };
+
+  const compareSelectedList = Array.from(compareSelectedIds);
+  const isSelectedForCompare = (id: string) => compareSelectedIds.has(id);
+
+  const toggleCompareSelection = (id: string) => {
+    setCompareError("");
+    setCompareSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        return next;
+      }
+      if (next.size >= 4) {
+        setCompareError("You can compare maximum 4 products.");
+        return next;
+      }
+      next.add(id);
+      return next;
+    });
+  };
+
+  const clearCompareSelection = () => {
+    setCompareSelectedIds(new Set());
+    setCompareError("");
+    setCompareData(null);
+  };
+
+  const openCompare = async () => {
+    setCompareError("");
+    setIsCompareOpen(true);
+    setIsComparing(true);
+    setCompareData(null);
+    try {
+      const data = await getProductsCompare(Array.from(compareSelectedIds));
+      setCompareData(data);
+    } catch (err: unknown) {
+      setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
+  const filtersKey = (f: {
+    status?: "" | "active" | "draft";
+    categoryType?: "" | "material" | "furniture";
+    categoryId?: string;
+    q?: string;
+    includeImages: boolean;
+    includeCategories: boolean;
+  }) =>
+    [
+      f.status || "",
+      f.categoryType || "",
+      f.categoryId || "",
+      f.q || "",
+      f.includeImages ? "1" : "0",
+      f.includeCategories ? "1" : "0",
+    ].join("|");
+
+  const buildAppliedFilters = () => ({
+    status: filterStatus,
+    categoryType: filterCategoryType,
+    categoryId: filterCategoryId.trim(),
+    q: filterQ.trim(),
+    includeImages: filterIncludeImages,
+    includeCategories: filterIncludeCategories,
+  });
+
+  const applyProductFilters = () => {
+    const next = buildAppliedFilters();
+    if (filtersKey(next) === filtersKey(appliedFilters)) return;
+    setProductsPage(1);
+    setAppliedFilters(next);
+  };
+
+  useEffect(() => {
+    const next = buildAppliedFilters();
+    if (filtersKey(next) === filtersKey(appliedFilters)) return;
+    setProductsPage(1);
+    setAppliedFilters(next);
+  }, [filterStatus, filterCategoryType, filterIncludeImages, filterIncludeCategories]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      const next = buildAppliedFilters();
+      if (filtersKey(next) === filtersKey(appliedFilters)) return;
+      setProductsPage(1);
+      setAppliedFilters(next);
+    }, 450);
+    return () => window.clearTimeout(handle);
+  }, [filterQ, filterCategoryId]);
+
+  const loadProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+    setProductsError("");
+    try {
+      const res = await getProducts({
+        page: productsPage,
+        limit: productsLimit,
+        status: appliedFilters.status || undefined,
+        categoryType: appliedFilters.categoryType || undefined,
+        categoryId: appliedFilters.categoryId?.trim() || undefined,
+        q: appliedFilters.q?.trim() || undefined,
+        includeImages: appliedFilters.includeImages,
+        includeCategories: appliedFilters.includeCategories,
+      });
+      setProducts(res.items || []);
+      setProductsTotal(res.total || 0);
+      setProductsPage(res.page || 1);
+      setProductsLimit(res.limit || productsLimit);
+    } catch (err: unknown) {
+      setProductsError(err instanceof Error ? err.message : "Failed to fetch products.");
+      setProducts([]);
+      setProductsTotal(0);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [appliedFilters, productsLimit, productsPage]);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -64,6 +282,21 @@ export default function DashboardPage() {
       setUserRole(storedRole || "");
     }
   }, [router]);
+
+  useEffect(() => {
+    const close = () => {
+      setIsUsersMenuOpen(false);
+      setIsCategoriesMenuOpen(false);
+      setIsProductsMenuOpen(false);
+    };
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, []);
+
+  useEffect(() => {
+    if (!userName) return;
+    loadProducts();
+  }, [loadProducts, userName]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -134,6 +367,7 @@ export default function DashboardPage() {
     setIsCreatingProduct(true);
     setProductMsg("");
     setProductError("");
+    setCreatedProductImage(null);
 
     if (userRole !== "admin") {
       setIsCreatingProduct(false);
@@ -166,9 +400,35 @@ export default function DashboardPage() {
       };
 
       const created = await createProduct(payload);
-      setProductMsg(
-        `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`
-      );
+      let uploaded: ProductImageUploadResponse | null = null;
+      if (createProductImageFile) {
+        if (!created?.id) {
+          throw new Error("Product created, but product id is missing so image upload cannot continue.");
+        }
+        uploaded = await uploadProductImage(created.id, createProductImageFile);
+        setCreatedProductImage(uploaded);
+      }
+
+      let bindNote = "";
+      if (createSelectedCategoryIds.size > 0) {
+        if (!created?.id) {
+          throw new Error("Product created, but product id is missing so category binding cannot continue.");
+        }
+        try {
+          const bound = await bindProductCategories(created.id, Array.from(createSelectedCategoryIds));
+          bindNote = ` • Categories added: ${bound.added}`;
+        } catch (err: unknown) {
+          bindNote = " • Category bind failed";
+          setProductError(err instanceof Error ? err.message : "Failed to bind categories.");
+        }
+      }
+
+      setProductMsg(() => {
+        const base = `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`;
+        const imageNote = uploaded?.url ? " • Image uploaded" : createProductImageFile ? " • Image upload skipped" : "";
+        return `${base}${imageNote}${bindNote}`;
+      });
+      loadProducts();
       setNewProductData({
         name: "",
         sku: "",
@@ -185,6 +445,9 @@ export default function DashboardPage() {
         prosText: "",
         consText: ""
       });
+      setCreateProductImageFile(null);
+      setCreateSelectedCategoryIds(new Set());
+      setIsCreateCategoriesDropdownOpen(false);
       setTimeout(() => {
         setIsProductModalOpen(false);
         setProductMsg("");
@@ -196,12 +459,128 @@ export default function DashboardPage() {
     }
   };
 
+  const handleUploadProductImage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploadingImage(true);
+    setUploadMsg("");
+    setUploadError("");
+    setUploadedImage(null);
+
+    if (userRole !== "admin") {
+      setIsUploadingImage(false);
+      setUploadError("Only admin can upload product images.");
+      return;
+    }
+
+    const productId = uploadProductId.trim();
+    if (!productId) {
+      setIsUploadingImage(false);
+      setUploadError("Product ID is required.");
+      return;
+    }
+    if (!uploadFile) {
+      setIsUploadingImage(false);
+      setUploadError("Please select an image file.");
+      return;
+    }
+
+    try {
+      const uploaded = await uploadProductImage(productId, uploadFile);
+      setUploadedImage(uploaded);
+      setUploadMsg("Image uploaded successfully!");
+      setUploadProductId("");
+      setUploadFile(null);
+      loadProducts();
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Failed to upload image.");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadCats = async () => {
+      if (!isBindCategoriesOpen && !isProductModalOpen) return;
+      try {
+        const mats = await getCategories("material");
+        const furns = await getCategories("furniture");
+        const mapped: Category[] = [
+          ...(Array.isArray(mats) ? mats : []),
+          ...(Array.isArray(furns) ? furns : []),
+        ].map((raw) => {
+          const obj = raw as Record<string, unknown>;
+          const id = typeof obj.id === "string" ? obj.id : typeof (obj as Record<string, unknown>)._id === "string" ? String((obj as Record<string, unknown>)._id) : "";
+          const name = typeof obj.name === "string" ? obj.name : "";
+          const type: Category["type"] = obj.type === "furniture" ? "furniture" : "material";
+          return { id, name, type };
+        }).filter((c) => c.id && c.name);
+        setAllCategories(mapped);
+      } catch {
+        setAllCategories([]);
+      }
+    };
+    loadCats();
+  }, [isBindCategoriesOpen, isProductModalOpen]);
+
+  const toggleCategory = (id: string) => {
+    setSelectedCategoryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCreateCategory = (id: string) => {
+    setCreateSelectedCategoryIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBindCategories = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsBindingCats(true);
+    setBindMsg("");
+    setBindError("");
+    if (userRole !== "admin") {
+      setIsBindingCats(false);
+      setBindError("Only admin can bind categories.");
+      return;
+    }
+    const pid = bindProductId.trim();
+    if (!pid) {
+      setIsBindingCats(false);
+      setBindError("Product ID is required.");
+      return;
+    }
+    const ids = Array.from(selectedCategoryIds);
+    if (ids.length === 0) {
+      setIsBindingCats(false);
+      setBindError("Select at least one category.");
+      return;
+    }
+    try {
+      const result = await bindProductCategories(pid, ids);
+      setBindMsg(`Added: ${result.added} • Skipped: ${result.skipped.length} • Invalid: ${result.invalid.length}`);
+      setBindProductId("");
+      setSelectedCategoryIds(new Set());
+      loadProducts();
+    } catch (err: unknown) {
+      setBindError(err instanceof Error ? err.message : "Failed to bind categories.");
+    } finally {
+      setIsBindingCats(false);
+    }
+  };
+
   if (!userName) return null;
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Header */}
-      <header className="border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
+      <header className="relative z-[200] border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -246,36 +625,152 @@ export default function DashboardPage() {
           <div className="flex items-center gap-4">
             {userRole === "admin" && (
                 <>
-                  <button 
-                    onClick={() => router.push("/users")}
-                    className="hidden rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black md:block shadow-sm hover:bg-black hover:text-white transition-all mr-1"
-                  >
-                    Manage Users
-                  </button>
-                  <button 
-                    onClick={() => router.push("/categories")}
-                    className="hidden rounded-md border-2 border-[#4d2c1e] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#4d2c1e] md:block shadow-sm hover:bg-[#4d2c1e] hover:text-white transition-all mr-1"
-                  >
-                    Manage Categories
-                  </button>
-                  <button 
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="hidden rounded-md bg-black px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#ffcb05] md:block shadow-sm hover:opacity-90 mr-1"
-                  >
-                    Create User
-                  </button>
-                  <button 
-                    onClick={() => setIsCategoryModalOpen(true)}
-                    className="hidden rounded-md bg-[#4d2c1e] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#ffcb05] md:block shadow-sm hover:opacity-95 mr-1"
-                  >
-                    Create Category
-                  </button>
-                  <button 
-                    onClick={() => setIsProductModalOpen(true)}
-                    className="hidden rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white md:block shadow-sm hover:opacity-95"
-                  >
-                    Create Product
-                  </button>
+                  <div className="relative hidden md:block">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsUsersMenuOpen((v) => !v);
+                        setIsCategoriesMenuOpen(false);
+                        setIsProductsMenuOpen(false);
+                      }}
+                      className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all"
+                    >
+                      Users
+                      <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    {isUsersMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUsersMenuOpen(false);
+                            router.push("/users");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Users
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUsersMenuOpen(false);
+                            setIsCreateModalOpen(true);
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Create User
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative hidden md:block">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCategoriesMenuOpen((v) => !v);
+                        setIsUsersMenuOpen(false);
+                        setIsProductsMenuOpen(false);
+                      }}
+                      className="rounded-md border-2 border-[#4d2c1e] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm hover:bg-[#4d2c1e] hover:text-white transition-all"
+                    >
+                      Categories
+                      <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    {isCategoriesMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            router.push("/categories");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Categories
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            setIsCategoryModalOpen(true);
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Create Category
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            setIsBindCategoriesOpen(true);
+                            setBindError("");
+                            setBindMsg("");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Bind Categories
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative hidden md:block">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsProductsMenuOpen((v) => !v);
+                        setIsUsersMenuOpen(false);
+                        setIsCategoriesMenuOpen(false);
+                      }}
+                      className="rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white shadow-sm hover:opacity-95"
+                    >
+                      Products
+                      <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    {isProductsMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
+                            setIsProductModalOpen(true);
+                            setProductError("");
+                            setProductMsg("");
+                            setCreateProductImageFile(null);
+                            setCreatedProductImage(null);
+                            setCreateSelectedCategoryIds(new Set());
+                            setIsCreateCategoriesDropdownOpen(false);
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Create Product
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
+                            setIsUploadImageModalOpen(true);
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Upload Image
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
             )}
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
@@ -370,6 +865,321 @@ export default function DashboardPage() {
             Karigari Laminates
          </h3>
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                disabled={isLoadingProducts || productsPage <= 1}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setProductsPage((p) => p + 1)}
+                disabled={isLoadingProducts || products.length < productsLimit}
+                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
+            <input
+              value={filterQ}
+              onChange={(e) => setFilterQ(e.target.value)}
+              placeholder="Search name/sku/brand"
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus((e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : ""))}
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="draft">Draft</option>
+            </select>
+            <select
+              value={filterCategoryType}
+              onChange={(e) => setFilterCategoryType((e.target.value === "material" ? "material" : e.target.value === "furniture" ? "furniture" : ""))}
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="material">Material</option>
+              <option value="furniture">Furniture</option>
+            </select>
+            <input
+              value={filterCategoryId}
+              onChange={(e) => setFilterCategoryId(e.target.value)}
+              placeholder="Category ID"
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            />
+            <select
+              value={productsLimit}
+              onChange={(e) => setProductsLimit(Number(e.target.value))}
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+            <div className="flex items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={filterIncludeImages} onChange={(e) => setFilterIncludeImages(e.target.checked)} />
+                Images
+              </label>
+              <label className="flex items-center gap-1">
+                <input type="checkbox" checked={filterIncludeCategories} onChange={(e) => setFilterIncludeCategories(e.target.checked)} />
+                Categories
+              </label>
+              <button
+                onClick={applyProductFilters}
+                disabled={isLoadingProducts}
+                className="ml-auto rounded-md border-2 border-black px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all disabled:opacity-50"
+              >
+                {isLoadingProducts ? "Loading..." : "Apply"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {productsError && (
+          <div className="mt-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {productsError}
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {isLoadingProducts ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <div className="aspect-[4/3] w-full bg-gray-100" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 w-3/4 bg-gray-100 rounded" />
+                  <div className="h-3 w-1/2 bg-gray-100 rounded" />
+                  <div className="h-3 w-2/3 bg-gray-100 rounded" />
+                </div>
+              </div>
+            ))
+          ) : products.length === 0 ? (
+            <div className="col-span-full text-center text-sm text-gray-500 py-10">No products found.</div>
+          ) : (
+            products.map((p) => {
+              const imageUrl = inlineProductImageUrl(p);
+              const hasImage = Boolean(imageUrl);
+              const statusClass =
+                p.status === "draft"
+                  ? "bg-gray-100 text-gray-700"
+                  : p.status === "active"
+                    ? "bg-green-100 text-green-700"
+                    : "bg-blue-100 text-blue-700";
+
+              return (
+                <div
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/products/${p.slug}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") router.push(`/products/${p.slug}`);
+                  }}
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm cursor-pointer"
+                >
+                  <div className="relative aspect-[4/3] w-full bg-gray-100">
+                    {hasImage ? (
+                      <Image src={imageUrl as string} alt={p.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
+                        No Image
+                      </div>
+                    )}
+
+                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                      <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
+                        {p.status}
+                      </span>
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          hasImage ? "bg-black text-white" : "bg-white text-gray-700 border border-gray-200"
+                        ].join(" ")}
+                      >
+                        {hasImage ? "Image" : "No Image"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={[
+                        "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-sm",
+                        isSelectedForCompare(p.id) ? "bg-black text-white" : "bg-white/90 text-gray-900"
+                      ].join(" ")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCompareSelection(p.id);
+                      }}
+                    >
+                      {isSelectedForCompare(p.id) ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3H5a2 2 0 0 0-2 2v5"/><path d="M14 3h5a2 2 0 0 1 2 2v5"/><path d="M21 14v5a2 2 0 0 1-2 2h-5"/><path d="M3 14v5a2 2 0 0 0 2 2h5"/></svg>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="p-4">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{p.materialType}</div>
+                    <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
+                    <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                      <span>SKU: {p.sku}</span>
+                      <span>{p.brand}</span>
+                    </div>
+                    <div className="mt-2 text-[11px] font-bold text-gray-500">{p.id}</div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+              Compare: {compareSelectedList.length}/4 selected
+            </div>
+            {compareSelectedList.length > 0 && (
+              <div className="text-[11px] font-bold text-gray-600 break-all">
+                {compareSelectedList.join(", ")}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={compareSelectedList.length < 2 || isComparing}
+              onClick={openCompare}
+              className="rounded-full bg-black px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+            >
+              {isComparing ? "Comparing..." : "Compare"}
+            </button>
+            <button
+              type="button"
+              disabled={compareSelectedList.length === 0}
+              onClick={clearCompareSelection}
+              className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {compareError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {compareError}
+          </div>
+        )}
+
+        <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+      </section>
+
+      {isCompareOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Compare Products</h2>
+                <div className="mt-1 text-[11px] font-bold text-gray-600 break-all">
+                  {compareSelectedList.join(", ")}
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsCompareOpen(false);
+                  setCompareError("");
+                }}
+                className="text-gray-400 hover:text-black"
+                type="button"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            {isComparing && (
+              <div className="text-sm font-bold text-gray-600 py-10 text-center">Loading comparison...</div>
+            )}
+
+            {!isComparing && compareError && (
+              <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{compareError}</div>
+            )}
+
+            {!isComparing && compareData && (
+              <div className="space-y-4">
+                {compareData.missingIds?.length > 0 && (
+                  <div className="text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg">
+                    Missing IDs: {compareData.missingIds.join(", ")}
+                  </div>
+                )}
+
+                <div className="overflow-auto rounded-xl border border-gray-100">
+                  <table className="min-w-full text-left">
+                    <thead className="sticky top-0 bg-white">
+                      <tr className="border-b border-gray-100">
+                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500">Field</th>
+                        {compareData.products.map((p) => {
+                          const url = typeof p.primaryImageUrl === "string" && cleanUrl(p.primaryImageUrl) ? cleanUrl(p.primaryImageUrl) : null;
+                          return (
+                            <th key={p.id} className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-gray-100">
+                                  {url ? (
+                                    <Image src={url} alt={p.name} fill sizes="48px" className="object-cover" />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[9px] font-black uppercase tracking-widest text-gray-400">
+                                      No Image
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-[220px]">
+                                  <div className="text-[11px] font-black text-gray-900 leading-snug">{p.name}</div>
+                                  <div className="mt-0.5 text-[10px] font-bold text-gray-500">SKU: {p.sku}</div>
+                                  <div className="mt-0.5 text-[10px] font-bold text-gray-400 break-all">{p.id}</div>
+                                </div>
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {compareData.fields.map((field) => (
+                        <tr key={field.key} className="border-b border-gray-100">
+                          <td className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 whitespace-nowrap">
+                            {field.key}
+                          </td>
+                          {compareData.products.map((p, idx) => {
+                            const v = field.values?.[idx];
+                            const display = v === null || typeof v === "undefined" ? "-" : String(v);
+                            return (
+                              <td key={`${field.key}-${p.id}`} className="px-4 py-3 text-[12px] font-bold text-gray-800">
+                                {display}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* User Creation Modal */}
       {isCreateModalOpen && (
@@ -536,6 +1346,10 @@ export default function DashboardPage() {
                   setIsProductModalOpen(false);
                   setProductError("");
                   setProductMsg("");
+                  setCreateProductImageFile(null);
+                  setCreatedProductImage(null);
+                  setCreateSelectedCategoryIds(new Set());
+                  setIsCreateCategoriesDropdownOpen(false);
                 }}
                 className="text-gray-400 hover:text-black"
               >
@@ -642,6 +1456,61 @@ export default function DashboardPage() {
                 />
               </div>
 
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Product Image (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  onChange={(e) => setCreateProductImageFile(e.target.files?.[0] || null)}
+                />
+                {createProductImageFile && (
+                  <div className="mt-2 text-[11px] font-bold text-gray-500">
+                    Selected: {createProductImageFile.name}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Bind Categories (Optional)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateCategoriesDropdownOpen((v) => !v)}
+                  className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
+                >
+                  <span>
+                    {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
+                  </span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+
+                {isCreateCategoriesDropdownOpen && (
+                  <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                    {allCategories.length === 0 ? (
+                      <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                        {allCategories.map((c) => (
+                          <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={createSelectedCategoryIds.has(c.id)}
+                              onChange={() => toggleCreateCategory(c.id)}
+                            />
+                            <span className="font-medium">{c.name}</span>
+                            <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
@@ -712,6 +1581,21 @@ export default function DashboardPage() {
 
               {productError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productError}</div>}
               {productMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{productMsg}</div>}
+              {createdProductImage?.url && (
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Uploaded URL
+                  </div>
+                  <a
+                    href={createdProductImage.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
+                  >
+                    {createdProductImage.url}
+                  </a>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -719,6 +1603,161 @@ export default function DashboardPage() {
                 className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
                 {isCreatingProduct ? "Creating Product..." : "Confirm & Create"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isBindCategoriesOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Categories to Product</h2>
+              <button
+                onClick={() => {
+                  setIsBindCategoriesOpen(false);
+                  setBindError("");
+                  setBindMsg("");
+                  setBindProductId("");
+                  setSelectedCategoryIds(new Set());
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleBindCategories} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={bindProductId}
+                  onChange={(e) => setBindProductId(e.target.value)}
+                  placeholder="e.g. 0a3a16c9-ad60-43f0-b2cf-b6f4e39ffb3e"
+                />
+              </div>
+
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Categories</div>
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                  {allCategories.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryIds.has(c.id)}
+                        onChange={() => toggleCategory(c.id)}
+                      />
+                      <span className="font-medium">{c.name}</span>
+                      <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                    </label>
+                  ))}
+                  {allCategories.length === 0 && (
+                    <div className="text-xs text-gray-500">No categories available.</div>
+                  )}
+                </div>
+              </div>
+
+              {bindError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{bindError}</div>}
+              {bindMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{bindMsg}</div>}
+
+              <button
+                type="submit"
+                disabled={isBindingCats}
+                className="w-full rounded-full bg-[#4d2c1e] py-3.5 text-sm font-black uppercase tracking-widest text-[#ffcb05] shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isBindingCats ? "Binding..." : "Bind Selected Categories"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isUploadImageModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Upload Product Image</h2>
+              <button
+                onClick={() => {
+                  setIsUploadImageModalOpen(false);
+                  setUploadError("");
+                  setUploadMsg("");
+                  setUploadedImage(null);
+                  setUploadProductId("");
+                  setUploadFile(null);
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleUploadProductImage} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={uploadProductId}
+                  onChange={(e) => setUploadProductId(e.target.value)}
+                  placeholder="e.g. 0a3a16c9-ad60-43f0-b2cf-b6f4e39ffb3e"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Image</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                />
+                {uploadFile && (
+                  <div className="mt-2 text-[11px] font-bold text-gray-500">
+                    Selected: {uploadFile.name}
+                  </div>
+                )}
+              </div>
+
+              {uploadError && (
+                <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+                  {uploadError}
+                </div>
+              )}
+              {uploadMsg && (
+                <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+                  {uploadMsg}
+                </div>
+              )}
+
+              {uploadedImage?.url && (
+                <div className="rounded-lg border border-gray-200 bg-white p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Uploaded URL
+                  </div>
+                  <a
+                    href={uploadedImage.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
+                  >
+                    {uploadedImage.url}
+                  </a>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isUploadingImage}
+                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isUploadingImage ? "Uploading..." : "Upload"}
               </button>
             </form>
           </div>
