@@ -298,6 +298,31 @@ export async function bindProductCategories(productId: string, categoryIds: stri
   return response.json() as Promise<BindProductCategoriesResponse>;
 }
 
+export type DeleteProductCategoryResponse = {
+  message: string;
+};
+
+export async function deleteProductCategory(productId: string, categoryId: string) {
+  const pid = productId.trim();
+  const cid = categoryId.trim();
+  if (!pid) throw new Error("Product id is required");
+  if (!cid) throw new Error("Category id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/categories/${encodeURIComponent(cid)}`,
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to unlink category');
+  }
+  return response.json() as Promise<DeleteProductCategoryResponse>;
+}
+
 export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { deleteProductImage, getProductBySlug, type ProductDetailsResponse, type ProductImageUploadResponse } from "@/lib/api";
+import { deleteProductCategory, deleteProductImage, getProductBySlug, type ProductDetailsResponse, type ProductImageUploadResponse } from "@/lib/api";
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -30,6 +30,9 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
   const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [deleteImageMsg, setDeleteImageMsg] = useState("");
   const [deleteImageError, setDeleteImageError] = useState("");
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [deleteCategoryMsg, setDeleteCategoryMsg] = useState("");
+  const [deleteCategoryError, setDeleteCategoryError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -106,6 +109,36 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
     }
   };
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    setDeleteCategoryMsg("");
+    setDeleteCategoryError("");
+    if (isDeletingCategory) return;
+    if (userRole !== "admin") {
+      setDeleteCategoryError("Only admin can unlink categories.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid || !categoryId) return;
+    const ok = window.confirm("Unlink this category from the product?");
+    if (!ok) return;
+
+    setIsDeletingCategory(true);
+    try {
+      const res = await deleteProductCategory(pid, categoryId);
+      setDeleteCategoryMsg(res.message || "Category unlinked.");
+      setProduct((prev) => {
+        if (!prev) return prev;
+        const list = Array.isArray(prev.categories) ? prev.categories : [];
+        const next = list.filter((c) => c.categoryId !== categoryId && c.id !== categoryId);
+        return { ...prev, categories: next };
+      });
+    } catch (err: unknown) {
+      setDeleteCategoryError(err instanceof Error ? err.message : "Failed to unlink category.");
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
   if (!userName) return null;
 
   return (
@@ -139,6 +172,16 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
         {deleteImageMsg && (
           <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
             {deleteImageMsg}
+          </div>
+        )}
+        {deleteCategoryError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {deleteCategoryError}
+          </div>
+        )}
+        {deleteCategoryMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {deleteCategoryMsg}
           </div>
         )}
 
@@ -250,11 +293,22 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
                       <span
                         key={c.id}
                         className={[
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          "relative inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
                           c.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
                         ].join(" ")}
                       >
                         {c.name}
+                        {userRole === "admin" && (
+                          <button
+                            type="button"
+                            disabled={isDeletingCategory}
+                            onClick={() => handleDeleteCategory(c.categoryId || c.id)}
+                            className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-gray-900 disabled:opacity-50"
+                            aria-label="Unlink category"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                          </button>
+                        )}
                       </span>
                     ))
                   ) : (
