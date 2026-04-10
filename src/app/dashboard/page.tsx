@@ -12,6 +12,7 @@ import {
   bindProductCategories,
   getProducts,
   getProductsCompare,
+  deleteProduct,
   getCategories,
   type CreateProductPayload,
   type ProductImageUploadResponse,
@@ -126,6 +127,9 @@ export default function DashboardPage() {
   const [isComparing, setIsComparing] = useState(false);
   const [compareError, setCompareError] = useState("");
   const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const [deleteProductMsg, setDeleteProductMsg] = useState("");
+  const [deleteProductError, setDeleteProductError] = useState("");
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
@@ -192,6 +196,34 @@ export default function DashboardPage() {
       setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
     } finally {
       setIsComparing(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+    if (userRole !== "admin") {
+      setDeleteProductError("Only admin can delete products.");
+      return;
+    }
+    if (!id) return;
+    const ok = window.confirm("Delete this product? This cannot be undone.");
+    if (!ok) return;
+
+    setIsDeletingProduct(true);
+    try {
+      const res = await deleteProduct(id);
+      setDeleteProductMsg(res.message || "Product deleted.");
+      setCompareSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      await loadProducts();
+    } catch (err: unknown) {
+      setDeleteProductError(err instanceof Error ? err.message : "Failed to delete product.");
+    } finally {
+      setIsDeletingProduct(false);
     }
   };
 
@@ -1030,6 +1062,21 @@ export default function DashboardPage() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3H5a2 2 0 0 0-2 2v5"/><path d="M14 3h5a2 2 0 0 1 2 2v5"/><path d="M21 14v5a2 2 0 0 1-2 2h-5"/><path d="M3 14v5a2 2 0 0 0 2 2h5"/></svg>
                       )}
                     </button>
+
+                    {userRole === "admin" && (
+                      <button
+                        type="button"
+                        disabled={isDeletingProduct}
+                        className="absolute right-14 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteProduct(p.id);
+                        }}
+                        aria-label="Delete product"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                      </button>
+                    )}
                   </div>
 
                   <div className="p-4">
@@ -1081,6 +1128,17 @@ export default function DashboardPage() {
         {compareError && (
           <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {compareError}
+          </div>
+        )}
+
+        {deleteProductError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {deleteProductError}
+          </div>
+        )}
+        {deleteProductMsg && (
+          <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {deleteProductMsg}
           </div>
         )}
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { getProductBySlug, type ProductDetailsResponse, type ProductImageUploadResponse } from "@/lib/api";
+import { deleteProductImage, getProductBySlug, type ProductDetailsResponse, type ProductImageUploadResponse } from "@/lib/api";
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -22,18 +22,24 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
   const { slug } = React.use(params as unknown as Promise<{ slug: string }>);
   const router = useRouter();
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [product, setProduct] = useState<ProductDetailsResponse | null>(null);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
+  const [deleteImageMsg, setDeleteImageMsg] = useState("");
+  const [deleteImageError, setDeleteImageError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
+    const storedRole = localStorage.getItem("userRole");
     if (!storedName) {
       router.push("/login");
       return;
     }
     setUserName(storedName);
+    setUserRole(storedRole || "");
   }, [router]);
 
   useEffect(() => {
@@ -63,6 +69,43 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
       .filter((img) => Boolean(img.url));
   }, [product]);
 
+  const handleDeleteImage = async (imageId: string) => {
+    setDeleteImageMsg("");
+    setDeleteImageError("");
+    if (isDeletingImage) return;
+    if (userRole !== "admin") {
+      setDeleteImageError("Only admin can delete product images.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid || !imageId) return;
+    const ok = window.confirm("Delete this image? This cannot be undone.");
+    if (!ok) return;
+
+    setIsDeletingImage(true);
+    try {
+      const res = await deleteProductImage(pid, imageId);
+      setDeleteImageMsg(res.message || "Image deleted.");
+
+      setProduct((prev) => {
+        if (!prev) return prev;
+        const nextImages = (Array.isArray(prev.images) ? prev.images : []).filter((img) => img.id !== imageId);
+        return { ...prev, images: nextImages };
+      });
+
+      const removedUrl = images.find((img) => img.id === imageId)?.url || null;
+      if (removedUrl && selectedImageUrl === removedUrl) {
+        const nextList = images.filter((img) => img.id !== imageId);
+        const nextBest = pickBestImageUrl(nextList);
+        setSelectedImageUrl(nextBest);
+      }
+    } catch (err: unknown) {
+      setDeleteImageError(err instanceof Error ? err.message : "Failed to delete image.");
+    } finally {
+      setIsDeletingImage(false);
+    }
+  };
+
   if (!userName) return null;
 
   return (
@@ -85,6 +128,17 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
         {error && (
           <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {error}
+          </div>
+        )}
+
+        {deleteImageError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {deleteImageError}
+          </div>
+        )}
+        {deleteImageMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {deleteImageMsg}
           </div>
         )}
 
@@ -124,6 +178,20 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
                       ].join(" ")}
                     >
                       <Image src={img.url} alt={product.name} fill sizes="25vw" className="object-cover" />
+                      {userRole === "admin" && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteImage(img.id);
+                          }}
+                          className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Delete image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

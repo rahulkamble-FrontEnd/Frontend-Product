@@ -209,6 +209,26 @@ export async function getProductBySlug(slug: string) {
   return response.json() as Promise<ProductDetailsResponse>;
 }
 
+export type DeleteProductResponse = {
+  message: string;
+};
+
+export async function deleteProduct(productId: string) {
+  const id = productId.trim();
+  if (!id) throw new Error("Product id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to delete product');
+  }
+  return response.json() as Promise<DeleteProductResponse>;
+}
+
 export async function createProduct(payload: CreateProductPayload) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
     method: 'POST',
@@ -237,6 +257,31 @@ export async function uploadProductImage(productId: string, imageFile: File) {
     throw new Error(errorData.message || 'Product image upload failed');
   }
   return response.json() as Promise<ProductImageUploadResponse>;
+}
+
+export type DeleteProductImageResponse = {
+  message: string;
+};
+
+export async function deleteProductImage(productId: string, imageId: string) {
+  const pid = productId.trim();
+  const iid = imageId.trim();
+  if (!pid) throw new Error("Product id is required");
+  if (!iid) throw new Error("Image id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images/${encodeURIComponent(iid)}`,
+    {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to delete product image');
+  }
+  return response.json() as Promise<DeleteProductImageResponse>;
 }
 
 export async function bindProductCategories(productId: string, categoryIds: string[]) {
