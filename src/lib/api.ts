@@ -229,6 +229,33 @@ export async function deleteProduct(productId: string) {
   return response.json() as Promise<DeleteProductResponse>;
 }
 
+export type UpdateProductStatusPayload = {
+  status: string;
+};
+
+export type UpdateProductStatusResponse = ProductListItem & {
+  deletedAt: string | null;
+};
+
+export async function updateProductStatus(productId: string, payload: UpdateProductStatusPayload) {
+  const id = productId.trim();
+  if (!id) throw new Error("Product id is required");
+  const nextStatus = payload?.status?.trim();
+  if (!nextStatus) throw new Error("Status is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}/status`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status: nextStatus }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update product status');
+  }
+  return response.json() as Promise<UpdateProductStatusResponse>;
+}
+
 export async function createProduct(payload: CreateProductPayload) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
     method: 'POST',

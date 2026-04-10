@@ -13,6 +13,7 @@ import {
   getProducts,
   getProductsCompare,
   deleteProduct,
+  updateProductStatus,
   getCategories,
   type CreateProductPayload,
   type ProductImageUploadResponse,
@@ -100,14 +101,14 @@ export default function DashboardPage() {
   const [productsLimit, setProductsLimit] = useState(20);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState("");
-  const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft">("");
+  const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">("");
   const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
   const [filterQ, setFilterQ] = useState("");
   const [filterIncludeImages, setFilterIncludeImages] = useState(true);
   const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
-    status?: "" | "active" | "draft";
+    status?: "" | "active" | "draft" | "archived";
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
@@ -130,6 +131,10 @@ export default function DashboardPage() {
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [deleteProductMsg, setDeleteProductMsg] = useState("");
   const [deleteProductError, setDeleteProductError] = useState("");
+  const [isUpdatingProductStatus, setIsUpdatingProductStatus] = useState(false);
+  const [updatingProductStatusId, setUpdatingProductStatusId] = useState<string | null>(null);
+  const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
+  const [updateProductStatusError, setUpdateProductStatusError] = useState("");
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
@@ -202,6 +207,8 @@ export default function DashboardPage() {
   const handleDeleteProduct = async (id: string) => {
     setDeleteProductMsg("");
     setDeleteProductError("");
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
     if (userRole !== "admin") {
       setDeleteProductError("Only admin can delete products.");
       return;
@@ -227,8 +234,48 @@ export default function DashboardPage() {
     }
   };
 
+  const allowedStatuses = ["draft", "active", "archived"] as const;
+
+  const handleUpdateProductStatus = async (id: string, nextStatus: string) => {
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+
+    if (userRole !== "admin") {
+      setUpdateProductStatusError("Only admin can update product status.");
+      return;
+    }
+    if (!id) return;
+    const trimmed = nextStatus.trim();
+    if (!trimmed) return;
+
+    setIsUpdatingProductStatus(true);
+    setUpdatingProductStatusId(id);
+    try {
+      const updated = await updateProductStatus(id, { status: trimmed });
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? {
+                ...p,
+                status: updated.status,
+                updatedAt: updated.updatedAt,
+              }
+            : p
+        )
+      );
+      setUpdateProductStatusMsg(`Status updated to "${updated.status}".`);
+    } catch (err: unknown) {
+      setUpdateProductStatusError(err instanceof Error ? err.message : "Failed to update status.");
+    } finally {
+      setIsUpdatingProductStatus(false);
+      setUpdatingProductStatusId(null);
+    }
+  };
+
   const filtersKey = (f: {
-    status?: "" | "active" | "draft";
+    status?: "" | "active" | "draft" | "archived";
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
@@ -929,12 +976,17 @@ export default function DashboardPage() {
             />
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus((e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : ""))}
+              onChange={(e) =>
+                setFilterStatus(
+                  e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
+                )
+              }
               className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
             >
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
             </select>
             <select
               value={filterCategoryType}
@@ -1035,6 +1087,24 @@ export default function DashboardPage() {
                       <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
                         {p.status}
                       </span>
+                      {userRole === "admin" && (
+                        <select
+                          value={p.status}
+                          disabled={isUpdatingProductStatus && updatingProductStatusId === p.id}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleUpdateProductStatus(p.id, e.target.value);
+                          }}
+                          className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800"
+                        >
+                          {Array.from(new Set([p.status, ...allowedStatuses])).filter(Boolean).map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <span
                         className={[
                           "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
@@ -1139,6 +1209,17 @@ export default function DashboardPage() {
         {deleteProductMsg && (
           <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
             {deleteProductMsg}
+          </div>
+        )}
+
+        {updateProductStatusError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {updateProductStatusError}
+          </div>
+        )}
+        {updateProductStatusMsg && (
+          <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {updateProductStatusMsg}
           </div>
         )}
 
