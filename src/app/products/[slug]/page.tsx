@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { deleteProductCategory, deleteProductImage, getProductBySlug, type ProductDetailsResponse, type ProductImageUploadResponse } from "@/lib/api";
+import { deleteProductCategory, deleteProductImage, getProductBySlug, updateProduct, type ProductDetailsResponse, type ProductImageUploadResponse, type UpdateProductPayload, type UpdateProductResponse } from "@/lib/api";
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -33,6 +33,51 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [deleteCategoryMsg, setDeleteCategoryMsg] = useState("");
   const [deleteCategoryError, setDeleteCategoryError] = useState("");
+  type UpdateProductFormState = {
+    name: string;
+    sku: string;
+    brand: string;
+    description: string;
+    materialType: string;
+    finishType: string;
+    colorName: string;
+    colorHex: string;
+    thickness: string;
+    dimensions: string;
+    performanceRating: string;
+    durabilityRating: string;
+    priceCategory: string;
+    maintenanceRating: string;
+    bestUsedForText: string;
+    prosText: string;
+    consText: string;
+    status: UpdateProductPayload["status"];
+  };
+
+  const [updateForm, setUpdateForm] = useState<UpdateProductFormState>({
+    name: "",
+    sku: "",
+    brand: "",
+    description: "",
+    materialType: "",
+    finishType: "",
+    colorName: "",
+    colorHex: "",
+    thickness: "",
+    dimensions: "",
+    performanceRating: "0",
+    durabilityRating: "0",
+    priceCategory: "0",
+    maintenanceRating: "0",
+    bestUsedForText: "",
+    prosText: "",
+    consText: "",
+    status: "draft",
+  });
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  const [updateProductMsg, setUpdateProductMsg] = useState("");
+  const [updateProductError, setUpdateProductError] = useState("");
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -71,6 +116,96 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
       .map((img) => ({ ...img, url: cleanUrl(img.url) }))
       .filter((img) => Boolean(img.url));
   }, [product]);
+
+  const normalizeTextList = (value: string) =>
+    value
+      .split(/\r?\n|,/g)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+  useEffect(() => {
+    if (!product) return;
+    const status: UpdateProductPayload["status"] =
+      product.status === "active" || product.status === "archived" || product.status === "published" || product.status === "draft"
+        ? product.status
+        : "draft";
+
+    setUpdateForm({
+      name: product.name ?? "",
+      sku: product.sku ?? "",
+      brand: product.brand ?? "",
+      description: product.description ?? "",
+      materialType: product.materialType ?? "",
+      finishType: product.finishType ?? "",
+      colorName: product.colorName ?? "",
+      colorHex: product.colorHex ?? "",
+      thickness: product.thickness ?? "",
+      dimensions: product.dimensions ?? "",
+      performanceRating: String(product.performanceRating ?? 0),
+      durabilityRating: String(product.durabilityRating ?? 0),
+      priceCategory: String(product.priceCategory ?? 0),
+      maintenanceRating: String(product.maintenanceRating ?? 0),
+      bestUsedForText: Array.isArray(product.bestUsedFor) ? product.bestUsedFor.join("\n") : "",
+      prosText: Array.isArray(product.pros) ? product.pros.join("\n") : "",
+      consText: Array.isArray(product.cons) ? product.cons.join("\n") : "",
+      status,
+    });
+  }, [product]);
+
+  const handleUpdateProduct = async () => {
+    setUpdateProductMsg("");
+    setUpdateProductError("");
+    if (isUpdatingProduct) return;
+    if (userRole !== "admin") {
+      setUpdateProductError("Only admin can update products.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid) return;
+
+    const payload: UpdateProductPayload = {
+      name: updateForm.name.trim(),
+      sku: updateForm.sku.trim(),
+      brand: updateForm.brand.trim(),
+      description: updateForm.description.trim(),
+      materialType: updateForm.materialType.trim(),
+      finishType: updateForm.finishType.trim() ? updateForm.finishType.trim() : null,
+      colorName: updateForm.colorName.trim(),
+      colorHex: updateForm.colorHex.trim() ? updateForm.colorHex.trim() : null,
+      thickness: updateForm.thickness.trim() ? updateForm.thickness.trim() : null,
+      dimensions: updateForm.dimensions.trim(),
+      performanceRating: Number(updateForm.performanceRating),
+      durabilityRating: Number(updateForm.durabilityRating),
+      priceCategory: Number(updateForm.priceCategory),
+      maintenanceRating: Number(updateForm.maintenanceRating),
+      bestUsedFor: normalizeTextList(updateForm.bestUsedForText).length > 0 ? normalizeTextList(updateForm.bestUsedForText) : null,
+      pros: normalizeTextList(updateForm.prosText),
+      cons: normalizeTextList(updateForm.consText),
+      status: updateForm.status,
+    };
+
+    setIsUpdatingProduct(true);
+    try {
+      const updated = await updateProduct(pid, payload);
+      setUpdateProductMsg("Product updated successfully.");
+      setProduct((prev) => {
+        const keepImages = prev?.images ?? null;
+        const keepCategories = prev?.categories ?? null;
+        const merged: ProductDetailsResponse = {
+          ...(prev ?? ({} as ProductDetailsResponse)),
+          ...(updated as UpdateProductResponse),
+          images: keepImages,
+          categories: keepCategories,
+        };
+        return merged;
+      });
+      setIsUpdateOpen(false);
+    } catch (err: unknown) {
+      setUpdateProductError(err instanceof Error ? err.message : "Failed to update product.");
+    } finally {
+      setIsUpdatingProduct(false);
+    }
+  };
 
   const handleDeleteImage = async (imageId: string) => {
     setDeleteImageMsg("");
@@ -182,6 +317,16 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
         {deleteCategoryMsg && (
           <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
             {deleteCategoryMsg}
+          </div>
+        )}
+        {updateProductError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {updateProductError}
+          </div>
+        )}
+        {updateProductMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {updateProductMsg}
           </div>
         )}
 
@@ -316,6 +461,241 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
                   )}
                 </div>
               </div>
+
+              {userRole === "admin" && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Update Product (PUT)</div>
+                    <div className="flex items-center gap-2">
+                      {!isUpdateOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsUpdateOpen(true)}
+                          className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white"
+                        >
+                          Update
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isUpdatingProduct}
+                            onClick={handleUpdateProduct}
+                            className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                          >
+                            {isUpdatingProduct ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isUpdatingProduct}
+                            onClick={() => {
+                              setIsUpdateOpen(false);
+                              if (product) {
+                                const status: UpdateProductPayload["status"] =
+                                  product.status === "active" || product.status === "archived" || product.status === "published" || product.status === "draft"
+                                    ? product.status
+                                    : "draft";
+                                setUpdateForm({
+                                  name: product.name ?? "",
+                                  sku: product.sku ?? "",
+                                  brand: product.brand ?? "",
+                                  description: product.description ?? "",
+                                  materialType: product.materialType ?? "",
+                                  finishType: product.finishType ?? "",
+                                  colorName: product.colorName ?? "",
+                                  colorHex: product.colorHex ?? "",
+                                  thickness: product.thickness ?? "",
+                                  dimensions: product.dimensions ?? "",
+                                  performanceRating: String(product.performanceRating ?? 0),
+                                  durabilityRating: String(product.durabilityRating ?? 0),
+                                  priceCategory: String(product.priceCategory ?? 0),
+                                  maintenanceRating: String(product.maintenanceRating ?? 0),
+                                  bestUsedForText: Array.isArray(product.bestUsedFor) ? product.bestUsedFor.join("\n") : "",
+                                  prosText: Array.isArray(product.pros) ? product.pros.join("\n") : "",
+                                  consText: Array.isArray(product.cons) ? product.cons.join("\n") : "",
+                                  status,
+                                });
+                              }
+                            }}
+                            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {isUpdateOpen && (
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
+                      <input
+                        value={updateForm.name}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, name: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SKU</label>
+                      <input
+                        value={updateForm.sku}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, sku: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
+                      <input
+                        value={updateForm.brand}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, brand: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
+                      <textarea
+                        value={updateForm.description}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, description: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[90px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
+                      <input
+                        value={updateForm.materialType}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, materialType: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Finish Type (optional)</label>
+                      <input
+                        value={updateForm.finishType}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, finishType: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
+                      <input
+                        value={updateForm.colorName}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, colorName: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Hex (optional)</label>
+                      <input
+                        value={updateForm.colorHex}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, colorHex: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Thickness (optional)</label>
+                      <input
+                        value={updateForm.thickness}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, thickness: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
+                      <input
+                        value={updateForm.dimensions}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, dimensions: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.performanceRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, performanceRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.durabilityRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, durabilityRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
+                      <input
+                        type="number"
+                        value={updateForm.priceCategory}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, priceCategory: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.maintenanceRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, maintenanceRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                      <select
+                        value={updateForm.status}
+                        onChange={(e) =>
+                          setUpdateForm((p) => ({
+                            ...p,
+                            status:
+                              e.target.value === "active"
+                                ? "active"
+                                : e.target.value === "archived"
+                                  ? "archived"
+                                  : e.target.value === "published"
+                                    ? "published"
+                                    : "draft",
+                          }))
+                        }
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      >
+                        <option value="draft">draft</option>
+                        <option value="active">active</option>
+                        <option value="archived">archived</option>
+                        <option value="published">published</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Best Used For (optional) (comma or new line)</label>
+                      <textarea
+                        value={updateForm.bestUsedForText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, bestUsedForText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros (comma or new line)</label>
+                      <textarea
+                        value={updateForm.prosText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, prosText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons (comma or new line)</label>
+                      <textarea
+                        value={updateForm.consText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, consText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                  </div>
+                  )}
+                </div>
+              )}
 
               <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>

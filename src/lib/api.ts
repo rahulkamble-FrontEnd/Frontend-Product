@@ -256,6 +256,73 @@ export async function updateProductStatus(productId: string, payload: UpdateProd
   return response.json() as Promise<UpdateProductStatusResponse>;
 }
 
+export type UpdateProductPayload = {
+  name: string;
+  sku: string;
+  brand: string;
+  description: string;
+  materialType: string;
+  finishType: string | null;
+  colorName: string;
+  colorHex: string | null;
+  thickness: string | null;
+  dimensions: string;
+  performanceRating: number;
+  durabilityRating: number;
+  priceCategory: number;
+  maintenanceRating: number;
+  bestUsedFor: string[] | null;
+  pros: string[];
+  cons: string[];
+  status: "draft" | "active" | "archived" | "published";
+};
+
+export type UpdateProductResponse = ProductListItem & {
+  deletedAt: string | null;
+};
+
+export async function updateProduct(productId: string, payload: UpdateProductPayload) {
+  const id = productId.trim();
+  if (!id) throw new Error("Product id is required");
+
+  if (!payload || typeof payload !== "object") throw new Error("Payload is required");
+  if (!payload.name?.trim()) throw new Error("name must be a non-empty string");
+  if (!payload.sku?.trim()) throw new Error("sku must be a non-empty string");
+  if (!payload.brand?.trim()) throw new Error("brand must be a non-empty string");
+  if (!payload.description?.trim()) throw new Error("description must be a non-empty string");
+  if (!payload.materialType?.trim()) throw new Error("materialType must be a non-empty string");
+  if (!payload.colorName?.trim()) throw new Error("colorName must be a non-empty string");
+  if (!payload.dimensions?.trim()) throw new Error("dimensions must be a non-empty string");
+
+  if (typeof payload.performanceRating !== "number") throw new Error("performanceRating must be a number");
+  if (typeof payload.durabilityRating !== "number") throw new Error("durabilityRating must be a number");
+  if (typeof payload.priceCategory !== "number") throw new Error("priceCategory must be a number");
+  if (typeof payload.maintenanceRating !== "number") throw new Error("maintenanceRating must be a number");
+
+  if (payload.bestUsedFor !== null && !Array.isArray(payload.bestUsedFor)) throw new Error("bestUsedFor must be an array of strings or null");
+  if (!Array.isArray(payload.pros)) throw new Error("pros must be an array of strings");
+  if (!Array.isArray(payload.cons)) throw new Error("cons must be an array of strings");
+  if (
+    (Array.isArray(payload.bestUsedFor) && payload.bestUsedFor.some((v) => typeof v !== "string")) ||
+    payload.pros.some((v) => typeof v !== "string") ||
+    payload.cons.some((v) => typeof v !== "string")
+  ) {
+    throw new Error("Arrays must contain only strings");
+  }
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update product");
+  }
+  return response.json() as Promise<UpdateProductResponse>;
+}
+
 export async function createProduct(payload: CreateProductPayload) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
     method: 'POST',
