@@ -362,11 +362,12 @@ export default function DashboardPage() {
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
-    if (!storedName) {
-      router.push("/login");
-    } else {
+    if (storedName) {
       setUserName(storedName);
       setUserRole(storedRole || "");
+    } else {
+      setUserName("");
+      setUserRole("");
     }
   }, [router]);
 
@@ -381,9 +382,8 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!userName) return;
     loadProducts();
-  }, [loadProducts, userName]);
+  }, [loadProducts]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -392,10 +392,14 @@ export default function DashboardPage() {
       const password = localStorage.getItem("userPassword") || "";
       await logout({ email, password });
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } catch {
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } finally {
       setIsLoggingOut(false);
     }
@@ -662,8 +666,6 @@ export default function DashboardPage() {
     }
   };
 
-  if (!userName) return null;
-
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Header */}
@@ -868,15 +870,25 @@ export default function DashboardPage() {
               <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">0</span>
             </div>
              {/* Profile/Menu (Mobile replacement for logout) */}
-             <button 
-                onClick={handleLogout}
-                className="ml-2 flex flex-col items-center justify-center"
-             >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
-                    {userName.charAt(0)}
-                </div>
-                <span className="text-[10px] font-bold uppercase mt-0.5">{isLoggingOut ? "..." : "Logout"}</span>
-             </button>
+             {userName ? (
+               <button 
+                  onClick={handleLogout}
+                  className="ml-2 flex flex-col items-center justify-center"
+               >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
+                      {userName.charAt(0)}
+                  </div>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase">{isLoggingOut ? "..." : "Logout"}</span>
+               </button>
+             ) : (
+               <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="ml-2 rounded-md border border-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#0468a3] shadow-sm transition-all hover:bg-[#0468a3] hover:text-white"
+               >
+                  Login
+               </button>
+             )}
           </div>
         </div>
       </header>
@@ -1919,17 +1931,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Floating WhatsApp Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-           {/* Tooltip replacement for WhatsApp vibe */}
-           <span className="absolute right-16 top-1/2 -translate-y-1/2 scale-0 rounded-lg bg-white px-2 py-1 text-xs font-bold text-gray-900 shadow-md group-hover:scale-100 transition-all origin-right">
-             Chat with us
-           </span>
-        </button>
-      </div>
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
