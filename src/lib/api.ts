@@ -145,6 +145,10 @@ export type ShortlistItem = ShortlistResponse & {
   product?: ShortlistProduct | null;
 };
 
+export type UpdateShortlistNotePayload = {
+  customerNote: string;
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -231,6 +235,41 @@ export async function getShortlist() {
     throw new Error(errorData.message || 'Failed to fetch shortlist');
   }
   return response.json() as Promise<ShortlistItem[]>;
+}
+
+export async function requestShortlistSample(shortlistId: string) {
+  const id = shortlistId.trim();
+  if (!id) throw new Error("Shortlist id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/sample`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to request sample');
+  }
+  return response.json() as Promise<ShortlistResponse>;
+}
+
+export async function updateShortlistNote(shortlistId: string, payload: UpdateShortlistNotePayload) {
+  const id = shortlistId.trim();
+  if (!id) throw new Error("Shortlist id is required");
+
+  const customerNote = typeof payload?.customerNote === "string" ? payload.customerNote.trim() : "";
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/note`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customerNote }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update shortlist note');
+  }
+  return response.json() as Promise<ShortlistResponse>;
 }
 
 export async function getProductImages(productId: string) {

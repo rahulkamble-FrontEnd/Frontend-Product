@@ -16,6 +16,8 @@ import {
   updateProductStatus,
   getCategories,
   getShortlist,
+  requestShortlistSample,
+  updateShortlistNote,
   type CreateProductPayload,
   type ProductImageUploadResponse,
   type ProductListItem,
@@ -141,8 +143,15 @@ export default function DashboardPage() {
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
+  const [shortlistMsg, setShortlistMsg] = useState("");
+  const [requestingSampleId, setRequestingSampleId] = useState<string | null>(null);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof HTMLElement &&
+    Boolean(target.closest("button, textarea, input, select, a"));
 
   const generateSkuFromName = (name: string) =>
     name
@@ -396,6 +405,9 @@ export default function DashboardPage() {
     if (userRole !== "customer") {
       setShortlistItems([]);
       setShortlistError("");
+      setShortlistMsg("");
+      setNoteDrafts({});
+      setSavingNoteId(null);
       setIsLoadingShortlist(false);
       return;
     }
@@ -405,10 +417,18 @@ export default function DashboardPage() {
       setShortlistError("");
       try {
         const items = await getShortlist();
-        setShortlistItems(Array.isArray(items) ? items : []);
+        const shortlist = Array.isArray(items) ? items : [];
+        setShortlistItems(shortlist);
+        setNoteDrafts(
+          shortlist.reduce<Record<string, string>>((acc, item) => {
+            acc[item.id] = item.customerNote || "";
+            return acc;
+          }, {})
+        );
       } catch (err: unknown) {
         setShortlistError(err instanceof Error ? err.message : "Failed to fetch shortlist.");
         setShortlistItems([]);
+        setNoteDrafts({});
       } finally {
         setIsLoadingShortlist(false);
       }
@@ -416,6 +436,78 @@ export default function DashboardPage() {
 
     loadShortlist();
   }, [userRole]);
+
+  const handleRequestSample = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can request a physical sample.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+
+    setRequestingSampleId(id);
+    try {
+      const updated = await requestShortlistSample(id);
+      setShortlistItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                sampleRequested: updated.sampleRequested,
+                sampleRequestedAt: updated.sampleRequestedAt,
+                sampleStatus: updated.sampleStatus,
+              }
+            : item
+        )
+      );
+      setShortlistMsg("Physical sample requested successfully.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to request physical sample.");
+    } finally {
+      setRequestingSampleId(null);
+    }
+  };
+
+  const handleUpdateShortlistNote = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can update shortlist note.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+    const customerNote = (noteDrafts[id] ?? "").trim();
+
+    setSavingNoteId(id);
+    try {
+      const updated = await updateShortlistNote(id, { customerNote });
+      setShortlistItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                customerNote: updated.customerNote,
+              }
+            : item
+        )
+      );
+      setNoteDrafts((prev) => ({ ...prev, [id]: updated.customerNote || "" }));
+      setShortlistMsg("Shortlist note updated successfully.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to update shortlist note.");
+    } finally {
+      setSavingNoteId(null);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -1316,6 +1408,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+              {shortlistMsg && (
+                <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                  {shortlistMsg}
+                </div>
+              )}
               {shortlistError && (
                 <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
                   {shortlistError}
@@ -1347,14 +1444,17 @@ export default function DashboardPage() {
                         key={item.id}
                         role={shortlistedProduct?.slug ? "button" : undefined}
                         tabIndex={shortlistedProduct?.slug ? 0 : -1}
-                        onClick={() => {
+                        onClick={(e) => {
                           if (!shortlistedProduct?.slug) return;
+                          if (isInteractiveTarget(e.target)) return;
                           setIsShortlistOpen(false);
                           router.push(`/products/${shortlistedProduct.slug}`);
                         }}
                         onKeyDown={(e) => {
                           if (!shortlistedProduct?.slug) return;
+                          if (isInteractiveTarget(e.target)) return;
                           if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
                             setIsShortlistOpen(false);
                             router.push(`/products/${shortlistedProduct.slug}`);
                           }
@@ -1400,9 +1500,52 @@ export default function DashboardPage() {
                             )}
                           </div>
 
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRequestSample(item.id);
+                              }}
+                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {requestingSampleId === item.id
+                                ? "Requesting..."
+                                : item.sampleRequested
+                                  ? "Sample Requested"
+                                  : "Request Sample"}
+                            </button>
+                          </div>
+
                           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
-                            <div className="mt-1">{item.customerNote || "-"}</div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                              <button
+                                type="button"
+                                disabled={savingNoteId === item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateShortlistNote(item.id);
+                                }}
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {savingNoteId === item.id ? "Saving..." : "Save Note"}
+                              </button>
+                            </div>
+                            <textarea
+                              value={noteDrafts[item.id] ?? item.customerNote ?? ""}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                setNoteDrafts((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Updated note text"
+                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                            />
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
