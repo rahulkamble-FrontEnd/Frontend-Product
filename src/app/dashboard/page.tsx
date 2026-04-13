@@ -138,6 +138,14 @@ export default function DashboardPage() {
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
+  const generateSkuFromName = (name: string) =>
+    name
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-");
+
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
     const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
@@ -354,11 +362,12 @@ export default function DashboardPage() {
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
-    if (!storedName) {
-      router.push("/login");
-    } else {
+    if (storedName) {
       setUserName(storedName);
       setUserRole(storedRole || "");
+    } else {
+      setUserName("");
+      setUserRole("");
     }
   }, [router]);
 
@@ -373,9 +382,8 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!userName) return;
     loadProducts();
-  }, [loadProducts, userName]);
+  }, [loadProducts]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -384,10 +392,14 @@ export default function DashboardPage() {
       const password = localStorage.getItem("userPassword") || "";
       await logout({ email, password });
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } catch {
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } finally {
       setIsLoggingOut(false);
     }
@@ -654,8 +666,6 @@ export default function DashboardPage() {
     }
   };
 
-  if (!userName) return null;
-
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Header */}
@@ -860,15 +870,25 @@ export default function DashboardPage() {
               <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">0</span>
             </div>
              {/* Profile/Menu (Mobile replacement for logout) */}
-             <button 
-                onClick={handleLogout}
-                className="ml-2 flex flex-col items-center justify-center"
-             >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
-                    {userName.charAt(0)}
-                </div>
-                <span className="text-[10px] font-bold uppercase mt-0.5">{isLoggingOut ? "..." : "Logout"}</span>
-             </button>
+             {userName ? (
+               <button 
+                  onClick={handleLogout}
+                  className="ml-2 flex flex-col items-center justify-center"
+               >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
+                      {userName.charAt(0)}
+                  </div>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase">{isLoggingOut ? "..." : "Logout"}</span>
+               </button>
+             ) : (
+               <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="ml-2 rounded-md border border-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#0468a3] shadow-sm transition-all hover:bg-[#0468a3] hover:text-white"
+               >
+                  Login
+               </button>
+             )}
           </div>
         </div>
       </header>
@@ -1476,9 +1496,9 @@ export default function DashboardPage() {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+            <div className="mb-6 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
               <button
                 onClick={() => {
@@ -1496,32 +1516,40 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
+            <form onSubmit={handleCreateProduct} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
                     required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.name}
-                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                    onChange={(e) => {
+                      const nextName = e.target.value;
+                      setNewProductData((prev) => ({
+                        ...prev,
+                        name: nextName,
+                        sku: generateSkuFromName(nextName)
+                      }));
+                    }}
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.status}
-                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                    <select
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.status}
+                      onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -1529,9 +1557,9 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    disabled
+                    className="mt-1 block w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 shadow-inner focus:outline-none"
                     value={newProductData.sku}
-                    onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
                     placeholder="e.g. COF-SHM-055"
                   />
                 </div>
@@ -1718,28 +1746,29 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {productError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productError}</div>}
-              {productMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{productMsg}</div>}
-              {createdProductImage?.url && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Uploaded URL
+                {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
+                {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}
+                {createdProductImage?.url && (
+                  <div className="rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      Uploaded URL
+                    </div>
+                    <a
+                      href={createdProductImage.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
+                    >
+                      {createdProductImage.url}
+                    </a>
                   </div>
-                  <a
-                    href={createdProductImage.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
-                  >
-                    {createdProductImage.url}
-                  </a>
-                </div>
-              )}
+                )}
+              </div>
 
               <button
                 type="submit"
                 disabled={isCreatingProduct}
-                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+                className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
               >
                 {isCreatingProduct ? "Creating Product..." : "Confirm & Create"}
               </button>
@@ -1902,17 +1931,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Floating WhatsApp Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-           {/* Tooltip replacement for WhatsApp vibe */}
-           <span className="absolute right-16 top-1/2 -translate-y-1/2 scale-0 rounded-lg bg-white px-2 py-1 text-xs font-bold text-gray-900 shadow-md group-hover:scale-100 transition-all origin-right">
-             Chat with us
-           </span>
-        </button>
-      </div>
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
