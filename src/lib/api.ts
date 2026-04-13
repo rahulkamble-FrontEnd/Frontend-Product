@@ -149,6 +149,10 @@ export type UpdateShortlistNotePayload = {
   customerNote: string;
 };
 
+export type DeleteShortlistResponse = {
+  message: string;
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -270,6 +274,22 @@ export async function updateShortlistNote(shortlistId: string, payload: UpdateSh
     throw new Error(errorData.message || 'Failed to update shortlist note');
   }
   return response.json() as Promise<ShortlistResponse>;
+}
+
+export async function deleteShortlist(shortlistId: string) {
+  const id = shortlistId.trim();
+  if (!id) throw new Error("Shortlist id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to remove shortlist item');
+  }
+  return response.json() as Promise<DeleteShortlistResponse>;
 }
 
 export async function getProductImages(productId: string) {

@@ -18,6 +18,7 @@ import {
   getShortlist,
   requestShortlistSample,
   updateShortlistNote,
+  deleteShortlist,
   type CreateProductPayload,
   type ProductImageUploadResponse,
   type ProductListItem,
@@ -146,6 +147,7 @@ export default function DashboardPage() {
   const [shortlistMsg, setShortlistMsg] = useState("");
   const [requestingSampleId, setRequestingSampleId] = useState<string | null>(null);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [deletingShortlistId, setDeletingShortlistId] = useState<string | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -506,6 +508,38 @@ export default function DashboardPage() {
       setShortlistError(err instanceof Error ? err.message : "Failed to update shortlist note.");
     } finally {
       setSavingNoteId(null);
+    }
+  };
+
+  const handleDeleteShortlist = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can remove shortlist items.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+    const ok = window.confirm("Remove this item from shortlist?");
+    if (!ok) return;
+
+    setDeletingShortlistId(id);
+    try {
+      const result = await deleteShortlist(id);
+      setShortlistItems((prev) => prev.filter((item) => item.id !== id));
+      setNoteDrafts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setShortlistMsg(result.message || "Removed from shortlist.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to remove shortlist item.");
+    } finally {
+      setDeletingShortlistId(null);
     }
   };
 
@@ -1515,6 +1549,17 @@ export default function DashboardPage() {
                                 : item.sampleRequested
                                   ? "Sample Requested"
                                   : "Request Sample"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingShortlistId === item.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteShortlist(item.id);
+                              }}
+                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {deletingShortlistId === item.id ? "Removing..." : "Remove"}
                             </button>
                           </div>
 
