@@ -19,7 +19,9 @@ import {
   requestShortlistSample,
   updateShortlistNote,
   deleteShortlist,
+  getDesignerCustomers,
   type CreateProductPayload,
+  type DesignerCustomer,
   type ProductImageUploadResponse,
   type ProductListItem,
   type ProductCompareResponse,
@@ -149,6 +151,9 @@ export default function DashboardPage() {
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
   const [deletingShortlistId, setDeletingShortlistId] = useState<string | null>(null);
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [designerCustomers, setDesignerCustomers] = useState<DesignerCustomer[]>([]);
+  const [isLoadingDesignerCustomers, setIsLoadingDesignerCustomers] = useState(false);
+  const [designerCustomersError, setDesignerCustomersError] = useState("");
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
   const isInteractiveTarget = (target: EventTarget | null) =>
@@ -437,6 +442,31 @@ export default function DashboardPage() {
     };
 
     loadShortlist();
+  }, [userRole]);
+
+  useEffect(() => {
+    if (userRole !== "designer") {
+      setDesignerCustomers([]);
+      setDesignerCustomersError("");
+      setIsLoadingDesignerCustomers(false);
+      return;
+    }
+
+    const loadDesignerCustomers = async () => {
+      setIsLoadingDesignerCustomers(true);
+      setDesignerCustomersError("");
+      try {
+        const customers = await getDesignerCustomers();
+        setDesignerCustomers(Array.isArray(customers) ? customers : []);
+      } catch (err: unknown) {
+        setDesignerCustomersError(err instanceof Error ? err.message : "Failed to fetch designer customers.");
+        setDesignerCustomers([]);
+      } finally {
+        setIsLoadingDesignerCustomers(false);
+      }
+    };
+
+    loadDesignerCustomers();
   }, [userRole]);
 
   const handleRequestSample = async (shortlistId: string) => {
@@ -1133,6 +1163,97 @@ export default function DashboardPage() {
             Karigari Laminates
          </h3>
       </section>
+
+      {userRole === "designer" && (
+        <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer</div>
+              <h3 className="mt-1 text-2xl font-black uppercase tracking-tight text-black">My Customers</h3>
+              <p className="mt-1 text-sm text-gray-500">Customers assigned to your designer account.</p>
+            </div>
+            <div className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-widest text-gray-700 shadow-sm">
+              {designerCustomers.length} Customers
+            </div>
+          </div>
+
+          {designerCustomersError && (
+            <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+              {designerCustomersError}
+            </div>
+          )}
+
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {isLoadingDesignerCustomers ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="h-4 w-1/3 rounded bg-gray-100" />
+                  <div className="mt-4 h-6 w-2/3 rounded bg-gray-100" />
+                  <div className="mt-2 h-4 w-1/2 rounded bg-gray-100" />
+                  <div className="mt-6 h-20 rounded bg-gray-100" />
+                </div>
+              ))
+            ) : designerCustomers.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                No customers assigned to this designer.
+              </div>
+            ) : (
+              designerCustomers.map((customer) => (
+                <div key={customer.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4d2c1e] text-sm font-black uppercase text-[#ffde59]">
+                        {customer.name?.charAt(0) || "C"}
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          {customer.role}
+                        </div>
+                        <div className="mt-1 text-base font-black text-gray-900">
+                          {customer.name}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className={[
+                        "inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                        customer.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      ].join(" ")}
+                    >
+                      {customer.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3 text-sm text-gray-700">
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Email</div>
+                      <div className="mt-1 break-all font-medium text-gray-900">{customer.email}</div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-gray-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                        <div className="mt-1 font-medium text-gray-900">{customer.projectName || "-"}</div>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Joined</div>
+                        <div className="mt-1 font-medium text-gray-900">{new Date(customer.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                      <div className="mt-1 font-medium text-gray-900">
+                        {customer.assignedDesigner?.name || "-"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
         <div className="flex flex-col gap-3">

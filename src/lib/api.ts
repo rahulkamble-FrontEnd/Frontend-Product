@@ -153,6 +153,30 @@ export type DeleteShortlistResponse = {
   message: string;
 };
 
+export type DesignerCustomer = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  projectName?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  assignedDesigner?: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    name: string;
+    role: string;
+    projectName?: string | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    resetPasswordToken: string | null;
+    resetPasswordExpires: string | null;
+  } | null;
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -290,6 +314,19 @@ export async function deleteShortlist(shortlistId: string) {
     throw new Error(errorData.message || 'Failed to remove shortlist item');
   }
   return response.json() as Promise<DeleteShortlistResponse>;
+}
+
+export async function getDesignerCustomers() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch designer customers');
+  }
+  return response.json() as Promise<DesignerCustomer[]>;
 }
 
 export async function getProductImages(productId: string) {
