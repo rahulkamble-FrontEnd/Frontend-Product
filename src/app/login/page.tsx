@@ -86,15 +86,15 @@ export default function LoginPage() {
     <div className="flex min-h-screen bg-white font-sans">
       {/* Left Section - Benefits */}
       <div className="hidden w-2/5 flex-col bg-[#0468a3] p-12 text-white lg:flex">
-        {/* Logo Placeholder */}
+        {/* Brand Block */}
         <div className="mb-12">
           <div className="flex items-center gap-2">
-            <div className="bg-[#ffde59] px-2 py-1 text-xs font-black text-[#0468a3] italic">
-              care
+            <div className="rounded bg-[#ffde59] px-2 py-1 text-xs font-black uppercase tracking-wider text-[#0468a3]">
+              custom
             </div>
             <div className="flex flex-col tracking-tighter">
-              <span className="text-xs font-bold leading-none uppercase">Health</span>
-              <span className="text-[10px] font-medium leading-none uppercase">Insurance</span>
+              <span className="text-xs font-bold leading-none uppercase">Furnish</span>
+              <span className="text-[10px] font-medium leading-none uppercase">Interior Platform</span>
             </div>
           </div>
           <div className="mt-4 h-0.5 w-12 bg-white/50" />
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
         <h1 className="mb-4 text-2xl font-bold">Benefits of Login</h1>
         <p className="mb-10 text-sm font-light text-blue-50/80">
-          Being part of Care Health Insurance, It&apos;s really worth it.
+          Access your Custom Furnish dashboard, products, and design workflow in one place.
         </p>
 
         {/* Benefits List */}
@@ -114,7 +114,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <p className="text-sm font-medium leading-tight">
-              Review, edit & update details of all enrolled member instantly and do much more.
+              Manage products, update details, and keep your catalog organized from one dashboard.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <p className="text-sm font-medium leading-tight">
-              Avail Annual health checkup & book appointment online.
+              Upload images, review materials, and prepare collections for your customers faster.
             </p>
           </div>
 
@@ -136,7 +136,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <p className="text-sm font-medium leading-tight">
-              Get access to host of other benefits and self service option.
+              Get quick access to admin tools, category management, and product publishing controls.
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default function LoginPage() {
                   Start your journey with us
                 </h2>
                 <p className="mt-4 text-sm text-gray-500">
-                  Have a Care Health Insurance Policy number, but never signed in? Don&apos;t worry, We got you cover
+                  Sign in to Custom Furnish to manage products, categories, and your furnishing catalog.
                 </p>
               </div>
 
