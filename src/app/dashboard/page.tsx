@@ -15,10 +15,12 @@ import {
   deleteProduct,
   updateProductStatus,
   getCategories,
+  getShortlist,
   type CreateProductPayload,
   type ProductImageUploadResponse,
   type ProductListItem,
-  type ProductCompareResponse
+  type ProductCompareResponse,
+  type ShortlistItem
 } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -26,6 +28,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
@@ -135,6 +138,9 @@ export default function DashboardPage() {
   const [updatingProductStatusId, setUpdatingProductStatusId] = useState<string | null>(null);
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
   const [updateProductStatusError, setUpdateProductStatusError] = useState("");
+  const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
+  const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
+  const [shortlistError, setShortlistError] = useState("");
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
@@ -373,6 +379,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const close = () => {
+      setIsShortlistOpen(false);
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
       setIsProductsMenuOpen(false);
@@ -384,6 +391,31 @@ export default function DashboardPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    if (userRole !== "customer") {
+      setShortlistItems([]);
+      setShortlistError("");
+      setIsLoadingShortlist(false);
+      return;
+    }
+
+    const loadShortlist = async () => {
+      setIsLoadingShortlist(true);
+      setShortlistError("");
+      try {
+        const items = await getShortlist();
+        setShortlistItems(Array.isArray(items) ? items : []);
+      } catch (err: unknown) {
+        setShortlistError(err instanceof Error ? err.message : "Failed to fetch shortlist.");
+        setShortlistItems([]);
+      } finally {
+        setIsLoadingShortlist(false);
+      }
+    };
+
+    loadShortlist();
+  }, [userRole]);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -865,10 +897,21 @@ export default function DashboardPage() {
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
               Shop on call
             </button>
-            <div className="relative cursor-pointer">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (userRole !== "customer") return;
+                setIsShortlistOpen((v) => !v);
+              }}
+              className="relative"
+              aria-label="Open shortlist"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">0</span>
-            </div>
+              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">
+                {userRole === "customer" ? shortlistItems.length : 0}
+              </span>
+            </button>
              {/* Profile/Menu (Mobile replacement for logout) */}
              {userName ? (
                <button 
@@ -1245,6 +1288,137 @@ export default function DashboardPage() {
 
         <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
       </section>
+
+      {userRole === "customer" && isShortlistOpen && (
+        <div
+          className="fixed inset-0 z-[140] bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsShortlistOpen(false)}
+        >
+          <div
+            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-black">My Shortlist</h3>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  {shortlistItems.length} Saved
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShortlistOpen(false)}
+                className="text-gray-400 hover:text-black"
+                aria-label="Close shortlist"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+              {shortlistError && (
+                <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                  {shortlistError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {isLoadingShortlist ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                      <div className="aspect-[4/3] w-full bg-gray-100" />
+                      <div className="space-y-2 p-4">
+                        <div className="h-4 w-2/3 rounded bg-gray-100" />
+                        <div className="h-3 w-1/2 rounded bg-gray-100" />
+                        <div className="h-3 w-3/4 rounded bg-gray-100" />
+                      </div>
+                    </div>
+                  ))
+                ) : shortlistItems.length === 0 ? (
+                  <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                    No shortlist items found.
+                  </div>
+                ) : (
+                  shortlistItems.map((item) => {
+                    const shortlistedProduct = item.product ?? null;
+                    const imageUrl = shortlistedProduct ? inlineProductImageUrl(shortlistedProduct) : null;
+                    return (
+                      <div
+                        key={item.id}
+                        role={shortlistedProduct?.slug ? "button" : undefined}
+                        tabIndex={shortlistedProduct?.slug ? 0 : -1}
+                        onClick={() => {
+                          if (!shortlistedProduct?.slug) return;
+                          setIsShortlistOpen(false);
+                          router.push(`/products/${shortlistedProduct.slug}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!shortlistedProduct?.slug) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            setIsShortlistOpen(false);
+                            router.push(`/products/${shortlistedProduct.slug}`);
+                          }
+                        }}
+                        className={[
+                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          shortlistedProduct?.slug ? "cursor-pointer" : ""
+                        ].join(" ")}
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-gray-100">
+                          {imageUrl ? (
+                            <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                          <div className="absolute left-3 top-3 flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                              {item.sampleStatus}
+                            </span>
+                            {item.sampleRequested && (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                                Sample Requested
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 p-4">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {shortlistedProduct?.materialType || "Shortlisted Product"}
+                            </div>
+                            <div className="mt-1 font-black leading-snug text-gray-900">
+                              {shortlistedProduct?.name || item.productId}
+                            </div>
+                            {shortlistedProduct && (
+                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                                <span>SKU: {shortlistedProduct.sku}</span>
+                                <span>{shortlistedProduct.brand}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                            <div className="mt-1">{item.customerNote || "-"}</div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
+                            <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                            <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isCompareOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">

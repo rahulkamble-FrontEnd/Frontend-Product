@@ -120,6 +120,31 @@ export type ProductCompareResponse = {
   fields: ProductCompareField[];
 };
 
+export type CreateShortlistPayload = {
+  productId: string;
+  customerNote: string;
+};
+
+export type ShortlistResponse = {
+  id: string;
+  customerId: string;
+  productId: string;
+  customerNote: string;
+  sampleRequested: boolean;
+  sampleRequestedAt: string | null;
+  sampleStatus: string;
+  createdAt: string;
+};
+
+export type ShortlistProduct = ProductListItem & {
+  deletedAt: string | null;
+  images?: ProductImageUploadResponse[] | null;
+};
+
+export type ShortlistItem = ShortlistResponse & {
+  product?: ShortlistProduct | null;
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -171,6 +196,41 @@ export async function getProductsCompare(ids: string[]) {
     throw new Error(errorData.message || 'Failed to compare products');
   }
   return response.json() as Promise<ProductCompareResponse>;
+}
+
+export async function createShortlist(payload: CreateShortlistPayload) {
+  const productId = payload?.productId?.trim();
+  if (!productId) throw new Error("Product id is required");
+
+  const customerNote = typeof payload?.customerNote === "string" ? payload.customerNote.trim() : "";
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      productId,
+      customerNote,
+    }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to create shortlist item');
+  }
+  return response.json() as Promise<ShortlistResponse>;
+}
+
+export async function getShortlist() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch shortlist');
+  }
+  return response.json() as Promise<ShortlistItem[]>;
 }
 
 export async function getProductImages(productId: string) {
