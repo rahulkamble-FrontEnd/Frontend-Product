@@ -20,12 +20,23 @@ import {
   updateShortlistNote,
   deleteShortlist,
   getDesignerCustomers,
+  getDesignerCustomerDetails,
+  createDesignerNote,
+  createDesignerRecommendation,
+  updateDesignerNote,
+  updateDesignerSample,
   type CreateProductPayload,
+  type CreateDesignerNotePayload,
+  type CreateDesignerRecommendationPayload,
   type DesignerCustomer,
+  type DesignerCustomerDetailResponse,
+  type DesignerRecommendationResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
   type ProductCompareResponse,
-  type ShortlistItem
+  type ShortlistItem,
+  type UpdateDesignerSamplePayload,
+  type UpdateDesignerNotePayload
 } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -154,6 +165,28 @@ export default function DashboardPage() {
   const [designerCustomers, setDesignerCustomers] = useState<DesignerCustomer[]>([]);
   const [isLoadingDesignerCustomers, setIsLoadingDesignerCustomers] = useState(false);
   const [designerCustomersError, setDesignerCustomersError] = useState("");
+  const [isDesignerCustomerDetailsOpen, setIsDesignerCustomerDetailsOpen] = useState(false);
+  const [selectedDesignerCustomerId, setSelectedDesignerCustomerId] = useState("");
+  const [designerCustomerDetails, setDesignerCustomerDetails] = useState<DesignerCustomerDetailResponse | null>(null);
+  const [isLoadingDesignerCustomerDetails, setIsLoadingDesignerCustomerDetails] = useState(false);
+  const [designerCustomerDetailsError, setDesignerCustomerDetailsError] = useState("");
+  const [designerSampleDrafts, setDesignerSampleDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerSampleId, setSavingDesignerSampleId] = useState<string | null>(null);
+  const [designerSampleMsg, setDesignerSampleMsg] = useState("");
+  const [designerSampleError, setDesignerSampleError] = useState("");
+  const [designerNoteDraft, setDesignerNoteDraft] = useState("");
+  const [designerNoteProductId, setDesignerNoteProductId] = useState("");
+  const [isCreatingDesignerNote, setIsCreatingDesignerNote] = useState(false);
+  const [designerNoteMsg, setDesignerNoteMsg] = useState("");
+  const [designerNoteError, setDesignerNoteError] = useState("");
+  const [designerNoteDrafts, setDesignerNoteDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerNoteId, setSavingDesignerNoteId] = useState<string | null>(null);
+  const [designerRecommendationProductId, setDesignerRecommendationProductId] = useState("");
+  const [designerRecommendationDraft, setDesignerRecommendationDraft] = useState("");
+  const [isCreatingDesignerRecommendation, setIsCreatingDesignerRecommendation] = useState(false);
+  const [designerRecommendationMsg, setDesignerRecommendationMsg] = useState("");
+  const [designerRecommendationError, setDesignerRecommendationError] = useState("");
+  const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
   const isInteractiveTarget = (target: EventTarget | null) =>
@@ -191,6 +224,24 @@ export default function DashboardPage() {
       if (normalized.length > 0) return pickBestImageUrl(normalized);
     }
     return null;
+  };
+
+  const getDesignerNoteText = (note: Record<string, unknown>) => {
+    const candidates = [note.title, note.note, note.content, note.message];
+    const found = candidates.find((value) => typeof value === "string" && value.trim());
+    return typeof found === "string" ? found.trim() : "Designer note";
+  };
+
+  const getProductLabelForNote = (productId?: string | null) => {
+    const id = typeof productId === "string" ? productId.trim() : "";
+    if (!id || !designerCustomerDetails) return null;
+    const shortlistItem = designerCustomerDetails.shortlist.find((item) => item.productId === id);
+    const product = shortlistItem?.product ?? null;
+    if (!product) {
+      const dashboardProduct = products.find((item) => item.id === id);
+      return dashboardProduct ? [dashboardProduct.name, dashboardProduct.sku].filter(Boolean).join(" • ") : id;
+    }
+    return [product.name, product.sku].filter(Boolean).join(" • ");
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
@@ -570,6 +621,246 @@ export default function DashboardPage() {
       setShortlistError(err instanceof Error ? err.message : "Failed to remove shortlist item.");
     } finally {
       setDeletingShortlistId(null);
+    }
+  };
+
+  const handleOpenDesignerCustomerDetails = async (customerId: string) => {
+    setDesignerCustomerDetailsError("");
+    setDesignerCustomerDetails(null);
+    setDesignerSampleDrafts({});
+    setSavingDesignerSampleId(null);
+    setDesignerSampleMsg("");
+    setDesignerSampleError("");
+    setDesignerNoteDraft("");
+    setDesignerNoteProductId("");
+    setDesignerNoteMsg("");
+    setDesignerNoteError("");
+    setDesignerNoteDrafts({});
+    setSavingDesignerNoteId(null);
+    setDesignerRecommendationDraft("");
+    setDesignerRecommendationProductId("");
+    setDesignerRecommendationMsg("");
+    setDesignerRecommendationError("");
+    setDesignerRecommendations([]);
+    if (userRole !== "designer") {
+      setDesignerCustomersError("Only designer can view customer details.");
+      return;
+    }
+    const id = customerId.trim();
+    if (!id) {
+      setDesignerCustomersError("Customer id is required.");
+      return;
+    }
+
+    setSelectedDesignerCustomerId(id);
+    setIsDesignerCustomerDetailsOpen(true);
+    setIsLoadingDesignerCustomerDetails(true);
+    try {
+      const data = await getDesignerCustomerDetails(id);
+      setDesignerCustomerDetails(data);
+      setDesignerSampleDrafts(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      setDesignerNoteDrafts(
+        (Array.isArray(data.notes) ? data.notes : []).reduce<Record<string, string>>((acc, note) => {
+          if (typeof note.id === "string") acc[note.id] = getDesignerNoteText(note);
+          return acc;
+        }, {})
+      );
+    } catch (err: unknown) {
+      setDesignerCustomerDetailsError(err instanceof Error ? err.message : "Failed to fetch customer details.");
+    } finally {
+      setIsLoadingDesignerCustomerDetails(false);
+    }
+  };
+
+  const handleUpdateDesignerSample = async (shortlistId: string) => {
+    setDesignerSampleError("");
+    setDesignerSampleMsg("");
+    if (userRole !== "designer") {
+      setDesignerSampleError("Only designer can update sample status.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setDesignerSampleError("Shortlist id is required.");
+      return;
+    }
+    const sampleStatus = (designerSampleDrafts[id] ?? "").trim();
+    if (!sampleStatus) {
+      setDesignerSampleError("Sample status is required.");
+      return;
+    }
+
+    const payload: UpdateDesignerSamplePayload = { sampleStatus };
+
+    setSavingDesignerSampleId(id);
+    try {
+      const updated = await updateDesignerSample(id, payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              shortlist: prev.shortlist.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      sampleRequested: updated.sampleRequested,
+                      sampleRequestedAt: updated.sampleRequestedAt,
+                      sampleStatus: updated.sampleStatus,
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerSampleDrafts((prev) => ({ ...prev, [id]: updated.sampleStatus || sampleStatus }));
+      setDesignerSampleMsg("Sample status updated successfully.");
+    } catch (err: unknown) {
+      setDesignerSampleError(err instanceof Error ? err.message : "Failed to update sample status.");
+    } finally {
+      setSavingDesignerSampleId(null);
+    }
+  };
+
+  const handleCreateDesignerNote = async () => {
+    setDesignerNoteError("");
+    setDesignerNoteMsg("");
+    if (userRole !== "designer") {
+      setDesignerNoteError("Only designer can add notes.");
+      return;
+    }
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!customerId) {
+      setDesignerNoteError("Customer id is required.");
+      return;
+    }
+    const note = designerNoteDraft.trim();
+    if (!note) {
+      setDesignerNoteError("Note is required.");
+      return;
+    }
+
+    const payload: CreateDesignerNotePayload = {
+      customerId,
+      note,
+      ...(designerNoteProductId.trim() ? { productId: designerNoteProductId.trim() } : {}),
+    };
+
+    setIsCreatingDesignerNote(true);
+    try {
+      const created = await createDesignerNote(payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: [created, ...(Array.isArray(prev.notes) ? prev.notes : [])],
+            }
+          : prev
+      );
+      if (typeof created.id === "string") {
+        setDesignerNoteDrafts((prev) => ({ ...prev, [created.id as string]: getDesignerNoteText(created) }));
+      }
+      setDesignerNoteDraft("");
+      setDesignerNoteProductId("");
+      setDesignerNoteMsg("Designer note added successfully.");
+    } catch (err: unknown) {
+      setDesignerNoteError(err instanceof Error ? err.message : "Failed to add designer note.");
+    } finally {
+      setIsCreatingDesignerNote(false);
+    }
+  };
+
+  const handleUpdateDesignerNote = async (noteId: string) => {
+    setDesignerNoteError("");
+    setDesignerNoteMsg("");
+    if (userRole !== "designer") {
+      setDesignerNoteError("Only designer can update notes.");
+      return;
+    }
+    const id = noteId.trim();
+    if (!id) {
+      setDesignerNoteError("Note id is required.");
+      return;
+    }
+    const note = (designerNoteDrafts[id] ?? "").trim();
+    if (!note) {
+      setDesignerNoteError("Note is required.");
+      return;
+    }
+
+    const payload: UpdateDesignerNotePayload = { note };
+
+    setSavingDesignerNoteId(id);
+    try {
+      const updated = await updateDesignerNote(id, payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: prev.notes.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      ...updated,
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerNoteDrafts((prev) => ({ ...prev, [id]: getDesignerNoteText(updated) }));
+      setDesignerNoteMsg("Designer note updated successfully.");
+    } catch (err: unknown) {
+      setDesignerNoteError(err instanceof Error ? err.message : "Failed to update designer note.");
+    } finally {
+      setSavingDesignerNoteId(null);
+    }
+  };
+
+  const handleCreateDesignerRecommendation = async () => {
+    setDesignerRecommendationError("");
+    setDesignerRecommendationMsg("");
+    if (userRole !== "designer") {
+      setDesignerRecommendationError("Only designer can add recommendations.");
+      return;
+    }
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!customerId) {
+      setDesignerRecommendationError("Customer id is required.");
+      return;
+    }
+    const productId = designerRecommendationProductId.trim();
+    if (!productId) {
+      setDesignerRecommendationError("Product is required.");
+      return;
+    }
+    const note = designerRecommendationDraft.trim();
+    if (!note) {
+      setDesignerRecommendationError("Recommendation note is required.");
+      return;
+    }
+
+    const payload: CreateDesignerRecommendationPayload = {
+      customerId,
+      productId,
+      note,
+    };
+
+    setIsCreatingDesignerRecommendation(true);
+    try {
+      const created = await createDesignerRecommendation(payload);
+      setDesignerRecommendations((prev) => [created, ...prev]);
+      setDesignerRecommendationDraft("");
+      setDesignerRecommendationProductId("");
+      setDesignerRecommendationMsg("Recommendation added successfully.");
+    } catch (err: unknown) {
+      setDesignerRecommendationError(err instanceof Error ? err.message : "Failed to add recommendation.");
+    } finally {
+      setIsCreatingDesignerRecommendation(false);
     }
   };
 
@@ -1247,6 +1538,16 @@ export default function DashboardPage() {
                         {customer.assignedDesigner?.name || "-"}
                       </div>
                     </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDesignerCustomerDetails(customer.id)}
+                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white"
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -1724,6 +2025,385 @@ export default function DashboardPage() {
                   })
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {userRole === "designer" && isDesignerCustomerDetailsOpen && (
+        <div
+          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => {
+            setIsDesignerCustomerDetailsOpen(false);
+            setDesignerCustomerDetailsError("");
+            setDesignerSampleDrafts({});
+            setSavingDesignerSampleId(null);
+            setDesignerSampleError("");
+            setDesignerSampleMsg("");
+            setDesignerNoteError("");
+            setDesignerNoteMsg("");
+            setDesignerNoteDrafts({});
+            setSavingDesignerNoteId(null);
+            setDesignerRecommendationError("");
+            setDesignerRecommendationMsg("");
+          }}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-black">Customer Details</h3>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  {selectedDesignerCustomerId}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDesignerCustomerDetailsOpen(false);
+                  setDesignerCustomerDetailsError("");
+                  setDesignerSampleDrafts({});
+                  setSavingDesignerSampleId(null);
+                  setDesignerSampleError("");
+                  setDesignerSampleMsg("");
+                  setDesignerNoteError("");
+                  setDesignerNoteMsg("");
+                  setDesignerNoteDrafts({});
+                  setSavingDesignerNoteId(null);
+                  setDesignerRecommendationError("");
+                  setDesignerRecommendationMsg("");
+                }}
+                className="text-gray-400 hover:text-black"
+                aria-label="Close customer details"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="max-h-[calc(90vh-4.5rem)] overflow-y-auto p-6">
+              {designerCustomerDetailsError && (
+                <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                  {designerCustomerDetailsError}
+                </div>
+              )}
+
+              {isLoadingDesignerCustomerDetails ? (
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-1">
+                    <div className="h-5 w-1/2 rounded bg-gray-100" />
+                    <div className="mt-4 h-24 rounded bg-gray-100" />
+                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+                    <div className="h-5 w-1/3 rounded bg-gray-100" />
+                    <div className="mt-4 h-40 rounded bg-gray-100" />
+                  </div>
+                </div>
+              ) : designerCustomerDetails ? (
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="space-y-6 lg:col-span-1">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Profile</div>
+                      <div className="mt-3 text-xl font-black text-gray-900">{designerCustomerDetails.customer.name}</div>
+                      <div className="mt-1 break-all text-sm text-gray-600">{designerCustomerDetails.customer.email}</div>
+                      <div className="mt-4 grid gap-3 text-sm text-gray-700">
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                          <div className="mt-1 font-medium text-gray-900">{designerCustomerDetails.customer.projectName || "-"}</div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Status</div>
+                          <div className="mt-1 font-medium text-gray-900">
+                            {designerCustomerDetails.customer.isActive ? "Active" : "Inactive"}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                          <div className="mt-1 font-medium text-gray-900">
+                            {designerCustomerDetails.customer.assignedDesigner?.name || "-"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 lg:col-span-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Shortlist</div>
+                          <div className="mt-1 text-sm text-gray-500">Products saved by this customer.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerCustomerDetails.shortlist.length} Items
+                        </div>
+                      </div>
+
+                      {designerSampleError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerSampleError}
+                        </div>
+                      )}
+                      {designerSampleMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerSampleMsg}
+                        </div>
+                      )}
+
+                      <div className="mt-4 space-y-4">
+                        {designerCustomerDetails.shortlist.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No shortlist items found.</div>
+                        ) : (
+                          designerCustomerDetails.shortlist.map((item) => {
+                            const shortlistProduct = item.product ?? null;
+                            const imageUrl = shortlistProduct ? inlineProductImageUrl(shortlistProduct) : null;
+                            return (
+                              <div key={item.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+                                <div className="grid gap-4 md:grid-cols-[140px_1fr]">
+                                  <div className="relative min-h-[140px] bg-gray-100">
+                                    {imageUrl ? (
+                                      <Image src={imageUrl} alt={shortlistProduct?.name || "Shortlist product"} fill sizes="140px" className="object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                        No Image
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="p-4">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div className="text-base font-black text-gray-900">
+                                        {shortlistProduct?.name || item.productId}
+                                      </div>
+                                      <span className="inline-flex rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                        {item.sampleStatus}
+                                      </span>
+                                    </div>
+                                    <div className="mt-2 text-sm text-gray-600">
+                                      {shortlistProduct?.brand || "-"}{shortlistProduct?.sku ? ` • ${shortlistProduct.sku}` : ""}
+                                    </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                                      <div className="mt-1">{item.customerNote || "-"}</div>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-white p-3">
+                                      <div className="min-w-[180px] flex-1">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sample Status</div>
+                                        <select
+                                          value={designerSampleDrafts[item.id] ?? item.sampleStatus ?? "none"}
+                                          onChange={(e) =>
+                                            setDesignerSampleDrafts((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        >
+                                          {Array.from(new Set([item.sampleStatus || "none", "none", "pending", "ready"])).map((status) => (
+                                            <option key={status} value={status}>
+                                              {status}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        disabled={savingDesignerSampleId === item.id}
+                                        onClick={() => handleUpdateDesignerSample(item.id)}
+                                        className="rounded-full border border-[#0468a3] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        {savingDesignerSampleId === item.id ? "Saving..." : "Update Sample"}
+                                      </button>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-bold text-gray-600">
+                                      <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                                      <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
+                          <div className="mt-1 text-sm text-gray-500">Recommend products to this customer with a designer note.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerRecommendations.length} Added
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+                          <div className="space-y-3">
+                            <select
+                              value={designerRecommendationProductId}
+                              onChange={(e) => setDesignerRecommendationProductId(e.target.value)}
+                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                            >
+                              <option value="">Select product</option>
+                              {products.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {[product.name, product.sku].filter(Boolean).join(" • ")}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={isCreatingDesignerRecommendation}
+                              onClick={handleCreateDesignerRecommendation}
+                              className="w-full rounded-full bg-[#0468a3] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isCreatingDesignerRecommendation ? "Saving..." : "Add Recommendation"}
+                            </button>
+                          </div>
+                          <textarea
+                            value={designerRecommendationDraft}
+                            onChange={(e) => setDesignerRecommendationDraft(e.target.value)}
+                            placeholder="Matte better than gloss for this kitchen direction"
+                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                          />
+                        </div>
+                        {designerRecommendationError && (
+                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                            {designerRecommendationError}
+                          </div>
+                        )}
+                        {designerRecommendationMsg && (
+                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                            {designerRecommendationMsg}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {designerRecommendations.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No recommendations created in this session.</div>
+                        ) : (
+                          designerRecommendations.map((recommendation) => (
+                            <div key={recommendation.id} className="rounded-xl bg-gray-50 p-4">
+                              <div className="text-sm font-bold text-gray-900">{recommendation.note}</div>
+                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
+                                Product: {getProductLabelForNote(recommendation.productId) || recommendation.productId}
+                              </div>
+                              <div className="mt-2 text-[11px] font-bold text-gray-500">
+                                Created: {new Date(recommendation.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Notes</div>
+                          <div className="mt-1 text-sm text-gray-500">Internal notes returned by the designer customer details API.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerCustomerDetails.notes.length} Notes
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Add Designer Note</div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_220px]">
+                          <textarea
+                            value={designerNoteDraft}
+                            onChange={(e) => setDesignerNoteDraft(e.target.value)}
+                            placeholder="Matte better than gloss for this kitchen direction"
+                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                          />
+                          <div className="space-y-3">
+                            <select
+                              value={designerNoteProductId}
+                              onChange={(e) => setDesignerNoteProductId(e.target.value)}
+                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                            >
+                              <option value="">No linked product</option>
+                              {designerCustomerDetails.shortlist.map((item) => (
+                                <option key={item.id} value={item.productId}>
+                                  {item.product?.name || item.productId}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={isCreatingDesignerNote}
+                              onClick={handleCreateDesignerNote}
+                              className="w-full rounded-full bg-black px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isCreatingDesignerNote ? "Saving..." : "Add Note"}
+                            </button>
+                          </div>
+                        </div>
+                        {designerNoteError && (
+                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                            {designerNoteError}
+                          </div>
+                        )}
+                        {designerNoteMsg && (
+                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                            {designerNoteMsg}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {designerCustomerDetails.notes.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No designer notes found.</div>
+                        ) : (
+                          designerCustomerDetails.notes.map((note, index) => (
+                            <div key={String(note.id ?? index)} className="rounded-xl bg-gray-50 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <textarea
+                                    value={typeof note.id === "string" ? (designerNoteDrafts[note.id] ?? getDesignerNoteText(note)) : getDesignerNoteText(note)}
+                                    onChange={(e) => {
+                                      if (typeof note.id !== "string") return;
+                                      setDesignerNoteDrafts((prev) => ({
+                                        ...prev,
+                                        [note.id as string]: e.target.value,
+                                      }));
+                                    }}
+                                    className="min-h-[88px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-inner"
+                                  />
+                                </div>
+                                {typeof note.id === "string" && (
+                                  <button
+                                    type="button"
+                                    disabled={savingDesignerNoteId === note.id}
+                                    onClick={() => handleUpdateDesignerNote(note.id as string)}
+                                    className="rounded-full border border-gray-300 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {savingDesignerNoteId === note.id ? "Saving..." : "Save"}
+                                  </button>
+                                )}
+                              </div>
+                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
+                                Product: {getProductLabelForNote(typeof note.productId === "string" ? note.productId : null) || "-"}
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-4 text-[11px] font-bold text-gray-500">
+                                <div>Created: {typeof note.createdAt === "string" && note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "-"}</div>
+                                <div>Updated: {typeof note.updatedAt === "string" && note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : "-"}</div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No customer details found.</div>
+              )}
             </div>
           </div>
         </div>

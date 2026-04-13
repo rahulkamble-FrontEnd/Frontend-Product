@@ -177,6 +177,55 @@ export type DesignerCustomer = {
   } | null;
 };
 
+export type DesignerCustomerDetailNote = {
+  id?: string;
+  designerId?: string;
+  customerId?: string;
+  productId?: string | null;
+  title?: string | null;
+  note?: string | null;
+  content?: string | null;
+  message?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  [key: string]: unknown;
+};
+
+export type DesignerCustomerDetailResponse = {
+  customer: DesignerCustomer;
+  shortlist: ShortlistItem[];
+  notes: DesignerCustomerDetailNote[];
+};
+
+export type CreateDesignerNotePayload = {
+  customerId: string;
+  productId?: string;
+  note: string;
+};
+
+export type CreateDesignerRecommendationPayload = {
+  customerId: string;
+  productId: string;
+  note: string;
+};
+
+export type UpdateDesignerNotePayload = {
+  note: string;
+};
+
+export type UpdateDesignerSamplePayload = {
+  sampleStatus: string;
+};
+
+export type DesignerRecommendationResponse = {
+  id: string;
+  designerId: string;
+  customerId: string;
+  productId: string;
+  note: string;
+  createdAt: string;
+};
+
 export async function getProducts(params?: {
   page?: number;
   limit?: number;
@@ -327,6 +376,115 @@ export async function getDesignerCustomers() {
     throw new Error(errorData.message || 'Failed to fetch designer customers');
   }
   return response.json() as Promise<DesignerCustomer[]>;
+}
+
+export async function getDesignerCustomerDetails(customerId: string) {
+  const id = customerId.trim();
+  if (!id) throw new Error("Customer id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers/${encodeURIComponent(id)}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch designer customer details');
+  }
+  return response.json() as Promise<DesignerCustomerDetailResponse>;
+}
+
+export async function createDesignerNote(payload: CreateDesignerNotePayload) {
+  const customerId = payload?.customerId?.trim();
+  if (!customerId) throw new Error("Customer id is required");
+
+  const note = typeof payload?.note === "string" ? payload.note.trim() : "";
+  if (!note) throw new Error("Note is required");
+
+  const productId = typeof payload?.productId === "string" ? payload.productId.trim() : "";
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customerId,
+      ...(productId ? { productId } : {}),
+      note,
+    }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to create designer note');
+  }
+  return response.json() as Promise<DesignerCustomerDetailNote>;
+}
+
+export async function createDesignerRecommendation(payload: CreateDesignerRecommendationPayload) {
+  const customerId = payload?.customerId?.trim();
+  if (!customerId) throw new Error("Customer id is required");
+
+  const productId = payload?.productId?.trim();
+  if (!productId) throw new Error("Product id is required");
+
+  const note = typeof payload?.note === "string" ? payload.note.trim() : "";
+  if (!note) throw new Error("Note is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/recommendations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      customerId,
+      productId,
+      note,
+    }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to create recommendation');
+  }
+  return response.json() as Promise<DesignerRecommendationResponse>;
+}
+
+export async function updateDesignerNote(noteId: string, payload: UpdateDesignerNotePayload) {
+  const id = noteId.trim();
+  if (!id) throw new Error("Note id is required");
+
+  const note = typeof payload?.note === "string" ? payload.note.trim() : "";
+  if (!note) throw new Error("Note is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ note }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update designer note');
+  }
+  return response.json() as Promise<DesignerCustomerDetailNote>;
+}
+
+export async function updateDesignerSample(shortlistId: string, payload: UpdateDesignerSamplePayload) {
+  const id = shortlistId.trim();
+  if (!id) throw new Error("Shortlist id is required");
+
+  const sampleStatus = typeof payload?.sampleStatus === "string" ? payload.sampleStatus.trim() : "";
+  if (!sampleStatus) throw new Error("Sample status is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/samples/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sampleStatus }),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to update sample status');
+  }
+  return response.json() as Promise<ShortlistResponse>;
 }
 
 export async function getProductImages(productId: string) {
