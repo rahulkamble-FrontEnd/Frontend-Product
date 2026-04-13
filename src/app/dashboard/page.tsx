@@ -1476,9 +1476,9 @@ export default function DashboardPage() {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+            <div className="mb-6 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
               <button
                 onClick={() => {
@@ -1496,9 +1496,10 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
+            <form onSubmit={handleCreateProduct} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
@@ -1509,19 +1510,19 @@ export default function DashboardPage() {
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.status}
-                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                    <select
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.status}
+                      onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -1718,28 +1719,29 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {productError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productError}</div>}
-              {productMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{productMsg}</div>}
-              {createdProductImage?.url && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Uploaded URL
+                {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
+                {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}
+                {createdProductImage?.url && (
+                  <div className="rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      Uploaded URL
+                    </div>
+                    <a
+                      href={createdProductImage.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
+                    >
+                      {createdProductImage.url}
+                    </a>
                   </div>
-                  <a
-                    href={createdProductImage.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
-                  >
-                    {createdProductImage.url}
-                  </a>
-                </div>
-              )}
+                )}
+              </div>
 
               <button
                 type="submit"
                 disabled={isCreatingProduct}
-                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+                className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
               >
                 {isCreatingProduct ? "Creating Product..." : "Confirm & Create"}
               </button>
