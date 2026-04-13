@@ -138,6 +138,14 @@ export default function DashboardPage() {
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 
+  const generateSkuFromName = (name: string) =>
+    name
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-");
+
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
     const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
@@ -1506,7 +1514,14 @@ export default function DashboardPage() {
                     required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.name}
-                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                    onChange={(e) => {
+                      const nextName = e.target.value;
+                      setNewProductData((prev) => ({
+                        ...prev,
+                        name: nextName,
+                        sku: generateSkuFromName(nextName)
+                      }));
+                    }}
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
@@ -1530,9 +1545,9 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    disabled
+                    className="mt-1 block w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 shadow-inner focus:outline-none"
                     value={newProductData.sku}
-                    onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
                     placeholder="e.g. COF-SHM-055"
                   />
                 </div>
