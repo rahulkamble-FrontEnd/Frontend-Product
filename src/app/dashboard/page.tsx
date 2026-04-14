@@ -15,10 +15,28 @@ import {
   deleteProduct,
   updateProductStatus,
   getCategories,
+  getShortlist,
+  requestShortlistSample,
+  updateShortlistNote,
+  deleteShortlist,
+  getDesignerCustomers,
+  getDesignerCustomerDetails,
+  createDesignerNote,
+  createDesignerRecommendation,
+  updateDesignerNote,
+  updateDesignerSample,
   type CreateProductPayload,
+  type CreateDesignerNotePayload,
+  type CreateDesignerRecommendationPayload,
+  type DesignerCustomer,
+  type DesignerCustomerDetailResponse,
+  type DesignerRecommendationResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
-  type ProductCompareResponse
+  type ProductCompareResponse,
+  type ShortlistItem,
+  type UpdateDesignerSamplePayload,
+  type UpdateDesignerNotePayload
 } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -26,6 +44,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
@@ -135,8 +154,52 @@ export default function DashboardPage() {
   const [updatingProductStatusId, setUpdatingProductStatusId] = useState<string | null>(null);
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
   const [updateProductStatusError, setUpdateProductStatusError] = useState("");
+  const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
+  const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
+  const [shortlistError, setShortlistError] = useState("");
+  const [shortlistMsg, setShortlistMsg] = useState("");
+  const [requestingSampleId, setRequestingSampleId] = useState<string | null>(null);
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [deletingShortlistId, setDeletingShortlistId] = useState<string | null>(null);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [designerCustomers, setDesignerCustomers] = useState<DesignerCustomer[]>([]);
+  const [isLoadingDesignerCustomers, setIsLoadingDesignerCustomers] = useState(false);
+  const [designerCustomersError, setDesignerCustomersError] = useState("");
+  const [isDesignerCustomerDetailsOpen, setIsDesignerCustomerDetailsOpen] = useState(false);
+  const [selectedDesignerCustomerId, setSelectedDesignerCustomerId] = useState("");
+  const [designerCustomerDetails, setDesignerCustomerDetails] = useState<DesignerCustomerDetailResponse | null>(null);
+  const [isLoadingDesignerCustomerDetails, setIsLoadingDesignerCustomerDetails] = useState(false);
+  const [designerCustomerDetailsError, setDesignerCustomerDetailsError] = useState("");
+  const [designerSampleDrafts, setDesignerSampleDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerSampleId, setSavingDesignerSampleId] = useState<string | null>(null);
+  const [designerSampleMsg, setDesignerSampleMsg] = useState("");
+  const [designerSampleError, setDesignerSampleError] = useState("");
+  const [designerNoteDraft, setDesignerNoteDraft] = useState("");
+  const [designerNoteProductId, setDesignerNoteProductId] = useState("");
+  const [isCreatingDesignerNote, setIsCreatingDesignerNote] = useState(false);
+  const [designerNoteMsg, setDesignerNoteMsg] = useState("");
+  const [designerNoteError, setDesignerNoteError] = useState("");
+  const [designerNoteDrafts, setDesignerNoteDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerNoteId, setSavingDesignerNoteId] = useState<string | null>(null);
+  const [designerRecommendationProductId, setDesignerRecommendationProductId] = useState("");
+  const [designerRecommendationDraft, setDesignerRecommendationDraft] = useState("");
+  const [isCreatingDesignerRecommendation, setIsCreatingDesignerRecommendation] = useState(false);
+  const [designerRecommendationMsg, setDesignerRecommendationMsg] = useState("");
+  const [designerRecommendationError, setDesignerRecommendationError] = useState("");
+  const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+  const isInteractiveTarget = (target: EventTarget | null) =>
+    target instanceof HTMLElement &&
+    Boolean(target.closest("button, textarea, input, select, a"));
+
+  const generateSkuFromName = (name: string) =>
+    name
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-{2,}/g, "-");
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
@@ -161,6 +224,24 @@ export default function DashboardPage() {
       if (normalized.length > 0) return pickBestImageUrl(normalized);
     }
     return null;
+  };
+
+  const getDesignerNoteText = (note: Record<string, unknown>) => {
+    const candidates = [note.title, note.note, note.content, note.message];
+    const found = candidates.find((value) => typeof value === "string" && value.trim());
+    return typeof found === "string" ? found.trim() : "Designer note";
+  };
+
+  const getProductLabelForNote = (productId?: string | null) => {
+    const id = typeof productId === "string" ? productId.trim() : "";
+    if (!id || !designerCustomerDetails) return null;
+    const shortlistItem = designerCustomerDetails.shortlist.find((item) => item.productId === id);
+    const product = shortlistItem?.product ?? null;
+    if (!product) {
+      const dashboardProduct = products.find((item) => item.id === id);
+      return dashboardProduct ? [dashboardProduct.name, dashboardProduct.sku].filter(Boolean).join(" • ") : id;
+    }
+    return [product.name, product.sku].filter(Boolean).join(" • ");
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
@@ -354,16 +435,18 @@ export default function DashboardPage() {
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
-    if (!storedName) {
-      router.push("/login");
-    } else {
+    if (storedName) {
       setUserName(storedName);
       setUserRole(storedRole || "");
+    } else {
+      setUserName("");
+      setUserRole("");
     }
   }, [router]);
 
   useEffect(() => {
     const close = () => {
+      setIsShortlistOpen(false);
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
       setIsProductsMenuOpen(false);
@@ -373,9 +456,413 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!userName) return;
     loadProducts();
-  }, [loadProducts, userName]);
+  }, [loadProducts]);
+
+  useEffect(() => {
+    if (userRole !== "customer") {
+      setShortlistItems([]);
+      setShortlistError("");
+      setShortlistMsg("");
+      setNoteDrafts({});
+      setSavingNoteId(null);
+      setIsLoadingShortlist(false);
+      return;
+    }
+
+    const loadShortlist = async () => {
+      setIsLoadingShortlist(true);
+      setShortlistError("");
+      try {
+        const items = await getShortlist();
+        const shortlist = Array.isArray(items) ? items : [];
+        setShortlistItems(shortlist);
+        setNoteDrafts(
+          shortlist.reduce<Record<string, string>>((acc, item) => {
+            acc[item.id] = item.customerNote || "";
+            return acc;
+          }, {})
+        );
+      } catch (err: unknown) {
+        setShortlistError(err instanceof Error ? err.message : "Failed to fetch shortlist.");
+        setShortlistItems([]);
+        setNoteDrafts({});
+      } finally {
+        setIsLoadingShortlist(false);
+      }
+    };
+
+    loadShortlist();
+  }, [userRole]);
+
+  useEffect(() => {
+    if (userRole !== "designer") {
+      setDesignerCustomers([]);
+      setDesignerCustomersError("");
+      setIsLoadingDesignerCustomers(false);
+      return;
+    }
+
+    const loadDesignerCustomers = async () => {
+      setIsLoadingDesignerCustomers(true);
+      setDesignerCustomersError("");
+      try {
+        const customers = await getDesignerCustomers();
+        setDesignerCustomers(Array.isArray(customers) ? customers : []);
+      } catch (err: unknown) {
+        setDesignerCustomersError(err instanceof Error ? err.message : "Failed to fetch designer customers.");
+        setDesignerCustomers([]);
+      } finally {
+        setIsLoadingDesignerCustomers(false);
+      }
+    };
+
+    loadDesignerCustomers();
+  }, [userRole]);
+
+  const handleRequestSample = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can request a physical sample.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+
+    setRequestingSampleId(id);
+    try {
+      const updated = await requestShortlistSample(id);
+      setShortlistItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                sampleRequested: updated.sampleRequested,
+                sampleRequestedAt: updated.sampleRequestedAt,
+                sampleStatus: updated.sampleStatus,
+              }
+            : item
+        )
+      );
+      setShortlistMsg("Physical sample requested successfully.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to request physical sample.");
+    } finally {
+      setRequestingSampleId(null);
+    }
+  };
+
+  const handleUpdateShortlistNote = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can update shortlist note.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+    const customerNote = (noteDrafts[id] ?? "").trim();
+
+    setSavingNoteId(id);
+    try {
+      const updated = await updateShortlistNote(id, { customerNote });
+      setShortlistItems((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                customerNote: updated.customerNote,
+              }
+            : item
+        )
+      );
+      setNoteDrafts((prev) => ({ ...prev, [id]: updated.customerNote || "" }));
+      setShortlistMsg("Shortlist note updated successfully.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to update shortlist note.");
+    } finally {
+      setSavingNoteId(null);
+    }
+  };
+
+  const handleDeleteShortlist = async (shortlistId: string) => {
+    setShortlistError("");
+    setShortlistMsg("");
+    if (userRole !== "customer") {
+      setShortlistError("Only customer can remove shortlist items.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setShortlistError("Shortlist id is required.");
+      return;
+    }
+    const ok = window.confirm("Remove this item from shortlist?");
+    if (!ok) return;
+
+    setDeletingShortlistId(id);
+    try {
+      const result = await deleteShortlist(id);
+      setShortlistItems((prev) => prev.filter((item) => item.id !== id));
+      setNoteDrafts((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setShortlistMsg(result.message || "Removed from shortlist.");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to remove shortlist item.");
+    } finally {
+      setDeletingShortlistId(null);
+    }
+  };
+
+  const handleOpenDesignerCustomerDetails = async (customerId: string) => {
+    setDesignerCustomerDetailsError("");
+    setDesignerCustomerDetails(null);
+    setDesignerSampleDrafts({});
+    setSavingDesignerSampleId(null);
+    setDesignerSampleMsg("");
+    setDesignerSampleError("");
+    setDesignerNoteDraft("");
+    setDesignerNoteProductId("");
+    setDesignerNoteMsg("");
+    setDesignerNoteError("");
+    setDesignerNoteDrafts({});
+    setSavingDesignerNoteId(null);
+    setDesignerRecommendationDraft("");
+    setDesignerRecommendationProductId("");
+    setDesignerRecommendationMsg("");
+    setDesignerRecommendationError("");
+    setDesignerRecommendations([]);
+    if (userRole !== "designer") {
+      setDesignerCustomersError("Only designer can view customer details.");
+      return;
+    }
+    const id = customerId.trim();
+    if (!id) {
+      setDesignerCustomersError("Customer id is required.");
+      return;
+    }
+
+    setSelectedDesignerCustomerId(id);
+    setIsDesignerCustomerDetailsOpen(true);
+    setIsLoadingDesignerCustomerDetails(true);
+    try {
+      const data = await getDesignerCustomerDetails(id);
+      setDesignerCustomerDetails(data);
+      setDesignerSampleDrafts(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      setDesignerNoteDrafts(
+        (Array.isArray(data.notes) ? data.notes : []).reduce<Record<string, string>>((acc, note) => {
+          if (typeof note.id === "string") acc[note.id] = getDesignerNoteText(note);
+          return acc;
+        }, {})
+      );
+    } catch (err: unknown) {
+      setDesignerCustomerDetailsError(err instanceof Error ? err.message : "Failed to fetch customer details.");
+    } finally {
+      setIsLoadingDesignerCustomerDetails(false);
+    }
+  };
+
+  const handleUpdateDesignerSample = async (shortlistId: string) => {
+    setDesignerSampleError("");
+    setDesignerSampleMsg("");
+    if (userRole !== "designer") {
+      setDesignerSampleError("Only designer can update sample status.");
+      return;
+    }
+    const id = shortlistId.trim();
+    if (!id) {
+      setDesignerSampleError("Shortlist id is required.");
+      return;
+    }
+    const sampleStatus = (designerSampleDrafts[id] ?? "").trim();
+    if (!sampleStatus) {
+      setDesignerSampleError("Sample status is required.");
+      return;
+    }
+
+    const payload: UpdateDesignerSamplePayload = { sampleStatus };
+
+    setSavingDesignerSampleId(id);
+    try {
+      const updated = await updateDesignerSample(id, payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              shortlist: prev.shortlist.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      sampleRequested: updated.sampleRequested,
+                      sampleRequestedAt: updated.sampleRequestedAt,
+                      sampleStatus: updated.sampleStatus,
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerSampleDrafts((prev) => ({ ...prev, [id]: updated.sampleStatus || sampleStatus }));
+      setDesignerSampleMsg("Sample status updated successfully.");
+    } catch (err: unknown) {
+      setDesignerSampleError(err instanceof Error ? err.message : "Failed to update sample status.");
+    } finally {
+      setSavingDesignerSampleId(null);
+    }
+  };
+
+  const handleCreateDesignerNote = async () => {
+    setDesignerNoteError("");
+    setDesignerNoteMsg("");
+    if (userRole !== "designer") {
+      setDesignerNoteError("Only designer can add notes.");
+      return;
+    }
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!customerId) {
+      setDesignerNoteError("Customer id is required.");
+      return;
+    }
+    const note = designerNoteDraft.trim();
+    if (!note) {
+      setDesignerNoteError("Note is required.");
+      return;
+    }
+
+    const payload: CreateDesignerNotePayload = {
+      customerId,
+      note,
+      ...(designerNoteProductId.trim() ? { productId: designerNoteProductId.trim() } : {}),
+    };
+
+    setIsCreatingDesignerNote(true);
+    try {
+      const created = await createDesignerNote(payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: [created, ...(Array.isArray(prev.notes) ? prev.notes : [])],
+            }
+          : prev
+      );
+      if (typeof created.id === "string") {
+        setDesignerNoteDrafts((prev) => ({ ...prev, [created.id as string]: getDesignerNoteText(created) }));
+      }
+      setDesignerNoteDraft("");
+      setDesignerNoteProductId("");
+      setDesignerNoteMsg("Designer note added successfully.");
+    } catch (err: unknown) {
+      setDesignerNoteError(err instanceof Error ? err.message : "Failed to add designer note.");
+    } finally {
+      setIsCreatingDesignerNote(false);
+    }
+  };
+
+  const handleUpdateDesignerNote = async (noteId: string) => {
+    setDesignerNoteError("");
+    setDesignerNoteMsg("");
+    if (userRole !== "designer") {
+      setDesignerNoteError("Only designer can update notes.");
+      return;
+    }
+    const id = noteId.trim();
+    if (!id) {
+      setDesignerNoteError("Note id is required.");
+      return;
+    }
+    const note = (designerNoteDrafts[id] ?? "").trim();
+    if (!note) {
+      setDesignerNoteError("Note is required.");
+      return;
+    }
+
+    const payload: UpdateDesignerNotePayload = { note };
+
+    setSavingDesignerNoteId(id);
+    try {
+      const updated = await updateDesignerNote(id, payload);
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: prev.notes.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      ...updated,
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerNoteDrafts((prev) => ({ ...prev, [id]: getDesignerNoteText(updated) }));
+      setDesignerNoteMsg("Designer note updated successfully.");
+    } catch (err: unknown) {
+      setDesignerNoteError(err instanceof Error ? err.message : "Failed to update designer note.");
+    } finally {
+      setSavingDesignerNoteId(null);
+    }
+  };
+
+  const handleCreateDesignerRecommendation = async () => {
+    setDesignerRecommendationError("");
+    setDesignerRecommendationMsg("");
+    if (userRole !== "designer") {
+      setDesignerRecommendationError("Only designer can add recommendations.");
+      return;
+    }
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!customerId) {
+      setDesignerRecommendationError("Customer id is required.");
+      return;
+    }
+    const productId = designerRecommendationProductId.trim();
+    if (!productId) {
+      setDesignerRecommendationError("Product is required.");
+      return;
+    }
+    const note = designerRecommendationDraft.trim();
+    if (!note) {
+      setDesignerRecommendationError("Recommendation note is required.");
+      return;
+    }
+
+    const payload: CreateDesignerRecommendationPayload = {
+      customerId,
+      productId,
+      note,
+    };
+
+    setIsCreatingDesignerRecommendation(true);
+    try {
+      const created = await createDesignerRecommendation(payload);
+      setDesignerRecommendations((prev) => [created, ...prev]);
+      setDesignerRecommendationDraft("");
+      setDesignerRecommendationProductId("");
+      setDesignerRecommendationMsg("Recommendation added successfully.");
+    } catch (err: unknown) {
+      setDesignerRecommendationError(err instanceof Error ? err.message : "Failed to add recommendation.");
+    } finally {
+      setIsCreatingDesignerRecommendation(false);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -384,10 +871,14 @@ export default function DashboardPage() {
       const password = localStorage.getItem("userPassword") || "";
       await logout({ email, password });
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } catch {
       localStorage.clear();
-      router.push("/login");
+      setUserName("");
+      setUserRole("");
+      router.push("/dashboard");
     } finally {
       setIsLoggingOut(false);
     }
@@ -654,8 +1145,6 @@ export default function DashboardPage() {
     }
   };
 
-  if (!userName) return null;
-
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Header */}
@@ -855,20 +1344,41 @@ export default function DashboardPage() {
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
               Shop on call
             </button>
-            <div className="relative cursor-pointer">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (userRole !== "customer") return;
+                setIsShortlistOpen((v) => !v);
+              }}
+              className="relative"
+              aria-label="Open shortlist"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
-              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">0</span>
-            </div>
+              <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">
+                {userRole === "customer" ? shortlistItems.length : 0}
+              </span>
+            </button>
              {/* Profile/Menu (Mobile replacement for logout) */}
-             <button 
-                onClick={handleLogout}
-                className="ml-2 flex flex-col items-center justify-center"
-             >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
-                    {userName.charAt(0)}
-                </div>
-                <span className="text-[10px] font-bold uppercase mt-0.5">{isLoggingOut ? "..." : "Logout"}</span>
-             </button>
+             {userName ? (
+               <button 
+                  onClick={handleLogout}
+                  className="ml-2 flex flex-col items-center justify-center"
+               >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
+                      {userName.charAt(0)}
+                  </div>
+                  <span className="mt-0.5 text-[10px] font-bold uppercase">{isLoggingOut ? "..." : "Logout"}</span>
+               </button>
+             ) : (
+               <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="ml-2 rounded-md border border-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-wider text-[#0468a3] shadow-sm transition-all hover:bg-[#0468a3] hover:text-white"
+               >
+                  Login
+               </button>
+             )}
           </div>
         </div>
       </header>
@@ -944,6 +1454,107 @@ export default function DashboardPage() {
             Karigari Laminates
          </h3>
       </section>
+
+      {userRole === "designer" && (
+        <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer</div>
+              <h3 className="mt-1 text-2xl font-black uppercase tracking-tight text-black">My Customers</h3>
+              <p className="mt-1 text-sm text-gray-500">Customers assigned to your designer account.</p>
+            </div>
+            <div className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-widest text-gray-700 shadow-sm">
+              {designerCustomers.length} Customers
+            </div>
+          </div>
+
+          {designerCustomersError && (
+            <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+              {designerCustomersError}
+            </div>
+          )}
+
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {isLoadingDesignerCustomers ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="h-4 w-1/3 rounded bg-gray-100" />
+                  <div className="mt-4 h-6 w-2/3 rounded bg-gray-100" />
+                  <div className="mt-2 h-4 w-1/2 rounded bg-gray-100" />
+                  <div className="mt-6 h-20 rounded bg-gray-100" />
+                </div>
+              ))
+            ) : designerCustomers.length === 0 ? (
+              <div className="col-span-full rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                No customers assigned to this designer.
+              </div>
+            ) : (
+              designerCustomers.map((customer) => (
+                <div key={customer.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4d2c1e] text-sm font-black uppercase text-[#ffde59]">
+                        {customer.name?.charAt(0) || "C"}
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          {customer.role}
+                        </div>
+                        <div className="mt-1 text-base font-black text-gray-900">
+                          {customer.name}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      className={[
+                        "inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                        customer.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
+                      ].join(" ")}
+                    >
+                      {customer.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3 text-sm text-gray-700">
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Email</div>
+                      <div className="mt-1 break-all font-medium text-gray-900">{customer.email}</div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-gray-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                        <div className="mt-1 font-medium text-gray-900">{customer.projectName || "-"}</div>
+                      </div>
+                      <div className="rounded-xl bg-gray-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Joined</div>
+                        <div className="mt-1 font-medium text-gray-900">{new Date(customer.createdAt).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                      <div className="mt-1 font-medium text-gray-900">
+                        {customer.assignedDesigner?.name || "-"}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDesignerCustomerDetails(customer.id)}
+                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
         <div className="flex flex-col gap-3">
@@ -1226,6 +1837,578 @@ export default function DashboardPage() {
         <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
       </section>
 
+      {userRole === "customer" && isShortlistOpen && (
+        <div
+          className="fixed inset-0 z-[140] bg-black/40 backdrop-blur-sm"
+          onClick={() => setIsShortlistOpen(false)}
+        >
+          <div
+            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-black uppercase tracking-tight text-black">My Shortlist</h3>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  {shortlistItems.length} Saved
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShortlistOpen(false)}
+                className="text-gray-400 hover:text-black"
+                aria-label="Close shortlist"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+              {shortlistMsg && (
+                <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                  {shortlistMsg}
+                </div>
+              )}
+              {shortlistError && (
+                <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                  {shortlistError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {isLoadingShortlist ? (
+                  Array.from({ length: 3 }).map((_, idx) => (
+                    <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                      <div className="aspect-[4/3] w-full bg-gray-100" />
+                      <div className="space-y-2 p-4">
+                        <div className="h-4 w-2/3 rounded bg-gray-100" />
+                        <div className="h-3 w-1/2 rounded bg-gray-100" />
+                        <div className="h-3 w-3/4 rounded bg-gray-100" />
+                      </div>
+                    </div>
+                  ))
+                ) : shortlistItems.length === 0 ? (
+                  <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
+                    No shortlist items found.
+                  </div>
+                ) : (
+                  shortlistItems.map((item) => {
+                    const shortlistedProduct = item.product ?? null;
+                    const imageUrl = shortlistedProduct ? inlineProductImageUrl(shortlistedProduct) : null;
+                    return (
+                      <div
+                        key={item.id}
+                        role={shortlistedProduct?.slug ? "button" : undefined}
+                        tabIndex={shortlistedProduct?.slug ? 0 : -1}
+                        onClick={(e) => {
+                          if (!shortlistedProduct?.slug) return;
+                          if (isInteractiveTarget(e.target)) return;
+                          setIsShortlistOpen(false);
+                          router.push(`/products/${shortlistedProduct.slug}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!shortlistedProduct?.slug) return;
+                          if (isInteractiveTarget(e.target)) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setIsShortlistOpen(false);
+                            router.push(`/products/${shortlistedProduct.slug}`);
+                          }
+                        }}
+                        className={[
+                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          shortlistedProduct?.slug ? "cursor-pointer" : ""
+                        ].join(" ")}
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-gray-100">
+                          {imageUrl ? (
+                            <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                          <div className="absolute left-3 top-3 flex items-center gap-2">
+                            <span className="inline-flex items-center rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                              {item.sampleStatus}
+                            </span>
+                            {item.sampleRequested && (
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                                Sample Requested
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 p-4">
+                          <div>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {shortlistedProduct?.materialType || "Shortlisted Product"}
+                            </div>
+                            <div className="mt-1 font-black leading-snug text-gray-900">
+                              {shortlistedProduct?.name || item.productId}
+                            </div>
+                            {shortlistedProduct && (
+                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                                <span>SKU: {shortlistedProduct.sku}</span>
+                                <span>{shortlistedProduct.brand}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRequestSample(item.id);
+                              }}
+                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {requestingSampleId === item.id
+                                ? "Requesting..."
+                                : item.sampleRequested
+                                  ? "Sample Requested"
+                                  : "Request Sample"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={deletingShortlistId === item.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteShortlist(item.id);
+                              }}
+                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {deletingShortlistId === item.id ? "Removing..." : "Remove"}
+                            </button>
+                          </div>
+
+                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                              <button
+                                type="button"
+                                disabled={savingNoteId === item.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateShortlistNote(item.id);
+                                }}
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {savingNoteId === item.id ? "Saving..." : "Save Note"}
+                              </button>
+                            </div>
+                            <textarea
+                              value={noteDrafts[item.id] ?? item.customerNote ?? ""}
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                setNoteDrafts((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="Updated note text"
+                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
+                            <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                            <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {userRole === "designer" && isDesignerCustomerDetailsOpen && (
+        <div
+          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => {
+            setIsDesignerCustomerDetailsOpen(false);
+            setDesignerCustomerDetailsError("");
+            setDesignerSampleDrafts({});
+            setSavingDesignerSampleId(null);
+            setDesignerSampleError("");
+            setDesignerSampleMsg("");
+            setDesignerNoteError("");
+            setDesignerNoteMsg("");
+            setDesignerNoteDrafts({});
+            setSavingDesignerNoteId(null);
+            setDesignerRecommendationError("");
+            setDesignerRecommendationMsg("");
+          }}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div>
+                <h3 className="text-xl font-black uppercase tracking-tight text-black">Customer Details</h3>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  {selectedDesignerCustomerId}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDesignerCustomerDetailsOpen(false);
+                  setDesignerCustomerDetailsError("");
+                  setDesignerSampleDrafts({});
+                  setSavingDesignerSampleId(null);
+                  setDesignerSampleError("");
+                  setDesignerSampleMsg("");
+                  setDesignerNoteError("");
+                  setDesignerNoteMsg("");
+                  setDesignerNoteDrafts({});
+                  setSavingDesignerNoteId(null);
+                  setDesignerRecommendationError("");
+                  setDesignerRecommendationMsg("");
+                }}
+                className="text-gray-400 hover:text-black"
+                aria-label="Close customer details"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="max-h-[calc(90vh-4.5rem)] overflow-y-auto p-6">
+              {designerCustomerDetailsError && (
+                <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                  {designerCustomerDetailsError}
+                </div>
+              )}
+
+              {isLoadingDesignerCustomerDetails ? (
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-1">
+                    <div className="h-5 w-1/2 rounded bg-gray-100" />
+                    <div className="mt-4 h-24 rounded bg-gray-100" />
+                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2">
+                    <div className="h-5 w-1/3 rounded bg-gray-100" />
+                    <div className="mt-4 h-40 rounded bg-gray-100" />
+                  </div>
+                </div>
+              ) : designerCustomerDetails ? (
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="space-y-6 lg:col-span-1">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Profile</div>
+                      <div className="mt-3 text-xl font-black text-gray-900">{designerCustomerDetails.customer.name}</div>
+                      <div className="mt-1 break-all text-sm text-gray-600">{designerCustomerDetails.customer.email}</div>
+                      <div className="mt-4 grid gap-3 text-sm text-gray-700">
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                          <div className="mt-1 font-medium text-gray-900">{designerCustomerDetails.customer.projectName || "-"}</div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Status</div>
+                          <div className="mt-1 font-medium text-gray-900">
+                            {designerCustomerDetails.customer.isActive ? "Active" : "Inactive"}
+                          </div>
+                        </div>
+                        <div className="rounded-xl bg-gray-50 p-3">
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                          <div className="mt-1 font-medium text-gray-900">
+                            {designerCustomerDetails.customer.assignedDesigner?.name || "-"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 lg:col-span-2">
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Shortlist</div>
+                          <div className="mt-1 text-sm text-gray-500">Products saved by this customer.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerCustomerDetails.shortlist.length} Items
+                        </div>
+                      </div>
+
+                      {designerSampleError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerSampleError}
+                        </div>
+                      )}
+                      {designerSampleMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerSampleMsg}
+                        </div>
+                      )}
+
+                      <div className="mt-4 space-y-4">
+                        {designerCustomerDetails.shortlist.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No shortlist items found.</div>
+                        ) : (
+                          designerCustomerDetails.shortlist.map((item) => {
+                            const shortlistProduct = item.product ?? null;
+                            const imageUrl = shortlistProduct ? inlineProductImageUrl(shortlistProduct) : null;
+                            return (
+                              <div key={item.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+                                <div className="grid gap-4 md:grid-cols-[140px_1fr]">
+                                  <div className="relative min-h-[140px] bg-gray-100">
+                                    {imageUrl ? (
+                                      <Image src={imageUrl} alt={shortlistProduct?.name || "Shortlist product"} fill sizes="140px" className="object-cover" />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                        No Image
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="p-4">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div className="text-base font-black text-gray-900">
+                                        {shortlistProduct?.name || item.productId}
+                                      </div>
+                                      <span className="inline-flex rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                                        {item.sampleStatus}
+                                      </span>
+                                    </div>
+                                    <div className="mt-2 text-sm text-gray-600">
+                                      {shortlistProduct?.brand || "-"}{shortlistProduct?.sku ? ` • ${shortlistProduct.sku}` : ""}
+                                    </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                                      <div className="mt-1">{item.customerNote || "-"}</div>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-white p-3">
+                                      <div className="min-w-[180px] flex-1">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sample Status</div>
+                                        <select
+                                          value={designerSampleDrafts[item.id] ?? item.sampleStatus ?? "none"}
+                                          onChange={(e) =>
+                                            setDesignerSampleDrafts((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        >
+                                          {Array.from(new Set([item.sampleStatus || "none", "none", "pending", "ready"])).map((status) => (
+                                            <option key={status} value={status}>
+                                              {status}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        disabled={savingDesignerSampleId === item.id}
+                                        onClick={() => handleUpdateDesignerSample(item.id)}
+                                        className="rounded-full border border-[#0468a3] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:opacity-50"
+                                      >
+                                        {savingDesignerSampleId === item.id ? "Saving..." : "Update Sample"}
+                                      </button>
+                                    </div>
+                                    <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-bold text-gray-600">
+                                      <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                                      <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
+                          <div className="mt-1 text-sm text-gray-500">Recommend products to this customer with a designer note.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerRecommendations.length} Added
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+                          <div className="space-y-3">
+                            <select
+                              value={designerRecommendationProductId}
+                              onChange={(e) => setDesignerRecommendationProductId(e.target.value)}
+                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                            >
+                              <option value="">Select product</option>
+                              {products.map((product) => (
+                                <option key={product.id} value={product.id}>
+                                  {[product.name, product.sku].filter(Boolean).join(" • ")}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={isCreatingDesignerRecommendation}
+                              onClick={handleCreateDesignerRecommendation}
+                              className="w-full rounded-full bg-[#0468a3] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isCreatingDesignerRecommendation ? "Saving..." : "Add Recommendation"}
+                            </button>
+                          </div>
+                          <textarea
+                            value={designerRecommendationDraft}
+                            onChange={(e) => setDesignerRecommendationDraft(e.target.value)}
+                            placeholder="Matte better than gloss for this kitchen direction"
+                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                          />
+                        </div>
+                        {designerRecommendationError && (
+                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                            {designerRecommendationError}
+                          </div>
+                        )}
+                        {designerRecommendationMsg && (
+                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                            {designerRecommendationMsg}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {designerRecommendations.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No recommendations created in this session.</div>
+                        ) : (
+                          designerRecommendations.map((recommendation) => (
+                            <div key={recommendation.id} className="rounded-xl bg-gray-50 p-4">
+                              <div className="text-sm font-bold text-gray-900">{recommendation.note}</div>
+                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
+                                Product: {getProductLabelForNote(recommendation.productId) || recommendation.productId}
+                              </div>
+                              <div className="mt-2 text-[11px] font-bold text-gray-500">
+                                Created: {new Date(recommendation.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Notes</div>
+                          <div className="mt-1 text-sm text-gray-500">Internal notes returned by the designer customer details API.</div>
+                        </div>
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                          {designerCustomerDetails.notes.length} Notes
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Add Designer Note</div>
+                        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_220px]">
+                          <textarea
+                            value={designerNoteDraft}
+                            onChange={(e) => setDesignerNoteDraft(e.target.value)}
+                            placeholder="Matte better than gloss for this kitchen direction"
+                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                          />
+                          <div className="space-y-3">
+                            <select
+                              value={designerNoteProductId}
+                              onChange={(e) => setDesignerNoteProductId(e.target.value)}
+                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
+                            >
+                              <option value="">No linked product</option>
+                              {designerCustomerDetails.shortlist.map((item) => (
+                                <option key={item.id} value={item.productId}>
+                                  {item.product?.name || item.productId}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              disabled={isCreatingDesignerNote}
+                              onClick={handleCreateDesignerNote}
+                              className="w-full rounded-full bg-black px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isCreatingDesignerNote ? "Saving..." : "Add Note"}
+                            </button>
+                          </div>
+                        </div>
+                        {designerNoteError && (
+                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                            {designerNoteError}
+                          </div>
+                        )}
+                        {designerNoteMsg && (
+                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                            {designerNoteMsg}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        {designerCustomerDetails.notes.length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No designer notes found.</div>
+                        ) : (
+                          designerCustomerDetails.notes.map((note, index) => (
+                            <div key={String(note.id ?? index)} className="rounded-xl bg-gray-50 p-4">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1">
+                                  <textarea
+                                    value={typeof note.id === "string" ? (designerNoteDrafts[note.id] ?? getDesignerNoteText(note)) : getDesignerNoteText(note)}
+                                    onChange={(e) => {
+                                      if (typeof note.id !== "string") return;
+                                      setDesignerNoteDrafts((prev) => ({
+                                        ...prev,
+                                        [note.id as string]: e.target.value,
+                                      }));
+                                    }}
+                                    className="min-h-[88px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-inner"
+                                  />
+                                </div>
+                                {typeof note.id === "string" && (
+                                  <button
+                                    type="button"
+                                    disabled={savingDesignerNoteId === note.id}
+                                    onClick={() => handleUpdateDesignerNote(note.id as string)}
+                                    className="rounded-full border border-gray-300 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {savingDesignerNoteId === note.id ? "Saving..." : "Save"}
+                                  </button>
+                                )}
+                              </div>
+                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
+                                Product: {getProductLabelForNote(typeof note.productId === "string" ? note.productId : null) || "-"}
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-4 text-[11px] font-bold text-gray-500">
+                                <div>Created: {typeof note.createdAt === "string" && note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "-"}</div>
+                                <div>Updated: {typeof note.updatedAt === "string" && note.updatedAt ? new Date(note.updatedAt).toLocaleDateString() : "-"}</div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No customer details found.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {isCompareOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
@@ -1476,9 +2659,9 @@ export default function DashboardPage() {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+            <div className="mb-6 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
               <button
                 onClick={() => {
@@ -1496,32 +2679,40 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateProduct} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
+            <form onSubmit={handleCreateProduct} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
                     required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.name}
-                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                    onChange={(e) => {
+                      const nextName = e.target.value;
+                      setNewProductData((prev) => ({
+                        ...prev,
+                        name: nextName,
+                        sku: generateSkuFromName(nextName)
+                      }));
+                    }}
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.status}
-                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                    <select
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.status}
+                      onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="published">Published</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
@@ -1529,9 +2720,9 @@ export default function DashboardPage() {
                   <input
                     type="text"
                     required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    disabled
+                    className="mt-1 block w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 shadow-inner focus:outline-none"
                     value={newProductData.sku}
-                    onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
                     placeholder="e.g. COF-SHM-055"
                   />
                 </div>
@@ -1718,28 +2909,29 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {productError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productError}</div>}
-              {productMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{productMsg}</div>}
-              {createdProductImage?.url && (
-                <div className="rounded-lg border border-gray-200 bg-white p-3">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Uploaded URL
+                {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
+                {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}
+                {createdProductImage?.url && (
+                  <div className="rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                      Uploaded URL
+                    </div>
+                    <a
+                      href={createdProductImage.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
+                    >
+                      {createdProductImage.url}
+                    </a>
                   </div>
-                  <a
-                    href={createdProductImage.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
-                  >
-                    {createdProductImage.url}
-                  </a>
-                </div>
-              )}
+                )}
+              </div>
 
               <button
                 type="submit"
                 disabled={isCreatingProduct}
-                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+                className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
               >
                 {isCreatingProduct ? "Creating Product..." : "Confirm & Create"}
               </button>
@@ -1902,17 +3094,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Floating WhatsApp Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-transform hover:scale-110">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-           {/* Tooltip replacement for WhatsApp vibe */}
-           <span className="absolute right-16 top-1/2 -translate-y-1/2 scale-0 rounded-lg bg-white px-2 py-1 text-xs font-bold text-gray-900 shadow-md group-hover:scale-100 transition-all origin-right">
-             Chat with us
-           </span>
-        </button>
-      </div>
 
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
