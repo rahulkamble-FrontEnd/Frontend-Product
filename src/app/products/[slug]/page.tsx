@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { deleteProductCategory, deleteProductImage, getProductBySlug, updateProduct, type ProductDetailsResponse, type ProductImageUploadResponse, type UpdateProductPayload, type UpdateProductResponse } from "@/lib/api";
+import { createShortlist, deleteProductCategory, deleteProductImage, getProductBySlug, updateProduct, type ProductDetailsResponse, type ProductImageUploadResponse, type ShortlistResponse, type UpdateProductPayload, type UpdateProductResponse } from "@/lib/api";
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -18,8 +18,9 @@ function pickBestImageUrl(images: ProductImageUploadResponse[] | null | undefine
   return first?.url ? cleanUrl(first.url) : null;
 }
 
-export default function ProductDetailsPage({ params }: { params: { slug: string } }) {
-  const { slug } = React.use(params as unknown as Promise<{ slug: string }>);
+export default function ProductDetailsPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
@@ -78,6 +79,11 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
   const [updateProductMsg, setUpdateProductMsg] = useState("");
   const [updateProductError, setUpdateProductError] = useState("");
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const [customerNote, setCustomerNote] = useState("");
+  const [isCreatingShortlist, setIsCreatingShortlist] = useState(false);
+  const [shortlistMsg, setShortlistMsg] = useState("");
+  const [shortlistError, setShortlistError] = useState("");
+  const [shortlistItem, setShortlistItem] = useState<ShortlistResponse | null>(null);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -91,7 +97,7 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
   }, [router]);
 
   useEffect(() => {
-    if (!userName) return;
+    if (!userName || !slug) return;
     const load = async () => {
       setIsLoading(true);
       setError("");
@@ -109,6 +115,36 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
     };
     load();
   }, [slug, userName]);
+
+  const handleCreateShortlist = async () => {
+    setShortlistMsg("");
+    setShortlistError("");
+    if (isCreatingShortlist) return;
+    if (userRole !== "customer") {
+      setShortlistError("Only customer login can add shortlist items.");
+      return;
+    }
+    const productId = product?.id?.trim() || "";
+    if (!productId) {
+      setShortlistError("Product id is missing.");
+      return;
+    }
+
+    setIsCreatingShortlist(true);
+    try {
+      const created = await createShortlist({
+        productId,
+        customerNote,
+      });
+      setShortlistItem(created);
+      setShortlistMsg("Product added to shortlist.");
+      setCustomerNote("");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to add shortlist item.");
+    } finally {
+      setIsCreatingShortlist(false);
+    }
+  };
 
   const images = useMemo(() => {
     const list = Array.isArray(product?.images) ? product!.images : [];
@@ -329,6 +365,16 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
             {updateProductMsg}
           </div>
         )}
+        {shortlistError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {shortlistError}
+          </div>
+        )}
+        {shortlistMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {shortlistMsg}
+          </div>
+        )}
 
         {isLoading || !product ? (
           <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm text-sm text-gray-500">
@@ -461,6 +507,41 @@ export default function ProductDetailsPage({ params }: { params: { slug: string 
                   )}
                 </div>
               </div>
+
+              {userRole === "customer" && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Shortlist</div>
+                      <div className="mt-1 text-sm text-gray-600">Save this product with your note.</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isCreatingShortlist}
+                      onClick={handleCreateShortlist}
+                      className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                    >
+                      {isCreatingShortlist ? "Saving..." : "Add to Shortlist"}
+                    </button>
+                  </div>
+                  <div className="mt-4">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Customer Note</label>
+                    <textarea
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value)}
+                      placeholder="For kitchen shutters"
+                      className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[100px]"
+                    />
+                  </div>
+                  {shortlistItem && (
+                    <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
+                      <div><span className="font-bold text-gray-900">Shortlist ID:</span> {shortlistItem.id}</div>
+                      <div><span className="font-bold text-gray-900">Sample Status:</span> {shortlistItem.sampleStatus}</div>
+                      <div><span className="font-bold text-gray-900">Created At:</span> {new Date(shortlistItem.createdAt).toLocaleString()}</div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {userRole === "admin" && (
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
