@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://47.128.67.255:3000/api/auth';
+// const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://47.128.67.255:3000/api/auth';
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://pmsapi.customfurnish.com/api/auth';
 
 /**
  * PRODUCTION READY API UTILITY
