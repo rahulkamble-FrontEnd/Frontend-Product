@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getBlogs, type BlogItem } from "@/lib/api";
@@ -129,9 +130,10 @@ export default function BlogPage() {
               const preview = stripHtml(blog.body).slice(0, 150);
 
               return (
-                <article
+                <Link
                   key={blog.id}
-                  className="overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)]"
+                  href={`/blog/${encodeURIComponent(blog.slug)}`}
+                  className="block overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)]"
                 >
                   <div className="relative h-56 w-full bg-[#f1ede8]">
                     {canRenderImage ? (
@@ -166,7 +168,7 @@ export default function BlogPage() {
                     </h2>
                     <p className="line-clamp-3 text-sm leading-6 text-[#7a7069]">{preview || "No blog content added yet."}</p>
                   </div>
-                </article>
+                </Link>
               );
             })}
           </div>

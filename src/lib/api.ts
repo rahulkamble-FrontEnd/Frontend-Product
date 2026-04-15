@@ -856,11 +856,11 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
   };
 }
 
-export async function getBlogs(params?: { publishedOnly?: boolean }) {
+export async function getBlogs(params?: { publishedOnly?: boolean; includeCredentials?: boolean }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
-    credentials: "omit",
+    credentials: params?.includeCredentials ? "include" : "omit",
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -887,6 +887,109 @@ export async function getBlogs(params?: { publishedOnly?: boolean }) {
   }
 
   return [] as BlogItem[];
+}
+
+export async function getBlogBySlug(slug: string, params?: { publishedOnly?: boolean }) {
+  const cleanSlug = slug.trim();
+  if (!cleanSlug) throw new Error("Blog slug is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch blog");
+  }
+
+  const data = normalizeBlog((await response.json()) as RawBlogResponse);
+  if (params?.publishedOnly === false) return data;
+  if (data.status !== "published") {
+    throw new Error("Blog not available");
+  }
+  return data;
+}
+
+export type UpdateBlogPayload = {
+  title: string;
+  slug: string;
+  body: string;
+  categoryTag?: string | null;
+  featuredImageS3Key?: string | null;
+  status: BlogStatus;
+};
+
+export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const cleanPayload = {
+    title: payload.title.trim(),
+    slug: payload.slug.trim(),
+    body: payload.body.trim(),
+    categoryTag: payload.categoryTag?.trim() || null,
+    featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+    status: payload.status,
+  };
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: cleanPayload.title,
+      slug: cleanPayload.slug,
+      body: cleanPayload.body,
+      status: cleanPayload.status,
+      ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+      ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+    }),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update blog");
+  }
+
+  return normalizeBlog((await response.json()) as RawBlogResponse);
+}
+
+export async function publishBlog(blogId: string) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to publish blog");
+  }
+
+  return normalizeBlog((await response.json()) as RawBlogResponse);
+}
+
+export type DeleteBlogResponse = {
+  message: string;
+};
+
+export async function deleteBlog(blogId: string) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete blog");
+  }
+
+  return response.json() as Promise<DeleteBlogResponse>;
 }
 
 export async function createBlog(payload: CreateBlogPayload, featuredImageFile?: File) {

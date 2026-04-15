@@ -52,6 +52,7 @@ export default function DashboardPage() {
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
+  const [isBlogMenuOpen, setIsBlogMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
@@ -474,6 +475,7 @@ export default function DashboardPage() {
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
       setIsProductsMenuOpen(false);
+      setIsBlogMenuOpen(false);
       setIsNotificationsOpen(false);
     };
     window.addEventListener("click", close);
@@ -1303,21 +1305,60 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => router.push("/blog")}
-              className="hidden rounded-md border border-gray-300 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 md:block"
-            >
-              Blog
-            </button>
             {userRole === "blogadmin" && (
-              <button
-                type="button"
-                onClick={() => router.push("/blog/create")}
-                className="hidden rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white shadow-sm md:block"
-              >
-                Create Blog
-              </button>
+              <div className="relative hidden md:block">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsBlogMenuOpen((v) => !v);
+                    setIsUsersMenuOpen(false);
+                    setIsCategoriesMenuOpen(false);
+                    setIsProductsMenuOpen(false);
+                  }}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700"
+                >
+                  Blog
+                  <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                {isBlogMenuOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Blog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Blogs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      View Blog
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             {userRole === "admin" && (
                 <>
@@ -1329,6 +1370,7 @@ export default function DashboardPage() {
                         setIsUsersMenuOpen((v) => !v);
                         setIsCategoriesMenuOpen(false);
                         setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all"
                     >
@@ -1372,6 +1414,7 @@ export default function DashboardPage() {
                         setIsCategoriesMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md border-2 border-[#4d2c1e] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm hover:bg-[#4d2c1e] hover:text-white transition-all"
                     >
@@ -1427,6 +1470,7 @@ export default function DashboardPage() {
                         setIsProductsMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsCategoriesMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white shadow-sm hover:opacity-95"
                     >
