@@ -39,7 +39,7 @@ export default function BlogPage() {
       setIsLoading(true);
       setError("");
       try {
-        const data = await getBlogs();
+        const data = await getBlogs({ publishedOnly: true });
         if (!active) return;
         setBlogs(data);
         setFailedImageBlogIds(new Set());

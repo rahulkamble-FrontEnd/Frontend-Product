@@ -856,27 +856,33 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
   };
 }
 
-export async function getBlogs() {
+export async function getBlogs(params?: { publishedOnly?: boolean }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    credentials: "omit",
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch blogs");
   }
 
+  const normalizeList = (list: unknown[]) => {
+    const normalized = list.map((item) => normalizeBlog(item as RawBlogResponse));
+    if (params?.publishedOnly === false) return normalized;
+    return normalized.filter((item) => item.status === "published");
+  };
+
   const data: unknown = await response.json();
   if (Array.isArray(data)) {
-    return data.map((item) => normalizeBlog(item as RawBlogResponse));
+    return normalizeList(data);
   }
 
   if (data && typeof data === "object") {
     const obj = data as { items?: unknown; data?: unknown; blogs?: unknown };
     const listLike = obj.items ?? obj.data ?? obj.blogs;
     if (Array.isArray(listLike)) {
-      return listLike.map((item) => normalizeBlog(item as RawBlogResponse));
+      return normalizeList(listLike);
     }
   }
 
