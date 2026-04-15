@@ -1303,6 +1303,22 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => router.push("/blog")}
+              className="hidden rounded-md border border-gray-300 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 md:block"
+            >
+              Blog
+            </button>
+            {userRole === "blogadmin" && (
+              <button
+                type="button"
+                onClick={() => router.push("/blog/create")}
+                className="hidden rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-wider text-white shadow-sm md:block"
+              >
+                Create Blog
+              </button>
+            )}
             {userRole === "admin" && (
                 <>
                   <div className="relative hidden md:block">

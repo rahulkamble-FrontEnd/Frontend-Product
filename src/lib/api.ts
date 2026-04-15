@@ -788,6 +788,150 @@ export async function deleteProductCategory(productId: string, categoryId: strin
   return response.json() as Promise<DeleteProductCategoryResponse>;
 }
 
+export type BlogStatus = "draft" | "published" | "archived";
+
+export type CreateBlogPayload = {
+  title: string;
+  slug: string;
+  body: string;
+  status: BlogStatus;
+  categoryTag?: string | null;
+  featuredImageS3Key?: string | null;
+};
+
+export type BlogAuthor = {
+  id: string;
+};
+
+export type BlogItem = {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  status: string;
+  categoryTag: string | null;
+  featuredImageS3Key: string | null;
+  featuredImageUrl: string | null;
+  author?: BlogAuthor | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type RawBlogResponse = {
+  id?: string;
+  title?: string;
+  slug?: string;
+  body?: string;
+  status?: string;
+  categoryTag?: string | null;
+  category_tag?: string | null;
+  featuredImageS3Key?: string | null;
+  featured_image_s3_key?: string | null;
+  featuredImageUrl?: string | null;
+  featured_image_url?: string | null;
+  author?: BlogAuthor | null;
+  publishedAt?: string | null;
+  published_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+};
+
+function normalizeBlog(raw: RawBlogResponse): BlogItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    slug: raw.slug ?? "",
+    body: raw.body ?? "",
+    status: raw.status ?? "draft",
+    categoryTag: raw.categoryTag ?? raw.category_tag ?? null,
+    featuredImageS3Key: raw.featuredImageS3Key ?? raw.featured_image_s3_key ?? null,
+    featuredImageUrl: raw.featuredImageUrl ?? raw.featured_image_url ?? null,
+    author: raw.author ?? null,
+    publishedAt: raw.publishedAt ?? raw.published_at ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? new Date().toISOString(),
+  };
+}
+
+export async function getBlogs() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch blogs");
+  }
+
+  const data: unknown = await response.json();
+  if (Array.isArray(data)) {
+    return data.map((item) => normalizeBlog(item as RawBlogResponse));
+  }
+
+  if (data && typeof data === "object") {
+    const obj = data as { items?: unknown; data?: unknown; blogs?: unknown };
+    const listLike = obj.items ?? obj.data ?? obj.blogs;
+    if (Array.isArray(listLike)) {
+      return listLike.map((item) => normalizeBlog(item as RawBlogResponse));
+    }
+  }
+
+  return [] as BlogItem[];
+}
+
+export async function createBlog(payload: CreateBlogPayload, featuredImageFile?: File) {
+  const cleanPayload = {
+    title: payload.title.trim(),
+    slug: payload.slug.trim(),
+    body: payload.body.trim(),
+    status: payload.status,
+    categoryTag: payload.categoryTag?.trim() || null,
+    featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+  };
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/blog`;
+  const response = featuredImageFile instanceof File
+    ? await fetch(endpoint, {
+        method: "POST",
+        body: (() => {
+          const formData = new FormData();
+          formData.append("title", cleanPayload.title);
+          formData.append("slug", cleanPayload.slug);
+          formData.append("body", cleanPayload.body);
+          formData.append("status", cleanPayload.status);
+          if (cleanPayload.categoryTag) formData.append("categoryTag", cleanPayload.categoryTag);
+          if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
+          formData.append("featuredImage", featuredImageFile);
+          return formData;
+        })(),
+        credentials: "include",
+      })
+    : await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: cleanPayload.title,
+          slug: cleanPayload.slug,
+          body: cleanPayload.body,
+          status: cleanPayload.status,
+          ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+          ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+        }),
+        credentials: "include",
+      });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create blog");
+  }
+
+  const data = (await response.json()) as RawBlogResponse;
+  return normalizeBlog(data);
+}
+
 export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
