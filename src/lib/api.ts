@@ -218,6 +218,16 @@ export type UpdateDesignerSamplePayload = {
   sampleStatus: string;
 };
 
+export type NotificationItem = {
+  id: string;
+  userId: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  link: string | null;
+  createdAt: string;
+};
+
 export type DesignerRecommendationResponse = {
   id: string;
   designerId: string;
@@ -486,6 +496,52 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
     throw new Error(errorData.message || 'Failed to update sample status');
   }
   return response.json() as Promise<ShortlistResponse>;
+}
+
+export async function getNotifications() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch notifications');
+  }
+  return response.json() as Promise<NotificationItem[]>;
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const id = notificationId.trim();
+  if (!id) throw new Error("Notification id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/${encodeURIComponent(id)}/read`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to mark notification as read');
+  }
+  return response.json() as Promise<NotificationItem>;
+}
+
+export type MarkAllNotificationsReadResponse = {
+  updatedCount: number;
+};
+
+export async function markAllNotificationsAsRead() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/read-all`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to mark all notifications as read');
+  }
+  return response.json() as Promise<MarkAllNotificationsReadResponse>;
 }
 
 export async function getProductImages(productId: string) {
