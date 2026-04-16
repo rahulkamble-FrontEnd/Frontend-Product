@@ -175,7 +175,7 @@ export default function BlogPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Blog Journal</h1>
           </div>
-          <div className="flex items-center gap-2">
+          {/* <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
@@ -208,7 +208,7 @@ export default function BlogPage() {
                 </button>
               </>
             )}
-          </div>
+          </div> */}
         </div>
       </header>
 
