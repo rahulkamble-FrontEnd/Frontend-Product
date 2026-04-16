@@ -4,7 +4,30 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://pmsapi.customf
 /**
  * PRODUCTION READY API UTILITY
  * All requests include credentials: 'include' for cross-origin cookie support.
+ * Bearer token is sent as fallback for environments where cookies are blocked
+ * (incognito, mobile, cross-site).
  */
+
+let _accessToken: string | null =
+  typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+
+export function setAccessToken(token: string | null) {
+  _accessToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) sessionStorage.setItem('access_token', token);
+    else sessionStorage.removeItem('access_token');
+  }
+}
+
+export function getAccessToken() {
+  return _accessToken;
+}
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`;
+  return headers;
+}
 
 export type CreateProductPayload = {
   name: string;
@@ -259,7 +282,7 @@ export async function getProducts(params?: {
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -280,7 +303,7 @@ export async function getProductsCompare(ids: string[]) {
 
   const response = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -298,7 +321,7 @@ export async function createShortlist(payload: CreateShortlistPayload) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       productId,
       customerNote,
@@ -315,7 +338,7 @@ export async function createShortlist(payload: CreateShortlistPayload) {
 export async function getShortlist() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -331,7 +354,7 @@ export async function requestShortlistSample(shortlistId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/sample`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -349,7 +372,7 @@ export async function updateShortlistNote(shortlistId: string, payload: UpdateSh
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/note`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ customerNote }),
     credentials: 'include',
   });
@@ -366,7 +389,7 @@ export async function deleteShortlist(shortlistId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -379,7 +402,7 @@ export async function deleteShortlist(shortlistId: string) {
 export async function getDesignerCustomers() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -395,7 +418,7 @@ export async function getDesignerCustomerDetails(customerId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers/${encodeURIComponent(id)}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -416,7 +439,7 @@ export async function createDesignerNote(payload: CreateDesignerNotePayload) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       customerId,
       ...(productId ? { productId } : {}),
@@ -443,7 +466,7 @@ export async function createDesignerRecommendation(payload: CreateDesignerRecomm
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/recommendations`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({
       customerId,
       productId,
@@ -467,7 +490,7 @@ export async function updateDesignerNote(noteId: string, payload: UpdateDesigner
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ note }),
     credentials: 'include',
   });
@@ -487,7 +510,7 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/samples/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ sampleStatus }),
     credentials: 'include',
   });
@@ -501,7 +524,7 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
 export async function getNotifications() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -517,7 +540,7 @@ export async function markNotificationAsRead(notificationId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/${encodeURIComponent(id)}/read`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -534,7 +557,7 @@ export type MarkAllNotificationsReadResponse = {
 export async function markAllNotificationsAsRead() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/read-all`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -547,7 +570,7 @@ export async function markAllNotificationsAsRead() {
 export async function getProductImages(productId: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -570,7 +593,7 @@ export type ProductDetailsResponse = ProductListItem & {
 export async function getProductBySlug(slug: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(slug)}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -590,7 +613,7 @@ export async function deleteProduct(productId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -616,7 +639,7 @@ export async function updateProductStatus(productId: string, payload: UpdateProd
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}/status`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ status: nextStatus }),
     credentials: 'include',
   });
@@ -683,7 +706,7 @@ export async function updateProduct(productId: string, payload: UpdateProductPay
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: "include",
   });
@@ -697,7 +720,7 @@ export async function updateProduct(productId: string, payload: UpdateProductPay
 export async function createProduct(payload: CreateProductPayload) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -714,6 +737,7 @@ export async function uploadProductImage(productId: string, imageFile: File) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
     method: 'POST',
+    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
     body: formData,
     credentials: 'include',
   });
@@ -738,7 +762,7 @@ export async function deleteProductImage(productId: string, imageId: string) {
     `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images/${encodeURIComponent(iid)}`,
     {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       credentials: 'include',
     }
   );
@@ -752,7 +776,7 @@ export async function deleteProductImage(productId: string, imageId: string) {
 export async function bindProductCategories(productId: string, categoryIds: string[]) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/categories`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify({ categoryIds }),
     credentials: 'include',
   });
@@ -777,7 +801,7 @@ export async function deleteProductCategory(productId: string, categoryId: strin
     `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/categories/${encodeURIComponent(cid)}`,
     {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       credentials: 'include',
     }
   );
@@ -859,7 +883,7 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
 export async function getBlogs(params?: { publishedOnly?: boolean; includeCredentials?: boolean }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: params?.includeCredentials ? "include" : "omit",
   });
   if (!response.ok) {
@@ -895,7 +919,7 @@ export async function getBlogBySlug(slug: string, params?: { publishedOnly?: boo
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "omit",
   });
   if (!response.ok) {
@@ -935,7 +959,7 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     body: JSON.stringify({
       title: cleanPayload.title,
       slug: cleanPayload.slug,
@@ -960,7 +984,7 @@ export async function publishBlog(blogId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "include",
   });
   if (!response.ok) {
@@ -981,7 +1005,7 @@ export async function deleteBlog(blogId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "include",
   });
   if (!response.ok) {
@@ -1006,6 +1030,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
   const response = featuredImageFile instanceof File
     ? await fetch(endpoint, {
         method: "POST",
+        headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
         body: (() => {
           const formData = new FormData();
           formData.append("title", cleanPayload.title);
@@ -1021,7 +1046,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
       })
     : await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({
           title: cleanPayload.title,
           slug: cleanPayload.slug,
@@ -1163,6 +1188,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
     files.length > 0
       ? await fetch(endpoint, {
           method: "POST",
+          headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
           body: (() => {
             const formData = new FormData();
             formData.append("title", cleanTitle);
@@ -1178,7 +1204,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
         })
       : await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({
             title: cleanTitle,
             roomType: cleanRoomType,
@@ -1199,7 +1225,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
 export async function getPortfolios() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/portfolio`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "omit",
   });
   if (!response.ok) {
@@ -1291,6 +1317,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
     imageFile instanceof File
       ? await fetch(endpoint, {
           method: "POST",
+          headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
           body: (() => {
             const formData = new FormData();
             formData.append("title", cleanPayload.title);
@@ -1304,7 +1331,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
         })
       : await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({
             title: cleanPayload.title,
             styleTag: cleanPayload.styleTag,
@@ -1325,7 +1352,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
 export async function getTrendings() {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "omit",
   });
   if (!response.ok) {
@@ -1357,7 +1384,7 @@ export async function deleteTrending(trendingId: string) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: authHeaders(),
     credentials: "include",
   });
   if (!response.ok) {
@@ -1371,7 +1398,7 @@ export async function deleteTrending(trendingId: string) {
 export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1379,16 +1406,19 @@ export async function login(payload: { email: string; password: string }) {
      const error = await response.json().catch(() => ({}));
      throw new Error(error.message || 'Login failed');
   }
-  return response.json();
+  const data = await response.json();
+  if (data.access_token) setAccessToken(data.access_token);
+  return data;
 }
 
 export async function logout(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/logout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
+  setAccessToken(null);
   if (!response.ok) {
      const error = await response.json().catch(() => ({}));
     throw new Error(error.message || 'Logout failed');
@@ -1399,7 +1429,7 @@ export async function logout(payload: { email: string; password: string }) {
 export async function getMe() {
   const response = await fetch(`${BASE_URL}/me`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1411,7 +1441,7 @@ export async function getMe() {
 export async function forgotPassword(payload: { email: string }) {
   const response = await fetch(`${BASE_URL}/forgot-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1425,7 +1455,7 @@ export async function forgotPassword(payload: { email: string }) {
 export async function resetPassword(payload: { token: string; newPassword: string }) {
   const response = await fetch(`${BASE_URL}/reset-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1439,7 +1469,7 @@ export async function resetPassword(payload: { token: string; newPassword: strin
 export async function createUser(payload: { email: string; name: string; role: string; projectName?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/users`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1457,7 +1487,7 @@ export async function getUsers(role?: string) {
   }
   const response = await fetch(url, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1470,7 +1500,7 @@ export async function getUsers(role?: string) {
 export async function deleteUser(id: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1483,7 +1513,7 @@ export async function deleteUser(id: string) {
 export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1497,7 +1527,7 @@ export async function updateUser(id: string, payload: { name: string; email: str
 export async function createCategory(payload: { name: string; type: 'material' | 'furniture'; parent_id?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1515,7 +1545,7 @@ export async function getCategories(type?: 'material' | 'furniture') {
   }
   const response = await fetch(url, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1528,7 +1558,7 @@ export async function getCategories(type?: 'material' | 'furniture') {
 export async function deleteCategory(id: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
@@ -1541,7 +1571,7 @@ export async function deleteCategory(id: string) {
 export async function updateCategory(id: string, payload: { name?: string; type: 'material' | 'furniture'; parent_id?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(payload),
     credentials: 'include',
   });
@@ -1555,7 +1585,7 @@ export async function updateCategory(id: string, payload: { name?: string; type:
 export async function getCategoryBySlug(slug: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${slug}`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
