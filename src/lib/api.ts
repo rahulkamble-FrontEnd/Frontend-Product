@@ -218,6 +218,16 @@ export type UpdateDesignerSamplePayload = {
   sampleStatus: string;
 };
 
+export type NotificationItem = {
+  id: string;
+  userId: string;
+  type: string;
+  message: string;
+  isRead: boolean;
+  link: string | null;
+  createdAt: string;
+};
+
 export type DesignerRecommendationResponse = {
   id: string;
   designerId: string;
@@ -488,6 +498,52 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
   return response.json() as Promise<ShortlistResponse>;
 }
 
+export async function getNotifications() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch notifications');
+  }
+  return response.json() as Promise<NotificationItem[]>;
+}
+
+export async function markNotificationAsRead(notificationId: string) {
+  const id = notificationId.trim();
+  if (!id) throw new Error("Notification id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/${encodeURIComponent(id)}/read`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to mark notification as read');
+  }
+  return response.json() as Promise<NotificationItem>;
+}
+
+export type MarkAllNotificationsReadResponse = {
+  updatedCount: number;
+};
+
+export async function markAllNotificationsAsRead() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/read-all`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to mark all notifications as read');
+  }
+  return response.json() as Promise<MarkAllNotificationsReadResponse>;
+}
+
 export async function getProductImages(productId: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
     method: 'GET',
@@ -730,6 +786,586 @@ export async function deleteProductCategory(productId: string, categoryId: strin
     throw new Error(errorData.message || 'Failed to unlink category');
   }
   return response.json() as Promise<DeleteProductCategoryResponse>;
+}
+
+export type BlogStatus = "draft" | "published" | "archived";
+
+export type CreateBlogPayload = {
+  title: string;
+  slug: string;
+  body: string;
+  status: BlogStatus;
+  categoryTag?: string | null;
+  featuredImageS3Key?: string | null;
+};
+
+export type BlogAuthor = {
+  id: string;
+};
+
+export type BlogItem = {
+  id: string;
+  title: string;
+  slug: string;
+  body: string;
+  status: string;
+  categoryTag: string | null;
+  featuredImageS3Key: string | null;
+  featuredImageUrl: string | null;
+  author?: BlogAuthor | null;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type RawBlogResponse = {
+  id?: string;
+  title?: string;
+  slug?: string;
+  body?: string;
+  status?: string;
+  categoryTag?: string | null;
+  category_tag?: string | null;
+  featuredImageS3Key?: string | null;
+  featured_image_s3_key?: string | null;
+  featuredImageUrl?: string | null;
+  featured_image_url?: string | null;
+  author?: BlogAuthor | null;
+  publishedAt?: string | null;
+  published_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+};
+
+function normalizeBlog(raw: RawBlogResponse): BlogItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    slug: raw.slug ?? "",
+    body: raw.body ?? "",
+    status: raw.status ?? "draft",
+    categoryTag: raw.categoryTag ?? raw.category_tag ?? null,
+    featuredImageS3Key: raw.featuredImageS3Key ?? raw.featured_image_s3_key ?? null,
+    featuredImageUrl: raw.featuredImageUrl ?? raw.featured_image_url ?? null,
+    author: raw.author ?? null,
+    publishedAt: raw.publishedAt ?? raw.published_at ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+    updatedAt: raw.updatedAt ?? raw.updated_at ?? new Date().toISOString(),
+  };
+}
+
+export async function getBlogs(params?: { publishedOnly?: boolean; includeCredentials?: boolean }) {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: params?.includeCredentials ? "include" : "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch blogs");
+  }
+
+  const normalizeList = (list: unknown[]) => {
+    const normalized = list.map((item) => normalizeBlog(item as RawBlogResponse));
+    if (params?.publishedOnly === false) return normalized;
+    return normalized.filter((item) => item.status === "published");
+  };
+
+  const data: unknown = await response.json();
+  if (Array.isArray(data)) {
+    return normalizeList(data);
+  }
+
+  if (data && typeof data === "object") {
+    const obj = data as { items?: unknown; data?: unknown; blogs?: unknown };
+    const listLike = obj.items ?? obj.data ?? obj.blogs;
+    if (Array.isArray(listLike)) {
+      return normalizeList(listLike);
+    }
+  }
+
+  return [] as BlogItem[];
+}
+
+export async function getBlogBySlug(slug: string, params?: { publishedOnly?: boolean }) {
+  const cleanSlug = slug.trim();
+  if (!cleanSlug) throw new Error("Blog slug is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch blog");
+  }
+
+  const data = normalizeBlog((await response.json()) as RawBlogResponse);
+  if (params?.publishedOnly === false) return data;
+  if (data.status !== "published") {
+    throw new Error("Blog not available");
+  }
+  return data;
+}
+
+export type UpdateBlogPayload = {
+  title: string;
+  slug: string;
+  body: string;
+  categoryTag?: string | null;
+  featuredImageS3Key?: string | null;
+  status: BlogStatus;
+};
+
+export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const cleanPayload = {
+    title: payload.title.trim(),
+    slug: payload.slug.trim(),
+    body: payload.body.trim(),
+    categoryTag: payload.categoryTag?.trim() || null,
+    featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+    status: payload.status,
+  };
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: cleanPayload.title,
+      slug: cleanPayload.slug,
+      body: cleanPayload.body,
+      status: cleanPayload.status,
+      ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+      ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+    }),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update blog");
+  }
+
+  return normalizeBlog((await response.json()) as RawBlogResponse);
+}
+
+export async function publishBlog(blogId: string) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to publish blog");
+  }
+
+  return normalizeBlog((await response.json()) as RawBlogResponse);
+}
+
+export type DeleteBlogResponse = {
+  message: string;
+};
+
+export async function deleteBlog(blogId: string) {
+  const id = blogId.trim();
+  if (!id) throw new Error("Blog id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete blog");
+  }
+
+  return response.json() as Promise<DeleteBlogResponse>;
+}
+
+export async function createBlog(payload: CreateBlogPayload, featuredImageFile?: File) {
+  const cleanPayload = {
+    title: payload.title.trim(),
+    slug: payload.slug.trim(),
+    body: payload.body.trim(),
+    status: payload.status,
+    categoryTag: payload.categoryTag?.trim() || null,
+    featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+  };
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/blog`;
+  const response = featuredImageFile instanceof File
+    ? await fetch(endpoint, {
+        method: "POST",
+        body: (() => {
+          const formData = new FormData();
+          formData.append("title", cleanPayload.title);
+          formData.append("slug", cleanPayload.slug);
+          formData.append("body", cleanPayload.body);
+          formData.append("status", cleanPayload.status);
+          if (cleanPayload.categoryTag) formData.append("categoryTag", cleanPayload.categoryTag);
+          if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
+          formData.append("featuredImage", featuredImageFile);
+          return formData;
+        })(),
+        credentials: "include",
+      })
+    : await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: cleanPayload.title,
+          slug: cleanPayload.slug,
+          body: cleanPayload.body,
+          status: cleanPayload.status,
+          ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+          ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+        }),
+        credentials: "include",
+      });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create blog");
+  }
+
+  const data = (await response.json()) as RawBlogResponse;
+  return normalizeBlog(data);
+}
+
+export type PortfolioImageInput = {
+  s3Key: string;
+  displayOrder: number;
+};
+
+export type CreatePortfolioPayload = {
+  title: string;
+  roomType: string;
+  description: string;
+  images: PortfolioImageInput[];
+};
+
+export type PortfolioCreatedBy = {
+  id: string;
+};
+
+export type PortfolioItem = {
+  id: string;
+  title: string;
+  roomType: string;
+  description: string;
+  createdBy: PortfolioCreatedBy | null;
+  createdAt: string;
+};
+
+export type PortfolioImageItem = {
+  id: string;
+  portfolioId: string;
+  s3Key: string;
+  url: string | null;
+  displayOrder: number;
+};
+
+export type PortfolioResponse = {
+  portfolio: PortfolioItem;
+  images: PortfolioImageItem[];
+};
+
+type RawPortfolio = {
+  id?: string;
+  title?: string;
+  roomType?: string;
+  room_type?: string;
+  description?: string;
+  createdBy?: PortfolioCreatedBy | null;
+  created_by?: PortfolioCreatedBy | null;
+  createdAt?: string;
+  created_at?: string;
+};
+
+type RawPortfolioImage = {
+  id?: string;
+  portfolioId?: string;
+  portfolio_id?: string;
+  s3Key?: string;
+  s3_key?: string;
+  url?: string | null;
+  displayOrder?: number;
+  display_order?: number;
+};
+
+function normalizePortfolio(raw: RawPortfolio): PortfolioItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    roomType: raw.roomType ?? raw.room_type ?? "",
+    description: raw.description ?? "",
+    createdBy: raw.createdBy ?? raw.created_by ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizePortfolioImage(raw: RawPortfolioImage): PortfolioImageItem {
+  return {
+    id: raw.id ?? "",
+    portfolioId: raw.portfolioId ?? raw.portfolio_id ?? "",
+    s3Key: raw.s3Key ?? raw.s3_key ?? "",
+    url: raw.url ?? null,
+    displayOrder: typeof raw.displayOrder === "number" ? raw.displayOrder : typeof raw.display_order === "number" ? raw.display_order : 1,
+  };
+}
+
+function normalizePortfolioResponse(raw: unknown): PortfolioResponse {
+  const obj = (raw && typeof raw === "object" ? raw : {}) as {
+    portfolio?: RawPortfolio;
+    images?: RawPortfolioImage[];
+  };
+
+  const portfolioRaw = (obj.portfolio ?? obj) as RawPortfolio;
+  return {
+    portfolio: normalizePortfolio(portfolioRaw),
+    images: Array.isArray(obj.images) ? obj.images.map((item) => normalizePortfolioImage(item)) : [],
+  };
+}
+
+export async function createPortfolio(payload: CreatePortfolioPayload, imageFiles?: File[]) {
+  const cleanTitle = payload?.title?.trim() || "";
+  const cleanRoomType = payload?.roomType?.trim() || "";
+  const cleanDescription = payload?.description?.trim() || "";
+  const cleanImages = Array.isArray(payload?.images)
+    ? payload.images
+        .map((item, index) => ({
+          s3Key: item?.s3Key?.trim() || "",
+          displayOrder: typeof item?.displayOrder === "number" ? item.displayOrder : index + 1,
+        }))
+        .filter((item) => item.s3Key)
+    : [];
+
+  if (!cleanTitle) throw new Error("Portfolio title is required");
+  if (!cleanRoomType) throw new Error("Room type is required");
+  if (!cleanDescription) throw new Error("Description is required");
+
+  const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
+  if (files.length === 0 && cleanImages.length === 0) {
+    throw new Error("At least one portfolio image is required");
+  }
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/portfolio`;
+  const response =
+    files.length > 0
+      ? await fetch(endpoint, {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("title", cleanTitle);
+            formData.append("roomType", cleanRoomType);
+            formData.append("description", cleanDescription);
+            if (cleanImages.length > 0) {
+              formData.append("imagesMeta", JSON.stringify(cleanImages));
+            }
+            files.forEach((file) => formData.append("images", file));
+            return formData;
+          })(),
+          credentials: "include",
+        })
+      : await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: cleanTitle,
+            roomType: cleanRoomType,
+            description: cleanDescription,
+            images: cleanImages,
+          }),
+          credentials: "include",
+        });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create portfolio");
+  }
+
+  return normalizePortfolioResponse(await response.json());
+}
+
+export async function getPortfolios() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/portfolio`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch portfolio");
+  }
+
+  const data: unknown = await response.json();
+  const rawList = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? (((data as { items?: unknown; data?: unknown; portfolios?: unknown }).items ??
+          (data as { items?: unknown; data?: unknown; portfolios?: unknown }).data ??
+          (data as { items?: unknown; data?: unknown; portfolios?: unknown }).portfolios) as unknown)
+      : [];
+
+  if (!Array.isArray(rawList)) return [] as PortfolioResponse[];
+  return rawList.map((item) => normalizePortfolioResponse(item));
+}
+
+export type CreateTrendingPayload = {
+  title: string;
+  styleTag: string;
+  s3Key?: string | null;
+  caption: string;
+};
+
+export type TrendingCreatedBy = {
+  id: string;
+};
+
+export type TrendingItem = {
+  id: string;
+  title: string;
+  styleTag: string;
+  s3Key: string | null;
+  caption: string;
+  createdBy: TrendingCreatedBy | null;
+  createdAt: string;
+  imageUrl: string | null;
+};
+
+type RawTrending = {
+  id?: string;
+  title?: string;
+  styleTag?: string;
+  style_tag?: string;
+  s3Key?: string | null;
+  s3_key?: string | null;
+  caption?: string;
+  createdBy?: TrendingCreatedBy | null;
+  created_by?: TrendingCreatedBy | null;
+  createdAt?: string;
+  created_at?: string;
+  imageUrl?: string | null;
+  image_url?: string | null;
+};
+
+function normalizeTrending(raw: RawTrending): TrendingItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    styleTag: raw.styleTag ?? raw.style_tag ?? "",
+    s3Key: raw.s3Key ?? raw.s3_key ?? null,
+    caption: raw.caption ?? "",
+    createdBy: raw.createdBy ?? raw.created_by ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+    imageUrl: raw.imageUrl ?? raw.image_url ?? null,
+  };
+}
+
+export async function createTrending(payload: CreateTrendingPayload, imageFile?: File) {
+  const cleanPayload = {
+    title: payload?.title?.trim() || "",
+    styleTag: payload?.styleTag?.trim() || "",
+    caption: payload?.caption?.trim() || "",
+    s3Key: payload?.s3Key?.trim() || "",
+  };
+
+  if (!cleanPayload.title) throw new Error("Trending title is required");
+  if (!cleanPayload.styleTag) throw new Error("Style tag is required");
+  if (!cleanPayload.caption) throw new Error("Caption is required");
+  if (!imageFile && !cleanPayload.s3Key) {
+    throw new Error("Either system image upload or S3 key is required");
+  }
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/trending`;
+  const response =
+    imageFile instanceof File
+      ? await fetch(endpoint, {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("title", cleanPayload.title);
+            formData.append("styleTag", cleanPayload.styleTag);
+            formData.append("caption", cleanPayload.caption);
+            if (cleanPayload.s3Key) formData.append("s3Key", cleanPayload.s3Key);
+            formData.append("image", imageFile);
+            return formData;
+          })(),
+          credentials: "include",
+        })
+      : await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: cleanPayload.title,
+            styleTag: cleanPayload.styleTag,
+            caption: cleanPayload.caption,
+            s3Key: cleanPayload.s3Key,
+          }),
+          credentials: "include",
+        });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create trending entry");
+  }
+
+  return normalizeTrending((await response.json()) as RawTrending);
+}
+
+export async function getTrendings() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch trending entries");
+  }
+
+  const data: unknown = await response.json();
+  const rawList = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? (((data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).items ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).data ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).trendings ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).trending) as unknown)
+      : [];
+
+  if (!Array.isArray(rawList)) return [] as TrendingItem[];
+  return rawList.map((item) => normalizeTrending(item as RawTrending));
+}
+
+export type DeleteTrendingResponse = {
+  message: string;
+};
+
+export async function deleteTrending(trendingId: string) {
+  const id = trendingId.trim();
+  if (!id) throw new Error("Trending id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete trending entry");
+  }
+
+  return response.json() as Promise<DeleteTrendingResponse>;
 }
 
 export async function login(payload: { email: string; password: string }) {
