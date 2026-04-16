@@ -25,6 +25,9 @@ import {
   createDesignerRecommendation,
   updateDesignerNote,
   updateDesignerSample,
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   type CreateProductPayload,
   type CreateDesignerNotePayload,
   type CreateDesignerRecommendationPayload,
@@ -36,7 +39,8 @@ import {
   type ProductCompareResponse,
   type ShortlistItem,
   type UpdateDesignerSamplePayload,
-  type UpdateDesignerNotePayload
+  type UpdateDesignerNotePayload,
+  type NotificationItem
 } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -48,6 +52,12 @@ export default function DashboardPage() {
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
+  const [isBlogMenuOpen, setIsBlogMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -242,6 +252,21 @@ export default function DashboardPage() {
       return dashboardProduct ? [dashboardProduct.name, dashboardProduct.sku].filter(Boolean).join(" • ") : id;
     }
     return [product.name, product.sku].filter(Boolean).join(" • ");
+  };
+
+  const dashboardShellClass = "mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 2xl:px-10";
+  const unreadNotificationsCount = notifications.filter((item) => !item.isRead).length;
+  const formatNotificationTime = (value: string) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
@@ -450,6 +475,8 @@ export default function DashboardPage() {
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
       setIsProductsMenuOpen(false);
+      setIsBlogMenuOpen(false);
+      setIsNotificationsOpen(false);
     };
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
@@ -519,6 +546,93 @@ export default function DashboardPage() {
 
     loadDesignerCustomers();
   }, [userRole]);
+
+  useEffect(() => {
+    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin"]);
+    if (!eligibleRoles.has(userRole)) {
+      setNotifications([]);
+      setNotificationsError("");
+      setIsLoadingNotifications(false);
+      return;
+    }
+
+    let isMounted = true;
+    const loadNotifications = async () => {
+      if (isMounted) setIsLoadingNotifications(true);
+      if (isMounted) setNotificationsError("");
+      try {
+        const items = await getNotifications();
+        if (!isMounted) return;
+        setNotifications(Array.isArray(items) ? items : []);
+      } catch (err: unknown) {
+        if (!isMounted) return;
+        setNotificationsError(err instanceof Error ? err.message : "Failed to fetch notifications.");
+        setNotifications([]);
+      } finally {
+        if (isMounted) setIsLoadingNotifications(false);
+      }
+    };
+
+    loadNotifications();
+    const interval = window.setInterval(loadNotifications, 60000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [userRole]);
+
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    setIsNotificationsOpen(false);
+    if (!notification.isRead) {
+      setNotifications((prev) =>
+        prev.map((item) =>
+          item.id === notification.id ? { ...item, isRead: true } : item
+        )
+      );
+      try {
+        const updated = await markNotificationAsRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((item) => (item.id === updated.id ? updated : item))
+        );
+      } catch {
+        setNotifications((prev) =>
+          prev.map((item) =>
+            item.id === notification.id ? { ...item, isRead: false } : item
+          )
+        );
+      }
+    }
+    const target = typeof notification.link === "string" ? notification.link.trim() : "";
+    if (!target) return;
+    if (target.startsWith("/shortlist/")) {
+      if (userRole === "customer") {
+        setIsShortlistOpen(true);
+      }
+      router.push("/dashboard");
+      return;
+    }
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      window.open(target, "_blank", "noopener,noreferrer");
+      return;
+    }
+    router.push(target.startsWith("/") ? target : `/${target}`);
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    if (unreadNotificationsCount <= 0 || isMarkingAllNotificationsRead) return;
+    setIsMarkingAllNotificationsRead(true);
+    setNotificationsError("");
+    const previous = notifications;
+    setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+    try {
+      await markAllNotificationsAsRead();
+    } catch (err: unknown) {
+      setNotifications(previous);
+      setNotificationsError(err instanceof Error ? err.message : "Failed to mark all notifications as read.");
+    } finally {
+      setIsMarkingAllNotificationsRead(false);
+    }
+  };
 
   const handleRequestSample = async (shortlistId: string) => {
     setShortlistError("");
@@ -1149,7 +1263,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-white font-sans text-gray-900">
       {/* Top Header */}
       <header className="relative z-[200] border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+        <div className={`${dashboardShellClass} flex items-center justify-between gap-4 px-0`}>
           {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-xl font-black text-[#ffde59]">
@@ -1177,7 +1291,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-md relative hidden md:block">
+          <div className="relative hidden max-w-xl flex-1 xl:max-w-2xl md:block">
             <input
               type="text"
               placeholder="Search tropical wallpapers...."
@@ -1191,6 +1305,91 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
+            {userRole === "blogadmin" && (
+              <div className="relative hidden md:block">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsBlogMenuOpen((v) => !v);
+                    setIsUsersMenuOpen(false);
+                    setIsCategoriesMenuOpen(false);
+                    setIsProductsMenuOpen(false);
+                  }}
+                  className="rounded-md border border-gray-300 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700"
+                >
+                  Blog
+                  <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                {isBlogMenuOpen && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Blog
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/portfolio/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Portfolio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/trending/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Trending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Blogs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/trending/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Trending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/blog");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      View Blog
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {userRole === "admin" && (
                 <>
                   <div className="relative hidden md:block">
@@ -1201,6 +1400,7 @@ export default function DashboardPage() {
                         setIsUsersMenuOpen((v) => !v);
                         setIsCategoriesMenuOpen(false);
                         setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all"
                     >
@@ -1244,6 +1444,7 @@ export default function DashboardPage() {
                         setIsCategoriesMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md border-2 border-[#4d2c1e] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm hover:bg-[#4d2c1e] hover:text-white transition-all"
                     >
@@ -1299,6 +1500,7 @@ export default function DashboardPage() {
                         setIsProductsMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsCategoriesMenuOpen(false);
+                        setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white shadow-sm hover:opacity-95"
                     >
@@ -1344,6 +1546,76 @@ export default function DashboardPage() {
             <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
               Shop on call
             </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsNotificationsOpen((v) => !v);
+                }}
+                className="relative"
+                aria-label="Open notifications"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.674C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-white">
+                  {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
+                </span>
+              </button>
+              {isNotificationsOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-2 w-[340px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[350]"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-600">
+                      Notifications
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handleMarkAllNotificationsRead}
+                        disabled={unreadNotificationsCount <= 0 || isMarkingAllNotificationsRead}
+                        className="text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:text-gray-300"
+                      >
+                        {isMarkingAllNotificationsRead ? "Marking..." : "Mark all read"}
+                      </button>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        {unreadNotificationsCount} unread
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto">
+                    {isLoadingNotifications ? (
+                      <div className="px-4 py-6 text-center text-xs font-bold text-gray-500">Loading notifications...</div>
+                    ) : notificationsError ? (
+                      <div className="px-4 py-6 text-center text-xs font-bold text-red-600">{notificationsError}</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-xs font-bold text-gray-500">No notifications yet.</div>
+                    ) : (
+                      notifications.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleNotificationClick(item)}
+                          className={`w-full border-b border-gray-50 px-4 py-3 text-left transition hover:bg-gray-50 ${item.isRead ? "bg-white" : "bg-[#fffaf0]"}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <p className={`text-xs leading-5 ${item.isRead ? "text-gray-700" : "font-semibold text-gray-900"}`}>
+                              {item.message}
+                            </p>
+                            {!item.isRead && <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#0468a3]" />}
+                          </div>
+                          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            {formatNotificationTime(item.createdAt)}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={(e) => {
@@ -1385,7 +1657,7 @@ export default function DashboardPage() {
 
       {/* Main Navigation */}
       <nav className="bg-[#4d2c1e] text-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest px-4 overflow-x-auto whitespace-nowrap scrollbar-hide">
+        <div className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide`}>
           <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Flooring <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
           <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Laminates <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
           <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Louvers & Panels <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
@@ -1400,8 +1672,8 @@ export default function DashboardPage() {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-[#f7f2ed] py-4 lg:py-8">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <div className="relative rounded-3xl bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] shadow-sm">
+        <div className={dashboardShellClass}>
+          <div className="relative rounded-3xl bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px] shadow-sm">
              {/* Overlay for text readability */}
              <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">
@@ -1442,7 +1714,8 @@ export default function DashboardPage() {
       </section>
 
       {/* Product Section Intro */}
-      <section className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+      <section className={dashboardShellClass}>
+        <div className="py-8">
          <div className="flex items-center gap-2 mb-2">
             <span className="flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-500 shadow-sm">
                 <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
@@ -1453,10 +1726,12 @@ export default function DashboardPage() {
          <h3 className="text-3xl lg:text-4xl font-black uppercase italic tracking-tighter">
             Karigari Laminates
          </h3>
+        </div>
       </section>
 
       {userRole === "designer" && (
-        <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+        <section className={dashboardShellClass}>
+          <div className="pb-10">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer</div>
@@ -1474,7 +1749,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {isLoadingDesignerCustomers ? (
               Array.from({ length: 3 }).map((_, idx) => (
                 <div key={idx} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -1553,10 +1828,12 @@ export default function DashboardPage() {
               ))
             )}
           </div>
+          </div>
         </section>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 pb-10 lg:px-8">
+      <section className={dashboardShellClass}>
+        <div className="pb-10">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
@@ -1578,12 +1855,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-6">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-8">
             <input
               value={filterQ}
               onChange={(e) => setFilterQ(e.target.value)}
               placeholder="Search name/sku/brand"
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-2"
             />
             <select
               value={filterStatus}
@@ -1623,7 +1900,7 @@ export default function DashboardPage() {
               <option value={20}>20</option>
               <option value={50}>50</option>
             </select>
-            <div className="flex items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm">
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-3">
               <label className="flex items-center gap-1">
                 <input type="checkbox" checked={filterIncludeImages} onChange={(e) => setFilterIncludeImages(e.target.checked)} />
                 Images
@@ -1649,7 +1926,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {isLoadingProducts ? (
             Array.from({ length: 6 }).map((_, idx) => (
               <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -1835,6 +2112,7 @@ export default function DashboardPage() {
         )}
 
         <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+        </div>
       </section>
 
       {userRole === "customer" && isShortlistOpen && (
