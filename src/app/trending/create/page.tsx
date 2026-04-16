@@ -1,0 +1,175 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createTrending } from "@/lib/api";
+
+export default function CreateTrendingPage() {
+  const router = useRouter();
+  const [title, setTitle] = useState("");
+  const [styleTag, setStyleTag] = useState("");
+  const [caption, setCaption] = useState("");
+  const [s3Key, setS3Key] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [userRole, setUserRole] = useState("");
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName") || "";
+    const storedRole = localStorage.getItem("userRole") || "";
+    if (!storedName) {
+      router.push("/login");
+      return;
+    }
+    setUserName(storedName);
+    setUserRole(storedRole);
+  }, [router]);
+
+  const isAllowed = userRole === "blogadmin";
+  const canSubmit = useMemo(
+    () =>
+      Boolean(
+        isAllowed &&
+          title.trim() &&
+          styleTag.trim() &&
+          caption.trim() &&
+          (Boolean(imageFile) || Boolean(s3Key.trim())) &&
+          !isSaving
+      ),
+    [isAllowed, title, styleTag, caption, imageFile, s3Key, isSaving]
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAllowed) {
+      setError("Only blogadmin can create trending entries.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const created = await createTrending(
+        {
+          title: title.trim(),
+          styleTag: styleTag.trim(),
+          caption: caption.trim(),
+          s3Key: s3Key.trim() || null,
+        },
+        imageFile || undefined
+      );
+
+      setSuccess(`Trending "${created.title}" created successfully.`);
+      setTimeout(() => {
+        router.push("/blog");
+      }, 900);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create trending entry.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f6f8fb] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-[#0468a3]">Create Trending</h1>
+            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">Logged in as {userName || "-"}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/blog")}
+            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 hover:bg-gray-50"
+          >
+            Back to Blog
+          </button>
+        </div>
+
+        {!isAllowed ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm font-semibold text-red-700">
+            Only `blogadmin` is allowed to create trending entries.
+          </div>
+        ) : (
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Title</label>
+              <input
+                type="text"
+                required
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Japandi Kitchen 2026"
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Style Tag</label>
+              <input
+                type="text"
+                required
+                value={styleTag}
+                onChange={(e) => setStyleTag(e.target.value)}
+                placeholder="Japandi"
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Caption</label>
+              <textarea
+                required
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Minimal warm kitchen inspiration"
+                className="mt-1 block min-h-[120px] w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 shadow-inner focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Image File (multipart upload)</label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+                />
+                {imageFile && <p className="mt-2 text-xs font-semibold text-gray-500">Selected: {imageFile.name}</p>}
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">S3 Key (fallback or manual)</label>
+                <input
+                  type="text"
+                  value={s3Key}
+                  onChange={(e) => setS3Key(e.target.value)}
+                  placeholder="customfurnish-portal/trending/uuid-trend-001.webp"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+                />
+                <p className="mt-2 text-xs font-semibold text-gray-500">Provide S3 key when not uploading file from system.</p>
+              </div>
+            </div>
+
+            {error && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</div>}
+            {success && <div className="rounded-lg border border-green-100 bg-green-50 p-3 text-sm font-semibold text-green-600">{success}</div>}
+
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSaving ? "Creating Trending..." : "Confirm & Create"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
