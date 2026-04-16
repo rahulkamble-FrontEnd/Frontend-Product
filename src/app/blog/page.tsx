@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBlogs, getPortfolios, type BlogItem, type PortfolioResponse } from "@/lib/api";
+import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -24,13 +24,17 @@ function makeBlogImageUrl(blog: BlogItem) {
 export default function BlogPage() {
   const router = useRouter();
   const [blogs, setBlogs] = useState<BlogItem[]>([]);
+  const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingTrending, setIsLoadingTrending] = useState(true);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [error, setError] = useState("");
+  const [trendingError, setTrendingError] = useState("");
   const [portfolioError, setPortfolioError] = useState("");
   const [userRole, setUserRole] = useState("");
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
+  const [failedTrendingImageIds, setFailedTrendingImageIds] = useState<Set<string>>(new Set());
   const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -58,6 +62,32 @@ export default function BlogPage() {
     };
 
     loadBlogs();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadTrendings = async () => {
+      setIsLoadingTrending(true);
+      setTrendingError("");
+      try {
+        const data = await getTrendings();
+        if (!active) return;
+        setTrendingItems(data);
+        setFailedTrendingImageIds(new Set());
+      } catch (err: unknown) {
+        if (!active) return;
+        setTrendingError(err instanceof Error ? err.message : "Failed to load trending entries.");
+        setTrendingItems([]);
+      } finally {
+        if (active) setIsLoadingTrending(false);
+      }
+    };
+
+    loadTrendings();
     return () => {
       active = false;
     };
@@ -99,6 +129,16 @@ export default function BlogPage() {
     [blogs]
   );
 
+  const orderedTrendings = useMemo(
+    () =>
+      [...trendingItems].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      }),
+    [trendingItems]
+  );
+
   const orderedPortfolios = useMemo(
     () =>
       [...portfolioItems].sort((a, b) => {
@@ -111,6 +151,15 @@ export default function BlogPage() {
 
   const makePortfolioImageUrl = (input: { url?: string | null; s3Key?: string | null }) => {
     const direct = (input.url || "").trim();
+    if (direct) return direct;
+    const clean = (input.s3Key || "").trim();
+    if (!clean) return null;
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    return `${BLOG_IMAGE_BASE_URL}/${clean.replace(/^\/+/, "")}`;
+  };
+
+  const makeTrendingImageUrl = (input: { imageUrl?: string | null; s3Key?: string | null }) => {
+    const direct = (input.imageUrl || "").trim();
     if (direct) return direct;
     const clean = (input.s3Key || "").trim();
     if (!clean) return null;
@@ -149,6 +198,13 @@ export default function BlogPage() {
                   className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
                 >
                   Create Portfolio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/trending/create")}
+                  className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+                >
+                  Create Trending
                 </button>
               </>
             )}
@@ -236,6 +292,94 @@ export default function BlogPage() {
             })}
           </div>
         )}
+        </section>
+
+        <section className="mt-16 border-t border-[#e6dfd7] pt-14">
+          <div className="mb-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Inspiration</p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Trending</h2>
+          </div>
+
+          {trendingError && (
+            <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
+              {trendingError}
+            </div>
+          )}
+
+          {isLoadingTrending ? (
+            <div className="space-y-6">
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="grid overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] lg:grid-cols-[1.06fr_1fr]"
+                >
+                  <div className="h-64 animate-pulse bg-[#f1ede8] lg:h-full" />
+                  <div className="space-y-4 p-6 sm:p-8">
+                    <div className="h-4 w-28 animate-pulse rounded bg-[#f1ede8]" />
+                    <div className="h-10 w-4/5 animate-pulse rounded bg-[#f1ede8]" />
+                    <div className="h-4 w-full animate-pulse rounded bg-[#f1ede8]" />
+                    <div className="h-4 w-4/5 animate-pulse rounded bg-[#f1ede8]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : orderedTrendings.length === 0 ? (
+            <div className="rounded-md border border-[#e6dfd7] bg-white p-10 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              No trending stories available yet.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {orderedTrendings.map((item, idx) => {
+                const imageUrl = makeTrendingImageUrl(item);
+                const fallbackId = item.id?.trim() || `${item.title || "trending"}-${idx}`;
+                const canRenderImage = Boolean(imageUrl) && !failedTrendingImageIds.has(fallbackId);
+
+                return (
+                  <article
+                    key={fallbackId}
+                    className="grid overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] lg:grid-cols-[1.06fr_1fr]"
+                  >
+                    <div className="relative h-72 w-full bg-[#ece7df] lg:h-full">
+                      {canRenderImage ? (
+                        <Image
+                          src={imageUrl!}
+                          alt={item.title || "Trending image"}
+                          fill
+                          unoptimized
+                          sizes="(max-width: 1024px) 100vw, 52vw"
+                          className="object-cover"
+                          onError={() =>
+                            setFailedTrendingImageIds((prev) => {
+                              const next = new Set(prev);
+                              next.add(fallbackId);
+                              return next;
+                            })
+                          }
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9f9389]">
+                          Image unavailable
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-center p-6 sm:p-10">
+                      <div className="mb-4 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9b9088]">
+                        <span className="rounded-full bg-[#f4efe8] px-2.5 py-1 text-[#7d7269]">News</span>
+                        <span className="rounded-full bg-[#efe9f8] px-2.5 py-1 text-[#7f6d9f]">{item.styleTag || "Inspiration"}</span>
+                        <span>{new Date(item.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <h3 className="text-3xl font-semibold leading-tight text-[#2d2622] sm:text-5xl">
+                        {item.title || "Untitled trend"}
+                      </h3>
+                      <p className="mt-5 text-sm leading-7 text-[#746b64] sm:text-base sm:leading-8">
+                        {item.caption || "No caption available for this trend yet."}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section className="mt-16 border-t border-[#e6dfd7] pt-14">

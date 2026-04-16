@@ -1220,6 +1220,154 @@ export async function getPortfolios() {
   return rawList.map((item) => normalizePortfolioResponse(item));
 }
 
+export type CreateTrendingPayload = {
+  title: string;
+  styleTag: string;
+  s3Key?: string | null;
+  caption: string;
+};
+
+export type TrendingCreatedBy = {
+  id: string;
+};
+
+export type TrendingItem = {
+  id: string;
+  title: string;
+  styleTag: string;
+  s3Key: string | null;
+  caption: string;
+  createdBy: TrendingCreatedBy | null;
+  createdAt: string;
+  imageUrl: string | null;
+};
+
+type RawTrending = {
+  id?: string;
+  title?: string;
+  styleTag?: string;
+  style_tag?: string;
+  s3Key?: string | null;
+  s3_key?: string | null;
+  caption?: string;
+  createdBy?: TrendingCreatedBy | null;
+  created_by?: TrendingCreatedBy | null;
+  createdAt?: string;
+  created_at?: string;
+  imageUrl?: string | null;
+  image_url?: string | null;
+};
+
+function normalizeTrending(raw: RawTrending): TrendingItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    styleTag: raw.styleTag ?? raw.style_tag ?? "",
+    s3Key: raw.s3Key ?? raw.s3_key ?? null,
+    caption: raw.caption ?? "",
+    createdBy: raw.createdBy ?? raw.created_by ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+    imageUrl: raw.imageUrl ?? raw.image_url ?? null,
+  };
+}
+
+export async function createTrending(payload: CreateTrendingPayload, imageFile?: File) {
+  const cleanPayload = {
+    title: payload?.title?.trim() || "",
+    styleTag: payload?.styleTag?.trim() || "",
+    caption: payload?.caption?.trim() || "",
+    s3Key: payload?.s3Key?.trim() || "",
+  };
+
+  if (!cleanPayload.title) throw new Error("Trending title is required");
+  if (!cleanPayload.styleTag) throw new Error("Style tag is required");
+  if (!cleanPayload.caption) throw new Error("Caption is required");
+  if (!imageFile && !cleanPayload.s3Key) {
+    throw new Error("Either system image upload or S3 key is required");
+  }
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/trending`;
+  const response =
+    imageFile instanceof File
+      ? await fetch(endpoint, {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("title", cleanPayload.title);
+            formData.append("styleTag", cleanPayload.styleTag);
+            formData.append("caption", cleanPayload.caption);
+            if (cleanPayload.s3Key) formData.append("s3Key", cleanPayload.s3Key);
+            formData.append("image", imageFile);
+            return formData;
+          })(),
+          credentials: "include",
+        })
+      : await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: cleanPayload.title,
+            styleTag: cleanPayload.styleTag,
+            caption: cleanPayload.caption,
+            s3Key: cleanPayload.s3Key,
+          }),
+          credentials: "include",
+        });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create trending entry");
+  }
+
+  return normalizeTrending((await response.json()) as RawTrending);
+}
+
+export async function getTrendings() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch trending entries");
+  }
+
+  const data: unknown = await response.json();
+  const rawList = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? (((data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).items ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).data ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).trendings ??
+          (data as { items?: unknown; data?: unknown; trendings?: unknown; trending?: unknown }).trending) as unknown)
+      : [];
+
+  if (!Array.isArray(rawList)) return [] as TrendingItem[];
+  return rawList.map((item) => normalizeTrending(item as RawTrending));
+}
+
+export type DeleteTrendingResponse = {
+  message: string;
+};
+
+export async function deleteTrending(trendingId: string) {
+  const id = trendingId.trim();
+  if (!id) throw new Error("Trending id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete trending entry");
+  }
+
+  return response.json() as Promise<DeleteTrendingResponse>;
+}
+
 export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',

@@ -1350,11 +1350,31 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsBlogMenuOpen(false);
+                        router.push("/trending/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Trending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
                         router.push("/blog/manage");
                       }}
                       className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                     >
                       Manage Blogs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/trending/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Trending
                     </button>
                     <button
                       type="button"
