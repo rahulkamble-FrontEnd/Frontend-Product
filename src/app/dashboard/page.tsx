@@ -1340,6 +1340,16 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsBlogMenuOpen(false);
+                        router.push("/portfolio/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Portfolio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
                         router.push("/blog/manage");
                       }}
                       className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"

@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getBlogs, type BlogItem } from "@/lib/api";
+import { getBlogs, getPortfolios, type BlogItem, type PortfolioResponse } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -24,10 +24,14 @@ function makeBlogImageUrl(blog: BlogItem) {
 export default function BlogPage() {
   const router = useRouter();
   const [blogs, setBlogs] = useState<BlogItem[]>([]);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(true);
   const [error, setError] = useState("");
+  const [portfolioError, setPortfolioError] = useState("");
   const [userRole, setUserRole] = useState("");
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
+  const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole") || "");
@@ -59,6 +63,32 @@ export default function BlogPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+
+    const loadPortfolios = async () => {
+      setIsLoadingPortfolio(true);
+      setPortfolioError("");
+      try {
+        const data = await getPortfolios();
+        if (!active) return;
+        setPortfolioItems(data);
+        setFailedPortfolioImageIds(new Set());
+      } catch (err: unknown) {
+        if (!active) return;
+        setPortfolioError(err instanceof Error ? err.message : "Failed to load portfolio.");
+        setPortfolioItems([]);
+      } finally {
+        if (active) setIsLoadingPortfolio(false);
+      }
+    };
+
+    loadPortfolios();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const orderedBlogs = useMemo(
     () =>
       [...blogs].sort((a, b) => {
@@ -68,6 +98,25 @@ export default function BlogPage() {
       }),
     [blogs]
   );
+
+  const orderedPortfolios = useMemo(
+    () =>
+      [...portfolioItems].sort((a, b) => {
+        const aTime = new Date(a.portfolio.createdAt).getTime();
+        const bTime = new Date(b.portfolio.createdAt).getTime();
+        return bTime - aTime;
+      }),
+    [portfolioItems]
+  );
+
+  const makePortfolioImageUrl = (input: { url?: string | null; s3Key?: string | null }) => {
+    const direct = (input.url || "").trim();
+    if (direct) return direct;
+    const clean = (input.s3Key || "").trim();
+    if (!clean) return null;
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    return `${BLOG_IMAGE_BASE_URL}/${clean.replace(/^\/+/, "")}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
@@ -86,19 +135,33 @@ export default function BlogPage() {
               Dashboard
             </button>
             {userRole === "blogadmin" && (
-              <button
-                type="button"
-                onClick={() => router.push("/blog/create")}
-                className="rounded-md border border-[#bba892] bg-[#bca58c] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#a58d74]"
-              >
-                Create Blog
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => router.push("/blog/create")}
+                  className="rounded-md border border-[#bba892] bg-[#bca58c] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-[#a58d74]"
+                >
+                  Create Blog
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/portfolio/create")}
+                  className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+                >
+                  Create Portfolio
+                </button>
+              </>
             )}
           </div>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <section>
+          <div className="mb-6">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Latest Blogs</h2>
+          </div>
         {error && (
           <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
             {error}
@@ -173,6 +236,95 @@ export default function BlogPage() {
             })}
           </div>
         )}
+        </section>
+
+        <section className="mt-16 border-t border-[#e6dfd7] pt-14">
+          <div className="mb-10 text-center">
+            <h2 className="text-4xl font-black uppercase tracking-[0.06em] text-[#3b4762]">Portfolio</h2>
+            <div className="mx-auto mt-3 h-0.5 w-16 bg-[#c7dbe9]" />
+          </div>
+
+          {portfolioError && (
+            <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
+              {portfolioError}
+            </div>
+          )}
+
+          {isLoadingPortfolio ? (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="h-56 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                >
+                  <div className="h-full animate-pulse bg-[#f1ede8]" />
+                </div>
+              ))}
+            </div>
+          ) : orderedPortfolios.length === 0 ? (
+            <div className="rounded-md border border-[#e6dfd7] bg-white p-10 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              No portfolio entries available yet.
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {orderedPortfolios.map((entry, idx) => {
+                const sortedImages = [...entry.images].sort((a, b) => a.displayOrder - b.displayOrder);
+                const firstImage = sortedImages[0];
+                const imageUrl = firstImage ? makePortfolioImageUrl(firstImage) : null;
+                const cardId =
+                  entry.portfolio.id?.trim() ||
+                  `${entry.portfolio.title?.trim() || "portfolio"}-${entry.portfolio.createdAt || "no-date"}-${idx}`;
+                const canRenderImage = Boolean(imageUrl) && !failedPortfolioImageIds.has(cardId);
+
+                return (
+                  <article
+                    key={cardId}
+                    className="group relative overflow-hidden rounded-2xl border border-[#d7dde8] bg-[#0f1726] shadow-[0_10px_30px_rgba(15,23,38,0.22)]"
+                  >
+                    <div className="relative h-64 w-full bg-[#1a2336] sm:h-72">
+                      {canRenderImage ? (
+                        <Image
+                          src={imageUrl!}
+                          alt={entry.portfolio.title || "Portfolio image"}
+                          fill
+                          unoptimized
+                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                          onError={() =>
+                            setFailedPortfolioImageIds((prev) => {
+                              const next = new Set(prev);
+                              next.add(cardId);
+                              return next;
+                            })
+                          }
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_20%_20%,#3555a8_0%,#1d2942_45%,#0f1726_100%)] text-[11px] font-semibold uppercase tracking-[0.14em] text-[#d2d9e6]">
+                          Image unavailable
+                        </div>
+                      )}
+                    </div>
+                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#060b14]/92 via-[#060b14]/40 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
+                      <div className="mb-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#d8e3f7]">
+                        <span className="rounded-full border border-[#d8e3f7]/45 bg-[#0b1324]/35 px-2.5 py-1">
+                          {entry.portfolio.roomType || "General"}
+                        </span>
+                        <span>{new Date(entry.portfolio.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <h3 className="line-clamp-2 text-2xl font-semibold leading-tight text-white sm:text-[30px]">
+                        {entry.portfolio.title || "Portfolio"}
+                      </h3>
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#d7dfef]">
+                        {entry.portfolio.description || "No description provided."}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );

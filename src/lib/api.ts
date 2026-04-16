@@ -1041,6 +1041,185 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
   return normalizeBlog(data);
 }
 
+export type PortfolioImageInput = {
+  s3Key: string;
+  displayOrder: number;
+};
+
+export type CreatePortfolioPayload = {
+  title: string;
+  roomType: string;
+  description: string;
+  images: PortfolioImageInput[];
+};
+
+export type PortfolioCreatedBy = {
+  id: string;
+};
+
+export type PortfolioItem = {
+  id: string;
+  title: string;
+  roomType: string;
+  description: string;
+  createdBy: PortfolioCreatedBy | null;
+  createdAt: string;
+};
+
+export type PortfolioImageItem = {
+  id: string;
+  portfolioId: string;
+  s3Key: string;
+  url: string | null;
+  displayOrder: number;
+};
+
+export type PortfolioResponse = {
+  portfolio: PortfolioItem;
+  images: PortfolioImageItem[];
+};
+
+type RawPortfolio = {
+  id?: string;
+  title?: string;
+  roomType?: string;
+  room_type?: string;
+  description?: string;
+  createdBy?: PortfolioCreatedBy | null;
+  created_by?: PortfolioCreatedBy | null;
+  createdAt?: string;
+  created_at?: string;
+};
+
+type RawPortfolioImage = {
+  id?: string;
+  portfolioId?: string;
+  portfolio_id?: string;
+  s3Key?: string;
+  s3_key?: string;
+  url?: string | null;
+  displayOrder?: number;
+  display_order?: number;
+};
+
+function normalizePortfolio(raw: RawPortfolio): PortfolioItem {
+  return {
+    id: raw.id ?? "",
+    title: raw.title ?? "",
+    roomType: raw.roomType ?? raw.room_type ?? "",
+    description: raw.description ?? "",
+    createdBy: raw.createdBy ?? raw.created_by ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizePortfolioImage(raw: RawPortfolioImage): PortfolioImageItem {
+  return {
+    id: raw.id ?? "",
+    portfolioId: raw.portfolioId ?? raw.portfolio_id ?? "",
+    s3Key: raw.s3Key ?? raw.s3_key ?? "",
+    url: raw.url ?? null,
+    displayOrder: typeof raw.displayOrder === "number" ? raw.displayOrder : typeof raw.display_order === "number" ? raw.display_order : 1,
+  };
+}
+
+function normalizePortfolioResponse(raw: unknown): PortfolioResponse {
+  const obj = (raw && typeof raw === "object" ? raw : {}) as {
+    portfolio?: RawPortfolio;
+    images?: RawPortfolioImage[];
+  };
+
+  const portfolioRaw = (obj.portfolio ?? obj) as RawPortfolio;
+  return {
+    portfolio: normalizePortfolio(portfolioRaw),
+    images: Array.isArray(obj.images) ? obj.images.map((item) => normalizePortfolioImage(item)) : [],
+  };
+}
+
+export async function createPortfolio(payload: CreatePortfolioPayload, imageFiles?: File[]) {
+  const cleanTitle = payload?.title?.trim() || "";
+  const cleanRoomType = payload?.roomType?.trim() || "";
+  const cleanDescription = payload?.description?.trim() || "";
+  const cleanImages = Array.isArray(payload?.images)
+    ? payload.images
+        .map((item, index) => ({
+          s3Key: item?.s3Key?.trim() || "",
+          displayOrder: typeof item?.displayOrder === "number" ? item.displayOrder : index + 1,
+        }))
+        .filter((item) => item.s3Key)
+    : [];
+
+  if (!cleanTitle) throw new Error("Portfolio title is required");
+  if (!cleanRoomType) throw new Error("Room type is required");
+  if (!cleanDescription) throw new Error("Description is required");
+
+  const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
+  if (files.length === 0 && cleanImages.length === 0) {
+    throw new Error("At least one portfolio image is required");
+  }
+
+  const endpoint = `${BASE_URL.replace('/auth', '')}/portfolio`;
+  const response =
+    files.length > 0
+      ? await fetch(endpoint, {
+          method: "POST",
+          body: (() => {
+            const formData = new FormData();
+            formData.append("title", cleanTitle);
+            formData.append("roomType", cleanRoomType);
+            formData.append("description", cleanDescription);
+            if (cleanImages.length > 0) {
+              formData.append("imagesMeta", JSON.stringify(cleanImages));
+            }
+            files.forEach((file) => formData.append("images", file));
+            return formData;
+          })(),
+          credentials: "include",
+        })
+      : await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: cleanTitle,
+            roomType: cleanRoomType,
+            description: cleanDescription,
+            images: cleanImages,
+          }),
+          credentials: "include",
+        });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create portfolio");
+  }
+
+  return normalizePortfolioResponse(await response.json());
+}
+
+export async function getPortfolios() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/portfolio`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch portfolio");
+  }
+
+  const data: unknown = await response.json();
+  const rawList = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? (((data as { items?: unknown; data?: unknown; portfolios?: unknown }).items ??
+          (data as { items?: unknown; data?: unknown; portfolios?: unknown }).data ??
+          (data as { items?: unknown; data?: unknown; portfolios?: unknown }).portfolios) as unknown)
+      : [];
+
+  if (!Array.isArray(rawList)) return [] as PortfolioResponse[];
+  return rawList.map((item) => normalizePortfolioResponse(item));
+}
+
 export async function login(payload: { email: string; password: string }) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
