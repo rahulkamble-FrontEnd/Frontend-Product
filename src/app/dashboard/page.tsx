@@ -2828,7 +2828,15 @@ export default function DashboardPage() {
                                           }
                                           className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                                         >
-                                          {Array.from(new Set([item.sampleStatus || "none", "none", "pending", "ready"])).map((status) => (
+                                          {Array.from(
+                                            new Set([
+                                              item.sampleStatus || "none",
+                                              "none",
+                                              "pending",
+                                              "ready",
+                                              "not available",
+                                            ])
+                                          ).map((status) => (
                                             <option key={status} value={status}>
                                               {status}
                                             </option>
@@ -3294,6 +3302,44 @@ export default function DashboardPage() {
 
             <form onSubmit={handleCreateProduct} className="flex min-h-0 flex-1 flex-col">
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Bind Categories (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateCategoriesDropdownOpen((v) => !v)}
+                    className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
+                  >
+                    <span>
+                      {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+
+                  {isCreateCategoriesDropdownOpen && (
+                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                      {allCategories.length === 0 ? (
+                        <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          {allCategories.map((c) => (
+                            <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={createSelectedCategoryIds.has(c.id)}
+                                onChange={() => toggleCreateCategory(c.id)}
+                              />
+                              <span className="font-medium">{c.name}</span>
+                              <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
@@ -3327,18 +3373,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SKU</label>
-                  <input
-                    type="text"
-                    required
-                    disabled
-                    className="mt-1 block w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 shadow-inner focus:outline-none"
-                    value={newProductData.sku}
-                    placeholder="e.g. COF-SHM-055"
-                  />
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
                   <input
@@ -3412,44 +3447,6 @@ export default function DashboardPage() {
                 {createProductImageFile && (
                   <div className="mt-2 text-[11px] font-bold text-gray-500">
                     Selected: {createProductImageFile.name}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Bind Categories (Optional)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateCategoriesDropdownOpen((v) => !v)}
-                  className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
-                >
-                  <span>
-                    {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
-                  </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-
-                {isCreateCategoriesDropdownOpen && (
-                  <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
-                    {allCategories.length === 0 ? (
-                      <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        {allCategories.map((c) => (
-                          <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={createSelectedCategoryIds.has(c.id)}
-                              onChange={() => toggleCreateCategory(c.id)}
-                            />
-                            <span className="font-medium">{c.name}</span>
-                            <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
