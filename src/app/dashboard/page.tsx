@@ -43,6 +43,8 @@ import {
   type NotificationItem
 } from "@/lib/api";
 
+const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -184,6 +186,10 @@ export default function DashboardPage() {
   const [savingDesignerSampleId, setSavingDesignerSampleId] = useState<string | null>(null);
   const [designerSampleMsg, setDesignerSampleMsg] = useState("");
   const [designerSampleError, setDesignerSampleError] = useState("");
+  const [designerReplyDrafts, setDesignerReplyDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerReplyId, setSavingDesignerReplyId] = useState<string | null>(null);
+  const [designerReplyMsg, setDesignerReplyMsg] = useState("");
+  const [designerReplyError, setDesignerReplyError] = useState("");
   const [designerNoteDraft, setDesignerNoteDraft] = useState("");
   const [designerNoteProductId, setDesignerNoteProductId] = useState("");
   const [isCreatingDesignerNote, setIsCreatingDesignerNote] = useState(false);
@@ -199,6 +205,12 @@ export default function DashboardPage() {
   const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+  const buildProductImageUrl = (value?: string | null) => {
+    const clean = typeof value === "string" ? cleanUrl(value) : "";
+    if (!clean) return null;
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    return `${PRODUCT_IMAGE_BASE_URL}/${clean.replace(/^\/+/, "")}`;
+  };
   const isInteractiveTarget = (target: EventTarget | null) =>
     target instanceof HTMLElement &&
     Boolean(target.closest("button, textarea, input, select, a"));
@@ -213,24 +225,42 @@ export default function DashboardPage() {
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
-    const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
-    if (primary?.url) return cleanUrl(primary.url);
+    const primary = list.find((img) => img.isPrimary && Boolean(buildProductImageUrl(img.url ?? img.s3Key)));
+    if (primary) {
+      const primaryUrl = buildProductImageUrl(primary.url ?? primary.s3Key);
+      if (primaryUrl) return primaryUrl;
+    }
     const byOrder = [...list].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-    const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
-    return first?.url ? cleanUrl(first.url) : null;
+    const first = byOrder.find((img) => Boolean(buildProductImageUrl(img.url ?? img.s3Key)));
+    if (!first) return null;
+    return buildProductImageUrl(first.url ?? first.s3Key);
   };
 
   const inlineProductImageUrl = (p: ProductListItem) => {
     const obj = p as unknown as Record<string, unknown>;
     const url = obj.imageUrl;
-    if (typeof url === "string" && cleanUrl(url)) return cleanUrl(url);
+    if (typeof url === "string") {
+      const directUrl = buildProductImageUrl(url);
+      if (directUrl) return directUrl;
+    }
     const primaryUrl = obj.primaryImageUrl;
-    if (typeof primaryUrl === "string" && cleanUrl(primaryUrl)) return cleanUrl(primaryUrl);
+    if (typeof primaryUrl === "string") {
+      const resolvedPrimaryUrl = buildProductImageUrl(primaryUrl);
+      if (resolvedPrimaryUrl) return resolvedPrimaryUrl;
+    }
     const images = obj.images;
     if (Array.isArray(images)) {
-      const normalized = images
-        .map((raw) => raw as ProductImageUploadResponse)
-        .filter((img) => typeof img?.url === "string" && cleanUrl(img.url));
+      const normalized = images.map((raw) => {
+        const img = raw as ProductImageUploadResponse & {
+          s3_key?: string | null;
+          url?: string | null;
+        };
+        return {
+          ...img,
+          s3Key: img.s3Key ?? img.s3_key ?? "",
+          url: typeof img.url === "string" ? img.url : null,
+        } as ProductImageUploadResponse;
+      });
       if (normalized.length > 0) return pickBestImageUrl(normalized);
     }
     return null;
@@ -240,6 +270,20 @@ export default function DashboardPage() {
     const candidates = [note.title, note.note, note.content, note.message];
     const found = candidates.find((value) => typeof value === "string" && value.trim());
     return typeof found === "string" ? found.trim() : "Designer note";
+  };
+
+  const findDesignerNoteForProduct = (
+    notes: Record<string, unknown>[],
+    productId: string
+  ) => {
+    const normalizedProductId = productId.trim();
+    if (!normalizedProductId) return null;
+    return (
+      notes.find((note) => {
+        const noteProductId = typeof note.productId === "string" ? note.productId.trim() : "";
+        return noteProductId === normalizedProductId;
+      }) ?? null
+    );
   };
 
   const getProductLabelForNote = (productId?: string | null) => {
@@ -527,6 +571,10 @@ export default function DashboardPage() {
       setDesignerCustomers([]);
       setDesignerCustomersError("");
       setIsLoadingDesignerCustomers(false);
+      setDesignerReplyDrafts({});
+      setSavingDesignerReplyId(null);
+      setDesignerReplyError("");
+      setDesignerReplyMsg("");
       return;
     }
 
@@ -745,6 +793,10 @@ export default function DashboardPage() {
     setSavingDesignerSampleId(null);
     setDesignerSampleMsg("");
     setDesignerSampleError("");
+    setDesignerReplyDrafts({});
+    setSavingDesignerReplyId(null);
+    setDesignerReplyMsg("");
+    setDesignerReplyError("");
     setDesignerNoteDraft("");
     setDesignerNoteProductId("");
     setDesignerNoteMsg("");
@@ -775,6 +827,16 @@ export default function DashboardPage() {
       setDesignerSampleDrafts(
         (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
           acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      const notesList = Array.isArray(data.notes)
+        ? data.notes.map((note) => note as Record<string, unknown>)
+        : [];
+      setDesignerReplyDrafts(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          const matchedNote = findDesignerNoteForProduct(notesList, item.productId || "");
+          acc[item.id] = matchedNote ? getDesignerNoteText(matchedNote) : "";
           return acc;
         }, {})
       );
@@ -837,6 +899,82 @@ export default function DashboardPage() {
       setDesignerSampleError(err instanceof Error ? err.message : "Failed to update sample status.");
     } finally {
       setSavingDesignerSampleId(null);
+    }
+  };
+
+  const handleSaveDesignerReply = async (shortlistId: string, productId: string) => {
+    setDesignerReplyError("");
+    setDesignerReplyMsg("");
+    if (userRole !== "designer") {
+      setDesignerReplyError("Only designer can save replies.");
+      return;
+    }
+    const shortlistItemId = shortlistId.trim();
+    const linkedProductId = productId.trim();
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!shortlistItemId || !linkedProductId || !customerId) {
+      setDesignerReplyError("Shortlist context is missing.");
+      return;
+    }
+
+    const noteText = (designerReplyDrafts[shortlistItemId] ?? "").trim();
+    if (!noteText) {
+      setDesignerReplyError("Reply note is required.");
+      return;
+    }
+
+    const existingNote =
+      designerCustomerDetails?.notes.find((note) => {
+        const noteProductId = typeof note.productId === "string" ? note.productId.trim() : "";
+        return noteProductId === linkedProductId && typeof note.id === "string";
+      }) ?? null;
+
+    setSavingDesignerReplyId(shortlistItemId);
+    try {
+      if (existingNote && typeof existingNote.id === "string") {
+        const updated = await updateDesignerNote(existingNote.id, { note: noteText });
+        setDesignerCustomerDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                notes: prev.notes.map((item) =>
+                  item.id === existingNote.id
+                    ? {
+                        ...item,
+                        ...updated,
+                      }
+                    : item
+                ),
+              }
+            : prev
+        );
+        setDesignerNoteDrafts((prev) => ({ ...prev, [existingNote.id as string]: getDesignerNoteText(updated) }));
+      } else {
+        const payload: CreateDesignerNotePayload = {
+          customerId,
+          productId: linkedProductId,
+          note: noteText,
+        };
+        const created = await createDesignerNote(payload);
+        setDesignerCustomerDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                notes: [created, ...(Array.isArray(prev.notes) ? prev.notes : [])],
+              }
+            : prev
+        );
+        if (typeof created.id === "string") {
+          setDesignerNoteDrafts((prev) => ({ ...prev, [created.id as string]: getDesignerNoteText(created) }));
+        }
+      }
+
+      setDesignerReplyDrafts((prev) => ({ ...prev, [shortlistItemId]: noteText }));
+      setDesignerReplyMsg("Reply saved successfully.");
+    } catch (err: unknown) {
+      setDesignerReplyError(err instanceof Error ? err.message : "Failed to save reply.");
+    } finally {
+      setSavingDesignerReplyId(null);
     }
   };
 
@@ -2495,6 +2633,10 @@ export default function DashboardPage() {
             setSavingDesignerSampleId(null);
             setDesignerSampleError("");
             setDesignerSampleMsg("");
+            setDesignerReplyDrafts({});
+            setSavingDesignerReplyId(null);
+            setDesignerReplyError("");
+            setDesignerReplyMsg("");
             setDesignerNoteError("");
             setDesignerNoteMsg("");
             setDesignerNoteDrafts({});
@@ -2605,6 +2747,16 @@ export default function DashboardPage() {
                           {designerSampleMsg}
                         </div>
                       )}
+                      {designerReplyError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerReplyError}
+                        </div>
+                      )}
+                      {designerReplyMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerReplyMsg}
+                        </div>
+                      )}
 
                       <div className="mt-4 space-y-4">
                         {designerCustomerDetails.shortlist.length === 0 ? (
@@ -2640,6 +2792,30 @@ export default function DashboardPage() {
                                     <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
                                       <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
                                       <div className="mt-1">{item.customerNote || "-"}</div>
+                                    </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Reply</div>
+                                        <button
+                                          type="button"
+                                          disabled={savingDesignerReplyId === item.id}
+                                          onClick={() => handleSaveDesignerReply(item.id, item.productId)}
+                                          className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          {savingDesignerReplyId === item.id ? "Saving..." : "Save Reply"}
+                                        </button>
+                                      </div>
+                                      <textarea
+                                        value={designerReplyDrafts[item.id] ?? ""}
+                                        onChange={(e) =>
+                                          setDesignerReplyDrafts((prev) => ({
+                                            ...prev,
+                                            [item.id]: e.target.value,
+                                          }))
+                                        }
+                                        placeholder="Reply to this customer note"
+                                        className="mt-2 block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                      />
                                     </div>
                                     <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-white p-3">
                                       <div className="min-w-[180px] flex-1">
@@ -2760,7 +2936,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Notes</div>
-                          <div className="mt-1 text-sm text-gray-500">Internal notes returned by the designer customer details API.</div>
+                          <div className="mt-1 text-sm text-gray-500">Use Designer Reply inside each shortlist item above for product-wise customer replies.</div>
                         </div>
                         <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
                           {designerCustomerDetails.notes.length} Notes
