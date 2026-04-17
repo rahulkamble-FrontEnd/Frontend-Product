@@ -1655,6 +1655,168 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {userRole === "admin" && (
+        <div className="border-b border-gray-100 bg-white px-3 py-2 md:hidden">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsUsersMenuOpen((v) => !v);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border-2 border-black px-2 py-2 text-[10px] font-black uppercase tracking-wider text-black shadow-sm"
+              >
+                Users
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isUsersMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUsersMenuOpen(false);
+                      router.push("/users");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Users
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUsersMenuOpen(false);
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create User
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCategoriesMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border-2 border-[#4d2c1e] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm"
+              >
+                Categories
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isCategoriesMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      router.push("/categories");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Categories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsCategoryModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Category
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsBindCategoriesOpen(true);
+                      setBindError("");
+                      setBindMsg("");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Bind Categories
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsProductsMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
+              >
+                Products
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isProductsMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      setIsProductModalOpen(true);
+                      setProductError("");
+                      setProductMsg("");
+                      setCreateProductImageFile(null);
+                      setCreatedProductImage(null);
+                      setCreateSelectedCategoryIds(new Set());
+                      setIsCreateCategoriesDropdownOpen(false);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      setIsUploadImageModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Upload Image
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Navigation */}
       <nav className="bg-[#4d2c1e] text-white">
         <div className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide`}>
@@ -2291,6 +2453,21 @@ export default function DashboardPage() {
                               placeholder="Updated note text"
                               className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                             />
+                          </div>
+
+                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              Designer Reply
+                            </div>
+                            <div className="mt-1 whitespace-pre-wrap">
+                              {item.designerReplyNote?.trim() || "-"}
+                            </div>
+                            <div className="mt-2 text-[11px] font-bold text-gray-600">
+                              Updated:{" "}
+                              {item.designerReplyUpdatedAt
+                                ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
+                                : "-"}
+                            </div>
                           </div>
 
                           <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
