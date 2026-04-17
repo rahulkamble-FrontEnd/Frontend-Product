@@ -1593,7 +1593,7 @@ export async function updateUser(id: string, payload: { name: string; email: str
   return response.json();
 }
 
-export async function createCategory(payload: { name: string; type: 'material' | 'furniture'; parent_id?: string }) {
+export async function createCategory(payload: { name: string; type?: 'material' | 'furniture'; parent_id?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
     method: 'POST',
     headers: authHeaders(),

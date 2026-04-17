@@ -77,7 +77,6 @@ export default function DashboardPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCatData, setNewCatData] = useState({
     name: "",
-    type: "material" as "material" | "furniture",
     parent_id: ""
   });
   const [isCreatingCat, setIsCreatingCat] = useState(false);
@@ -1162,9 +1161,8 @@ export default function DashboardPage() {
     setCatMsg("");
     setCatError("");
     try {
-      const payload: { name: string; type: "material" | "furniture"; parent_id?: string } = {
-        name: newCatData.name, 
-        type: newCatData.type 
+      const payload: { name: string; parent_id?: string } = {
+        name: newCatData.name,
       };
       if (newCatData.parent_id.trim()) {
         payload.parent_id = newCatData.parent_id.trim();
@@ -1172,7 +1170,7 @@ export default function DashboardPage() {
       
       await createCategory(payload);
       setCatMsg("Category created successfully!");
-      setNewCatData({ name: "", type: "material", parent_id: "" });
+      setNewCatData({ name: "", parent_id: "" });
       setTimeout(() => {
         setIsCategoryModalOpen(false);
         setCatMsg("");
@@ -3245,22 +3243,6 @@ export default function DashboardPage() {
                   onChange={(e) => setNewCatData({ ...newCatData, name: e.target.value })}
                   placeholder="e.g. Laminates"
                 />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
-                <select
-                  required
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  value={newCatData.type}
-                  onChange={(e) => {
-                    const nextType = e.target.value === "furniture" ? "furniture" : "material";
-                    setNewCatData({ ...newCatData, type: nextType });
-                  }}
-                >
-                  <option value="material">Material</option>
-                  <option value="furniture">Furniture</option>
-                </select>
               </div>
 
               <div>
