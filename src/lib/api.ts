@@ -153,10 +153,12 @@ export type ShortlistResponse = {
   id: string;
   customerId: string;
   productId: string;
-  customerNote: string;
+  customerNote: string | null;
   sampleRequested: boolean;
   sampleRequestedAt: string | null;
   sampleStatus: string;
+  designerReplyNote?: string | null;
+  designerReplyUpdatedAt?: string | null;
   createdAt: string;
 };
 
@@ -168,6 +170,55 @@ export type ShortlistProduct = ProductListItem & {
 export type ShortlistItem = ShortlistResponse & {
   product?: ShortlistProduct | null;
 };
+
+type RawShortlistResponse = {
+  id?: string;
+  customerId?: string;
+  customer_id?: string;
+  productId?: string;
+  product_id?: string;
+  customerNote?: string | null;
+  customer_note?: string | null;
+  sampleRequested?: boolean;
+  sample_requested?: boolean;
+  sampleRequestedAt?: string | null;
+  sample_requested_at?: string | null;
+  sampleStatus?: string;
+  sample_status?: string;
+  designerReplyNote?: string | null;
+  designer_reply_note?: string | null;
+  designerReplyUpdatedAt?: string | null;
+  designer_reply_updated_at?: string | null;
+  createdAt?: string;
+  created_at?: string;
+};
+
+type RawShortlistItem = RawShortlistResponse & {
+  product?: ShortlistProduct | null;
+};
+
+function normalizeShortlistResponse(raw: RawShortlistResponse): ShortlistResponse {
+  return {
+    id: raw.id ?? "",
+    customerId: raw.customerId ?? raw.customer_id ?? "",
+    productId: raw.productId ?? raw.product_id ?? "",
+    customerNote: raw.customerNote ?? raw.customer_note ?? null,
+    sampleRequested: raw.sampleRequested ?? raw.sample_requested ?? false,
+    sampleRequestedAt: raw.sampleRequestedAt ?? raw.sample_requested_at ?? null,
+    sampleStatus: raw.sampleStatus ?? raw.sample_status ?? "none",
+    designerReplyNote: raw.designerReplyNote ?? raw.designer_reply_note ?? null,
+    designerReplyUpdatedAt:
+      raw.designerReplyUpdatedAt ?? raw.designer_reply_updated_at ?? null,
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeShortlistItem(raw: RawShortlistItem): ShortlistItem {
+  return {
+    ...normalizeShortlistResponse(raw),
+    product: raw.product ?? null,
+  };
+}
 
 export type UpdateShortlistNotePayload = {
   customerNote: string;
@@ -332,7 +383,9 @@ export async function createShortlist(payload: CreateShortlistPayload) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to create shortlist item');
   }
-  return response.json() as Promise<ShortlistResponse>;
+  return normalizeShortlistResponse(
+    (await response.json()) as RawShortlistResponse
+  );
 }
 
 export async function getShortlist() {
@@ -345,7 +398,9 @@ export async function getShortlist() {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch shortlist');
   }
-  return response.json() as Promise<ShortlistItem[]>;
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) return [];
+  return data.map((item) => normalizeShortlistItem(item as RawShortlistItem));
 }
 
 export async function requestShortlistSample(shortlistId: string) {
@@ -361,7 +416,9 @@ export async function requestShortlistSample(shortlistId: string) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to request sample');
   }
-  return response.json() as Promise<ShortlistResponse>;
+  return normalizeShortlistResponse(
+    (await response.json()) as RawShortlistResponse
+  );
 }
 
 export async function updateShortlistNote(shortlistId: string, payload: UpdateShortlistNotePayload) {
@@ -380,7 +437,9 @@ export async function updateShortlistNote(shortlistId: string, payload: UpdateSh
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to update shortlist note');
   }
-  return response.json() as Promise<ShortlistResponse>;
+  return normalizeShortlistResponse(
+    (await response.json()) as RawShortlistResponse
+  );
 }
 
 export async function deleteShortlist(shortlistId: string) {
@@ -425,7 +484,15 @@ export async function getDesignerCustomerDetails(customerId: string) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch designer customer details');
   }
-  return response.json() as Promise<DesignerCustomerDetailResponse>;
+  const raw = (await response.json()) as DesignerCustomerDetailResponse;
+  return {
+    ...raw,
+    shortlist: Array.isArray(raw.shortlist)
+      ? raw.shortlist.map((item) =>
+          normalizeShortlistItem(item as unknown as RawShortlistItem)
+        )
+      : [],
+  };
 }
 
 export async function createDesignerNote(payload: CreateDesignerNotePayload) {
@@ -518,7 +585,9 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to update sample status');
   }
-  return response.json() as Promise<ShortlistResponse>;
+  return normalizeShortlistResponse(
+    (await response.json()) as RawShortlistResponse
+  );
 }
 
 export async function getNotifications() {
@@ -1524,7 +1593,7 @@ export async function updateUser(id: string, payload: { name: string; email: str
   return response.json();
 }
 
-export async function createCategory(payload: { name: string; type: 'material' | 'furniture'; parent_id?: string }) {
+export async function createCategory(payload: { name: string; type?: 'material' | 'furniture'; parent_id?: string }) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
     method: 'POST',
     headers: authHeaders(),
