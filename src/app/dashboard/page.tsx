@@ -43,6 +43,8 @@ import {
   type NotificationItem
 } from "@/lib/api";
 
+const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -75,7 +77,6 @@ export default function DashboardPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCatData, setNewCatData] = useState({
     name: "",
-    type: "material" as "material" | "furniture",
     parent_id: ""
   });
   const [isCreatingCat, setIsCreatingCat] = useState(false);
@@ -184,6 +185,10 @@ export default function DashboardPage() {
   const [savingDesignerSampleId, setSavingDesignerSampleId] = useState<string | null>(null);
   const [designerSampleMsg, setDesignerSampleMsg] = useState("");
   const [designerSampleError, setDesignerSampleError] = useState("");
+  const [designerReplyDrafts, setDesignerReplyDrafts] = useState<Record<string, string>>({});
+  const [savingDesignerReplyId, setSavingDesignerReplyId] = useState<string | null>(null);
+  const [designerReplyMsg, setDesignerReplyMsg] = useState("");
+  const [designerReplyError, setDesignerReplyError] = useState("");
   const [designerNoteDraft, setDesignerNoteDraft] = useState("");
   const [designerNoteProductId, setDesignerNoteProductId] = useState("");
   const [isCreatingDesignerNote, setIsCreatingDesignerNote] = useState(false);
@@ -199,6 +204,12 @@ export default function DashboardPage() {
   const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+  const buildProductImageUrl = (value?: string | null) => {
+    const clean = typeof value === "string" ? cleanUrl(value) : "";
+    if (!clean) return null;
+    if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
+    return `${PRODUCT_IMAGE_BASE_URL}/${clean.replace(/^\/+/, "")}`;
+  };
   const isInteractiveTarget = (target: EventTarget | null) =>
     target instanceof HTMLElement &&
     Boolean(target.closest("button, textarea, input, select, a"));
@@ -213,24 +224,42 @@ export default function DashboardPage() {
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
-    const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
-    if (primary?.url) return cleanUrl(primary.url);
+    const primary = list.find((img) => img.isPrimary && Boolean(buildProductImageUrl(img.url ?? img.s3Key)));
+    if (primary) {
+      const primaryUrl = buildProductImageUrl(primary.url ?? primary.s3Key);
+      if (primaryUrl) return primaryUrl;
+    }
     const byOrder = [...list].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-    const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
-    return first?.url ? cleanUrl(first.url) : null;
+    const first = byOrder.find((img) => Boolean(buildProductImageUrl(img.url ?? img.s3Key)));
+    if (!first) return null;
+    return buildProductImageUrl(first.url ?? first.s3Key);
   };
 
   const inlineProductImageUrl = (p: ProductListItem) => {
     const obj = p as unknown as Record<string, unknown>;
     const url = obj.imageUrl;
-    if (typeof url === "string" && cleanUrl(url)) return cleanUrl(url);
+    if (typeof url === "string") {
+      const directUrl = buildProductImageUrl(url);
+      if (directUrl) return directUrl;
+    }
     const primaryUrl = obj.primaryImageUrl;
-    if (typeof primaryUrl === "string" && cleanUrl(primaryUrl)) return cleanUrl(primaryUrl);
+    if (typeof primaryUrl === "string") {
+      const resolvedPrimaryUrl = buildProductImageUrl(primaryUrl);
+      if (resolvedPrimaryUrl) return resolvedPrimaryUrl;
+    }
     const images = obj.images;
     if (Array.isArray(images)) {
-      const normalized = images
-        .map((raw) => raw as ProductImageUploadResponse)
-        .filter((img) => typeof img?.url === "string" && cleanUrl(img.url));
+      const normalized = images.map((raw) => {
+        const img = raw as ProductImageUploadResponse & {
+          s3_key?: string | null;
+          url?: string | null;
+        };
+        return {
+          ...img,
+          s3Key: img.s3Key ?? img.s3_key ?? "",
+          url: typeof img.url === "string" ? img.url : null,
+        } as ProductImageUploadResponse;
+      });
       if (normalized.length > 0) return pickBestImageUrl(normalized);
     }
     return null;
@@ -240,6 +269,20 @@ export default function DashboardPage() {
     const candidates = [note.title, note.note, note.content, note.message];
     const found = candidates.find((value) => typeof value === "string" && value.trim());
     return typeof found === "string" ? found.trim() : "Designer note";
+  };
+
+  const findDesignerNoteForProduct = (
+    notes: Record<string, unknown>[],
+    productId: string
+  ) => {
+    const normalizedProductId = productId.trim();
+    if (!normalizedProductId) return null;
+    return (
+      notes.find((note) => {
+        const noteProductId = typeof note.productId === "string" ? note.productId.trim() : "";
+        return noteProductId === normalizedProductId;
+      }) ?? null
+    );
   };
 
   const getProductLabelForNote = (productId?: string | null) => {
@@ -527,6 +570,10 @@ export default function DashboardPage() {
       setDesignerCustomers([]);
       setDesignerCustomersError("");
       setIsLoadingDesignerCustomers(false);
+      setDesignerReplyDrafts({});
+      setSavingDesignerReplyId(null);
+      setDesignerReplyError("");
+      setDesignerReplyMsg("");
       return;
     }
 
@@ -745,6 +792,10 @@ export default function DashboardPage() {
     setSavingDesignerSampleId(null);
     setDesignerSampleMsg("");
     setDesignerSampleError("");
+    setDesignerReplyDrafts({});
+    setSavingDesignerReplyId(null);
+    setDesignerReplyMsg("");
+    setDesignerReplyError("");
     setDesignerNoteDraft("");
     setDesignerNoteProductId("");
     setDesignerNoteMsg("");
@@ -775,6 +826,16 @@ export default function DashboardPage() {
       setDesignerSampleDrafts(
         (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
           acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      const notesList = Array.isArray(data.notes)
+        ? data.notes.map((note) => note as Record<string, unknown>)
+        : [];
+      setDesignerReplyDrafts(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          const matchedNote = findDesignerNoteForProduct(notesList, item.productId || "");
+          acc[item.id] = matchedNote ? getDesignerNoteText(matchedNote) : "";
           return acc;
         }, {})
       );
@@ -837,6 +898,82 @@ export default function DashboardPage() {
       setDesignerSampleError(err instanceof Error ? err.message : "Failed to update sample status.");
     } finally {
       setSavingDesignerSampleId(null);
+    }
+  };
+
+  const handleSaveDesignerReply = async (shortlistId: string, productId: string) => {
+    setDesignerReplyError("");
+    setDesignerReplyMsg("");
+    if (userRole !== "designer") {
+      setDesignerReplyError("Only designer can save replies.");
+      return;
+    }
+    const shortlistItemId = shortlistId.trim();
+    const linkedProductId = productId.trim();
+    const customerId = selectedDesignerCustomerId.trim();
+    if (!shortlistItemId || !linkedProductId || !customerId) {
+      setDesignerReplyError("Shortlist context is missing.");
+      return;
+    }
+
+    const noteText = (designerReplyDrafts[shortlistItemId] ?? "").trim();
+    if (!noteText) {
+      setDesignerReplyError("Reply note is required.");
+      return;
+    }
+
+    const existingNote =
+      designerCustomerDetails?.notes.find((note) => {
+        const noteProductId = typeof note.productId === "string" ? note.productId.trim() : "";
+        return noteProductId === linkedProductId && typeof note.id === "string";
+      }) ?? null;
+
+    setSavingDesignerReplyId(shortlistItemId);
+    try {
+      if (existingNote && typeof existingNote.id === "string") {
+        const updated = await updateDesignerNote(existingNote.id, { note: noteText });
+        setDesignerCustomerDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                notes: prev.notes.map((item) =>
+                  item.id === existingNote.id
+                    ? {
+                        ...item,
+                        ...updated,
+                      }
+                    : item
+                ),
+              }
+            : prev
+        );
+        setDesignerNoteDrafts((prev) => ({ ...prev, [existingNote.id as string]: getDesignerNoteText(updated) }));
+      } else {
+        const payload: CreateDesignerNotePayload = {
+          customerId,
+          productId: linkedProductId,
+          note: noteText,
+        };
+        const created = await createDesignerNote(payload);
+        setDesignerCustomerDetails((prev) =>
+          prev
+            ? {
+                ...prev,
+                notes: [created, ...(Array.isArray(prev.notes) ? prev.notes : [])],
+              }
+            : prev
+        );
+        if (typeof created.id === "string") {
+          setDesignerNoteDrafts((prev) => ({ ...prev, [created.id as string]: getDesignerNoteText(created) }));
+        }
+      }
+
+      setDesignerReplyDrafts((prev) => ({ ...prev, [shortlistItemId]: noteText }));
+      setDesignerReplyMsg("Reply saved successfully.");
+    } catch (err: unknown) {
+      setDesignerReplyError(err instanceof Error ? err.message : "Failed to save reply.");
+    } finally {
+      setSavingDesignerReplyId(null);
     }
   };
 
@@ -1024,9 +1161,8 @@ export default function DashboardPage() {
     setCatMsg("");
     setCatError("");
     try {
-      const payload: { name: string; type: "material" | "furniture"; parent_id?: string } = {
-        name: newCatData.name, 
-        type: newCatData.type 
+      const payload: { name: string; parent_id?: string } = {
+        name: newCatData.name,
       };
       if (newCatData.parent_id.trim()) {
         payload.parent_id = newCatData.parent_id.trim();
@@ -1034,7 +1170,7 @@ export default function DashboardPage() {
       
       await createCategory(payload);
       setCatMsg("Category created successfully!");
-      setNewCatData({ name: "", type: "material", parent_id: "" });
+      setNewCatData({ name: "", parent_id: "" });
       setTimeout(() => {
         setIsCategoryModalOpen(false);
         setCatMsg("");
@@ -1654,6 +1790,168 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {userRole === "admin" && (
+        <div className="border-b border-gray-100 bg-white px-3 py-2 md:hidden">
+          <div className="grid grid-cols-3 gap-2">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsUsersMenuOpen((v) => !v);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border-2 border-black px-2 py-2 text-[10px] font-black uppercase tracking-wider text-black shadow-sm"
+              >
+                Users
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isUsersMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUsersMenuOpen(false);
+                      router.push("/users");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Users
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsUsersMenuOpen(false);
+                      setIsCreateModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create User
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCategoriesMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border-2 border-[#4d2c1e] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm"
+              >
+                Categories
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isCategoriesMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      router.push("/categories");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Categories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsCategoryModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Category
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsBindCategoriesOpen(true);
+                      setBindError("");
+                      setBindMsg("");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Bind Categories
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsProductsMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
+              >
+                Products
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isProductsMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      setIsProductModalOpen(true);
+                      setProductError("");
+                      setProductMsg("");
+                      setCreateProductImageFile(null);
+                      setCreatedProductImage(null);
+                      setCreateSelectedCategoryIds(new Set());
+                      setIsCreateCategoriesDropdownOpen(false);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      setIsUploadImageModalOpen(true);
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Upload Image
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav className="bg-[#4d2c1e] text-white">
@@ -2293,6 +2591,21 @@ export default function DashboardPage() {
                             />
                           </div>
 
+                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              Designer Reply
+                            </div>
+                            <div className="mt-1 whitespace-pre-wrap">
+                              {item.designerReplyNote?.trim() || "-"}
+                            </div>
+                            <div className="mt-2 text-[11px] font-bold text-gray-600">
+                              Updated:{" "}
+                              {item.designerReplyUpdatedAt
+                                ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
+                                : "-"}
+                            </div>
+                          </div>
+
                           <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
                             <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
                             <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
@@ -2318,6 +2631,10 @@ export default function DashboardPage() {
             setSavingDesignerSampleId(null);
             setDesignerSampleError("");
             setDesignerSampleMsg("");
+            setDesignerReplyDrafts({});
+            setSavingDesignerReplyId(null);
+            setDesignerReplyError("");
+            setDesignerReplyMsg("");
             setDesignerNoteError("");
             setDesignerNoteMsg("");
             setDesignerNoteDrafts({});
@@ -2428,6 +2745,16 @@ export default function DashboardPage() {
                           {designerSampleMsg}
                         </div>
                       )}
+                      {designerReplyError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerReplyError}
+                        </div>
+                      )}
+                      {designerReplyMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerReplyMsg}
+                        </div>
+                      )}
 
                       <div className="mt-4 space-y-4">
                         {designerCustomerDetails.shortlist.length === 0 ? (
@@ -2464,6 +2791,30 @@ export default function DashboardPage() {
                                       <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
                                       <div className="mt-1">{item.customerNote || "-"}</div>
                                     </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Reply</div>
+                                        <button
+                                          type="button"
+                                          disabled={savingDesignerReplyId === item.id}
+                                          onClick={() => handleSaveDesignerReply(item.id, item.productId)}
+                                          className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          {savingDesignerReplyId === item.id ? "Saving..." : "Save Reply"}
+                                        </button>
+                                      </div>
+                                      <textarea
+                                        value={designerReplyDrafts[item.id] ?? ""}
+                                        onChange={(e) =>
+                                          setDesignerReplyDrafts((prev) => ({
+                                            ...prev,
+                                            [item.id]: e.target.value,
+                                          }))
+                                        }
+                                        placeholder="Reply to this customer note"
+                                        className="mt-2 block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                      />
+                                    </div>
                                     <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-white p-3">
                                       <div className="min-w-[180px] flex-1">
                                         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sample Status</div>
@@ -2477,7 +2828,15 @@ export default function DashboardPage() {
                                           }
                                           className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                                         >
-                                          {Array.from(new Set([item.sampleStatus || "none", "none", "pending", "ready"])).map((status) => (
+                                          {Array.from(
+                                            new Set([
+                                              item.sampleStatus || "none",
+                                              "none",
+                                              "pending",
+                                              "ready",
+                                              "not available",
+                                            ])
+                                          ).map((status) => (
                                             <option key={status} value={status}>
                                               {status}
                                             </option>
@@ -2583,7 +2942,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Notes</div>
-                          <div className="mt-1 text-sm text-gray-500">Internal notes returned by the designer customer details API.</div>
+                          <div className="mt-1 text-sm text-gray-500">Use Designer Reply inside each shortlist item above for product-wise customer replies.</div>
                         </div>
                         <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
                           {designerCustomerDetails.notes.length} Notes
@@ -2895,22 +3254,6 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
-                <select
-                  required
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  value={newCatData.type}
-                  onChange={(e) => {
-                    const nextType = e.target.value === "furniture" ? "furniture" : "material";
-                    setNewCatData({ ...newCatData, type: nextType });
-                  }}
-                >
-                  <option value="material">Material</option>
-                  <option value="furniture">Furniture</option>
-                </select>
-              </div>
-
-              <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent ID (Optional)</label>
                 <input
                   type="text"
@@ -2959,6 +3302,44 @@ export default function DashboardPage() {
 
             <form onSubmit={handleCreateProduct} className="flex min-h-0 flex-1 flex-col">
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Bind Categories (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateCategoriesDropdownOpen((v) => !v)}
+                    className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
+                  >
+                    <span>
+                      {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+
+                  {isCreateCategoriesDropdownOpen && (
+                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                      {allCategories.length === 0 ? (
+                        <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          {allCategories.map((c) => (
+                            <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={createSelectedCategoryIds.has(c.id)}
+                                onChange={() => toggleCreateCategory(c.id)}
+                              />
+                              <span className="font-medium">{c.name}</span>
+                              <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
@@ -2992,18 +3373,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SKU</label>
-                  <input
-                    type="text"
-                    required
-                    disabled
-                    className="mt-1 block w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 shadow-inner focus:outline-none"
-                    value={newProductData.sku}
-                    placeholder="e.g. COF-SHM-055"
-                  />
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
                   <input
@@ -3077,44 +3447,6 @@ export default function DashboardPage() {
                 {createProductImageFile && (
                   <div className="mt-2 text-[11px] font-bold text-gray-500">
                     Selected: {createProductImageFile.name}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Bind Categories (Optional)
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsCreateCategoriesDropdownOpen((v) => !v)}
-                  className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
-                >
-                  <span>
-                    {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
-                  </span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-
-                {isCreateCategoriesDropdownOpen && (
-                  <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
-                    {allCategories.length === 0 ? (
-                      <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
-                    ) : (
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                        {allCategories.map((c) => (
-                          <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={createSelectedCategoryIds.has(c.id)}
-                              onChange={() => toggleCreateCategory(c.id)}
-                            />
-                            <span className="font-medium">{c.name}</span>
-                            <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
