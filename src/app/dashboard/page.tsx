@@ -120,8 +120,8 @@ export default function DashboardPage() {
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [productMsg, setProductMsg] = useState("");
   const [productError, setProductError] = useState("");
-  const [createProductImageFile, setCreateProductImageFile] = useState<File | null>(null);
-  const [createdProductImage, setCreatedProductImage] = useState<ProductImageUploadResponse | null>(null);
+  const [createProductImageFiles, setCreateProductImageFiles] = useState<File[]>([]);
+  const [createdProductImages, setCreatedProductImages] = useState<ProductImageUploadResponse[]>([]);
 
   const [isUploadImageModalOpen, setIsUploadImageModalOpen] = useState(false);
   const [uploadProductId, setUploadProductId] = useState("");
@@ -1208,11 +1208,17 @@ export default function DashboardPage() {
     setIsCreatingProduct(true);
     setProductMsg("");
     setProductError("");
-    setCreatedProductImage(null);
+    setCreatedProductImages([]);
 
     if (userRole !== "admin") {
       setIsCreatingProduct(false);
       setProductError("Only admin can create products.");
+      return;
+    }
+
+    if (createProductImageFiles.length < 1 || createProductImageFiles.length > 3) {
+      setIsCreatingProduct(false);
+      setProductError("Please select minimum 1 and maximum 3 product images.");
       return;
     }
 
@@ -1241,13 +1247,17 @@ export default function DashboardPage() {
       };
 
       const created = await createProduct(payload);
-      let uploaded: ProductImageUploadResponse | null = null;
-      if (createProductImageFile) {
+      let uploadedImages: ProductImageUploadResponse[] = [];
+      if (createProductImageFiles.length > 0) {
         if (!created?.id) {
           throw new Error("Product created, but product id is missing so image upload cannot continue.");
         }
-        uploaded = await uploadProductImage(created.id, createProductImageFile);
-        setCreatedProductImage(uploaded);
+        uploadedImages = [];
+        for (const file of createProductImageFiles) {
+          const uploaded = await uploadProductImage(created.id, file);
+          uploadedImages.push(uploaded);
+        }
+        setCreatedProductImages(uploadedImages);
       }
 
       let bindNote = "";
@@ -1266,7 +1276,12 @@ export default function DashboardPage() {
 
       setProductMsg(() => {
         const base = `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`;
-        const imageNote = uploaded?.url ? " • Image uploaded" : createProductImageFile ? " • Image upload skipped" : "";
+        const imageNote =
+          uploadedImages.length > 0
+            ? ` • ${uploadedImages.length} image${uploadedImages.length > 1 ? "s" : ""} uploaded`
+            : createProductImageFiles.length > 0
+              ? " • Image upload skipped"
+              : "";
         return `${base}${imageNote}${bindNote}`;
       });
       loadProducts();
@@ -1286,7 +1301,7 @@ export default function DashboardPage() {
         prosText: "",
         consText: ""
       });
-      setCreateProductImageFile(null);
+      setCreateProductImageFiles([]);
       setCreateSelectedCategoryIds(new Set());
       setIsCreateCategoriesDropdownOpen(false);
       setTimeout(() => {
@@ -1576,7 +1591,7 @@ export default function DashboardPage() {
                 {isBlogMenuOpen && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                    className="absolute top-full right-0 z-[360] mt-10 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                   >
                     <button
                       type="button"
@@ -1662,7 +1677,7 @@ export default function DashboardPage() {
                     {isUsersMenuOpen && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 mt-2 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                        className="absolute top-full right-0 z-[360] mt-10 w-56 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                       >
                         <button
                           type="button"
@@ -1706,7 +1721,7 @@ export default function DashboardPage() {
                     {isCategoriesMenuOpen && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                        className="absolute top-full right-0 z-[360] mt-10 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                       >
                         <button
                           type="button"
@@ -1762,7 +1777,7 @@ export default function DashboardPage() {
                     {isProductsMenuOpen && (
                       <div
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[300]"
+                        className="absolute top-full right-0 z-[360] mt-10 w-60 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                       >
                         <button
                           type="button"
@@ -1771,8 +1786,8 @@ export default function DashboardPage() {
                             setIsProductModalOpen(true);
                             setProductError("");
                             setProductMsg("");
-                            setCreateProductImageFile(null);
-                            setCreatedProductImage(null);
+                            setCreateProductImageFiles([]);
+                            setCreatedProductImages([]);
                             setCreateSelectedCategoryIds(new Set());
                             setIsCreateCategoriesDropdownOpen(false);
                           }}
@@ -2068,8 +2083,8 @@ export default function DashboardPage() {
                       setIsProductModalOpen(true);
                       setProductError("");
                       setProductMsg("");
-                      setCreateProductImageFile(null);
-                      setCreatedProductImage(null);
+                      setCreateProductImageFiles([]);
+                      setCreatedProductImages([]);
                       setCreateSelectedCategoryIds(new Set());
                       setIsCreateCategoriesDropdownOpen(false);
                     }}
@@ -3535,8 +3550,8 @@ export default function DashboardPage() {
                   setIsProductModalOpen(false);
                   setProductError("");
                   setProductMsg("");
-                  setCreateProductImageFile(null);
-                  setCreatedProductImage(null);
+                  setCreateProductImageFiles([]);
+                  setCreatedProductImages([]);
                   setCreateSelectedCategoryIds(new Set());
                   setIsCreateCategoriesDropdownOpen(false);
                 }}
@@ -3682,17 +3697,25 @@ export default function DashboardPage() {
 
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Product Image (Optional)
+                  Product Images (Required, min 1 max 3)
                 </label>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  onChange={(e) => setCreateProductImageFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    setCreateProductImageFiles(files.slice(0, 3));
+                  }}
                 />
-                {createProductImageFile && (
+                <div className="mt-1 text-[10px] font-semibold text-gray-500">
+                  You can select up to 3 images.
+                </div>
+                {createProductImageFiles.length > 0 && (
                   <div className="mt-2 text-[11px] font-bold text-gray-500">
-                    Selected: {createProductImageFile.name}
+                    Selected:{" "}
+                    {createProductImageFiles.map((file) => file.name).join(", ")}
                   </div>
                 )}
               </div>
@@ -3767,19 +3790,24 @@ export default function DashboardPage() {
 
                 {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
                 {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}
-                {createdProductImage?.url && (
+                {createdProductImages.length > 0 && (
                   <div className="rounded-lg border border-gray-200 bg-white p-3">
                     <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      Uploaded URL
+                      Uploaded URLs
                     </div>
-                    <a
-                      href={createdProductImage.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
-                    >
-                      {createdProductImage.url}
-                    </a>
+                    <div className="mt-2 space-y-2">
+                      {createdProductImages.map((image) => (
+                        <a
+                          key={image.id}
+                          href={image.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block break-all text-sm font-bold text-[#0468a3] underline"
+                        >
+                          {image.url}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
