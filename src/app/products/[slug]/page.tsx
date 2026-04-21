@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import CommonStoreHeader from "@/components/common-store-header";
 import {
   createShortlist,
   deleteProductCategory,
@@ -469,19 +470,11 @@ export default function ProductDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#f3eee5] font-sans text-gray-900">
-      <header className="border-b border-[#e0d4c4] bg-white px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all"
-          >
-            Back
-          </button>
-          <div className="text-sm font-black uppercase tracking-widest text-gray-400">Product Details</div>
-          <div className="text-sm font-bold text-gray-600">{userName}</div>
-        </div>
-      </header>
+      <CommonStoreHeader
+        pageTitle="CustomFurnish"
+        breadcrumbText={`Home  >  ${product?.name ?? "Product Details"}`}
+        rightText={userName}
+      />
 
       <main className="mx-auto max-w-[1680px] px-4 py-8 lg:px-8">
         {error && (
@@ -636,7 +629,7 @@ export default function ProductDetailsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Categories</div>
                 <div className="flex flex-wrap gap-2">
                   {(product.categories || []).length > 0 ? (
@@ -669,7 +662,7 @@ export default function ProductDetailsPage() {
               </div>
 
               {userRole === "customer" && (
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Shortlist</div>
@@ -690,7 +683,7 @@ export default function ProductDetailsPage() {
                       value={customerNote}
                       onChange={(e) => setCustomerNote(e.target.value)}
                       placeholder="For kitchen shutters"
-                      className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[100px]"
+                      className="mt-1 block w-full rounded-xl border border-gray-200 bg-[#F8F0E4] px-4 py-3 text-sm shadow-inner min-h-[100px]"
                     />
                   </div>
                   {shortlistItem && (
@@ -938,7 +931,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between gap-4">
@@ -967,11 +960,11 @@ export default function ProductDetailsPage() {
             )}
 
             {isLoadingSimilar ? (
-              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
                 Loading similar products...
               </div>
             ) : similarProducts.length === 0 ? (
-              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
                 No similar products found.
               </div>
             ) : (
@@ -1045,11 +1038,11 @@ export default function ProductDetailsPage() {
             )}
 
             {isLoadingRelevantArticles ? (
-              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
                 Loading relevant articles...
               </div>
             ) : relevantArticles.length === 0 ? (
-              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
                 No relevant articles found.
               </div>
             ) : (

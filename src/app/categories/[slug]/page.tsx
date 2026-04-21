@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
+import CommonStoreHeader from "@/components/common-store-header";
 import {
   getCategoryBySlug,
   getPortfolios,
@@ -225,21 +226,11 @@ export default function CategoryProductsPage() {
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
-      <header className="border-b border-[#d9cab5] bg-white px-4 py-3 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="rounded-md border border-[#b69a72] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#6a4b2b]"
-          >
-            Back
-          </button>
-          <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45]">
-            {category?.name ?? "Category"}
-          </div>
-          <div className="text-xs font-bold text-gray-500">{userName}</div>
-        </div>
-      </header>
+      <CommonStoreHeader
+        pageTitle="CustomFurnish"
+        breadcrumbText={`Home  >  ${category?.name ?? "Category"}`}
+        rightText={userName}
+      />
 
       <main className="mx-auto grid w-full max-w-[1680px] grid-cols-[280px_minmax(0,1fr)] gap-0 px-0">
         <aside className="border-r border-[#d9cab5] bg-[#efe7db] p-5">

@@ -13,6 +13,7 @@ import {
   bindProductCategories,
   getProducts,
   getProductsCompare,
+  getTrendings,
   deleteProduct,
   updateProductStatus,
   getCategories,
@@ -43,7 +44,8 @@ import {
   type UpdateDesignerSamplePayload,
   type UpdateDesignerNotePayload,
   type NotificationItem,
-  type CategoryMenuItem
+  type CategoryMenuItem,
+  type TrendingItem,
 } from "@/lib/api";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -57,6 +59,13 @@ const FALLBACK_MENU_NAMES = [
   "Wardrobe",
   "TV Unit",
   "Outdoor",
+];
+const CATEGORY_TILE_IMAGES = [
+  "https://images.unsplash.com/photo-1493666438817-866a91353ca9?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1484154218962-a197022b5858?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1200&auto=format&fit=crop",
 ];
 
 export default function DashboardPage() {
@@ -77,6 +86,9 @@ export default function DashboardPage() {
   const [menuCategories, setMenuCategories] = useState<CategoryMenuItem[]>([]);
   const [isLoadingMenuCategories, setIsLoadingMenuCategories] = useState(false);
   const [activeMenuCategoryId, setActiveMenuCategoryId] = useState<string | null>(null);
+  const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
+  const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
+  const [trendingDesignsError, setTrendingDesignsError] = useState("");
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -134,6 +146,7 @@ export default function DashboardPage() {
   const [bulkUploadMsg, setBulkUploadMsg] = useState("");
   const [bulkUploadError, setBulkUploadError] = useState("");
   const bulkUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
   const [bindProductId, setBindProductId] = useState("");
@@ -152,6 +165,9 @@ export default function DashboardPage() {
   const [productsLimit, setProductsLimit] = useState(20);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState("");
+  const [latestProducts, setLatestProducts] = useState<ProductListItem[]>([]);
+  const [isLoadingLatestProducts, setIsLoadingLatestProducts] = useState(false);
+  const [latestProductsError, setLatestProductsError] = useState("");
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">("");
   const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
@@ -242,6 +258,19 @@ export default function DashboardPage() {
       .replace(/[^A-Z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .replace(/-{2,}/g, "-");
+
+  const toTitleCase = (value: string) =>
+    value
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase()
+      .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+
+  const truncateText = (value: string, maxChars: number) => {
+    const normalized = value.trim();
+    if (normalized.length <= maxChars) return normalized;
+    return `${normalized.slice(0, maxChars)}...`;
+  };
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
     const list = Array.isArray(images) ? images : [];
@@ -334,6 +363,18 @@ export default function DashboardPage() {
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
+  const trendingCards: Array<TrendingItem | null> = [
+    ...trendingDesigns.slice(0, 4),
+    ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
+  ].slice(0, 4);
+  const latestProductCards: Array<ProductListItem | null> = [
+    ...latestProducts.slice(0, 4),
+    ...Array.from({ length: Math.max(0, 4 - latestProducts.length) }, () => null),
+  ].slice(0, 4);
+  const showcaseDesignCards: Array<ProductListItem | null> = [
+    ...products.slice(0, 5),
+    ...Array.from({ length: Math.max(0, 5 - products.length) }, () => null),
+  ].slice(0, 5);
   const isSelectedForCompare = (id: string) => compareSelectedIds.has(id);
 
   const toggleCompareSelection = (id: string) => {
@@ -521,6 +562,31 @@ export default function DashboardPage() {
     }
   }, [appliedFilters, productsLimit, productsPage]);
 
+  const loadLatestProducts = useCallback(async () => {
+    setIsLoadingLatestProducts(true);
+    setLatestProductsError("");
+    try {
+      const res = await getProducts({
+        page: 1,
+        limit: 4,
+        includeImages: true,
+        includeCategories: true,
+      });
+      const items = Array.isArray(res.items) ? res.items : [];
+      const sortedByNewest = [...items].sort((a, b) => {
+        const aTime = new Date(a.createdAt || "").getTime();
+        const bTime = new Date(b.createdAt || "").getTime();
+        return bTime - aTime;
+      });
+      setLatestProducts(sortedByNewest.slice(0, 4));
+    } catch (err: unknown) {
+      setLatestProducts([]);
+      setLatestProductsError(err instanceof Error ? err.message : "Failed to load latest products.");
+    } finally {
+      setIsLoadingLatestProducts(false);
+    }
+  }, []);
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
@@ -549,6 +615,10 @@ export default function DashboardPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    loadLatestProducts();
+  }, [loadLatestProducts]);
 
   useEffect(() => {
     if (userRole !== "customer") {
@@ -1284,7 +1354,7 @@ export default function DashboardPage() {
               : "";
         return `${base}${imageNote}${bindNote}`;
       });
-      loadProducts();
+      await Promise.all([loadProducts(), loadLatestProducts()]);
       setNewProductData({
         name: "",
         sku: "",
@@ -1346,7 +1416,7 @@ export default function DashboardPage() {
       setUploadMsg("Image uploaded successfully!");
       setUploadProductId("");
       setUploadFile(null);
-      loadProducts();
+      await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : "Failed to upload image.");
     } finally {
@@ -1390,7 +1460,7 @@ export default function DashboardPage() {
         const firstError = result.errors?.[0]?.message || "Some rows failed.";
         setBulkUploadError(`Some rows failed: ${firstError}`);
       }
-      loadProducts();
+      await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
       setBulkUploadError(
         err instanceof Error ? err.message : "Bulk product upload failed."
@@ -1421,6 +1491,35 @@ export default function DashboardPage() {
       }
     };
     loadMenuCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadTrendingDesigns = async () => {
+      setIsLoadingTrendingDesigns(true);
+      setTrendingDesignsError("");
+      try {
+        const data = await getTrendings();
+        if (isMounted) {
+          setTrendingDesigns(Array.isArray(data) ? data.slice(0, 4) : []);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setTrendingDesigns([]);
+          setTrendingDesignsError(
+            err instanceof Error ? err.message : "Failed to load trending designs.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingTrendingDesigns(false);
+        }
+      }
+    };
+    loadTrendingDesigns();
     return () => {
       isMounted = false;
     };
@@ -1495,7 +1594,7 @@ export default function DashboardPage() {
       setBindMsg(`Added: ${result.added} • Skipped: ${result.skipped.length} • Invalid: ${result.invalid.length}`);
       setBindProductId("");
       setSelectedCategoryIds(new Set());
-      loadProducts();
+      await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
       setBindError(err instanceof Error ? err.message : "Failed to bind categories.");
     } finally {
@@ -1519,8 +1618,16 @@ export default function DashboardPage() {
           children: [],
         }));
 
+  const scrollCategoryTiles = (direction: "left" | "right") => {
+    if (!categoryTilesScrollRef.current) return;
+    categoryTilesScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F8F0E4] font-sans text-gray-900">
       <input
         ref={bulkUploadInputRef}
         type="file"
@@ -1529,44 +1636,12 @@ export default function DashboardPage() {
         onChange={handleBulkUploadFileChange}
       />
       {/* Top Header */}
-      <header className="relative z-[200] border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
+      <header className="relative z-[200] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-4 px-0`}>
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-xl font-black text-[#ffde59]">
-              M
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-lg font-black uppercase tracking-tighter">Material</span>
-              <span className="text-lg font-black uppercase tracking-tighter">Depot</span>
-            </div>
-          </div>
-
-          {/* Delivery & Links (Desktop) */}
-          <div className="hidden items-center gap-6 lg:flex">
-             <div className="flex items-center gap-1 rounded-md bg-gray-50 px-3 py-1.5 text-xs text-gray-600 border border-gray-100">
-                <span>Deliver to</span>
-                <span className="font-bold underline decoration-dotted">560001</span>
-             </div>
-             <nav className="flex gap-6 text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                <a href="#" className="hover:text-black">Visit Store</a>
-                <a href="#" className="flex items-center gap-1 hover:text-black">
-                    Tools
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </a>
-             </nav>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative hidden max-w-xl flex-1 xl:max-w-2xl md:block">
-            <input
-              type="text"
-              placeholder="Search tropical wallpapers...."
-              className="w-full rounded-md border border-gray-200 bg-white py-2.5 pl-4 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-black"
-            />
-            <div className="absolute inset-y-0 right-3 flex items-center gap-2 text-gray-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <div className="text-[34px] leading-none text-[#1f1f1f]">
+              <span className="font-serif">CustomFurnish</span>
             </div>
           </div>
 
@@ -1820,9 +1895,6 @@ export default function DashboardPage() {
                   </div>
                 </>
             )}
-            <button className="hidden rounded-md bg-[#ffcb05] px-4 py-2 text-[11px] font-black uppercase tracking-wider md:block shadow-sm">
-              Shop on call
-            </button>
             <div className="relative">
               <button
                 type="button"
@@ -1948,7 +2020,7 @@ export default function DashboardPage() {
       )}
 
       {userRole === "admin" && (
-        <div className="border-b border-gray-100 bg-white px-3 py-2 md:hidden">
+        <div className="border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
           <div className="grid grid-cols-3 gap-2">
             <div className="relative">
               <button
@@ -2121,11 +2193,15 @@ export default function DashboardPage() {
 
       {/* Main Navigation */}
       <nav
-        className="relative z-[210] bg-[#4d2c1e] text-white"
+        className="relative z-[210] text-white"
+        style={{
+          background:
+            "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
+        }}
         onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
-          className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide`}
+          className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[16px] font-semibold leading-6 overflow-x-auto whitespace-nowrap scrollbar-hide`}
         >
           {resolvedMenuCategories.map((category) => {
             const hasFlyout =
@@ -2145,7 +2221,7 @@ export default function DashboardPage() {
                   }}
                   className="flex items-center gap-1 hover:text-[#ffcb05]"
                 >
-                  {category.name}
+                  {toTitleCase(category.name)}
                   {hasFlyout && (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -2168,25 +2244,28 @@ export default function DashboardPage() {
         </div>
 
         {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full bg-white text-gray-900 shadow-2xl">
-            <div className={`${dashboardShellClass} py-5`}>
-              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                {activeMenuCategory.name}
+          <div className="absolute left-0 right-0 top-full border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl">
+            <div className={`${dashboardShellClass} py-4`}>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
+                <div className="text-[11px] font-bold uppercase tracking-widest text-[#977543]">
+                  {toTitleCase(activeMenuCategory.name)}
+                </div>
               </div>
-              <div className="mt-3 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {activeMenuCategory.products.length > 0 && (
-                  <div className="rounded-xl border border-gray-100 p-4">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                  <div className="rounded-xl border border-[#eadfce] bg-white p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#977543]">
                       Featured Products
                     </div>
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-2 space-y-1.5">
                       {activeMenuCategory.products.map((product) => (
                         <a
                           key={product.id}
                           href={product.slug ? `/products/${product.slug}` : "#"}
-                          className="block rounded-md px-2 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#0468a3]"
+                          className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
                         >
-                          {product.name}
+                          {toTitleCase(product.name)}
                         </a>
                       ))}
                     </div>
@@ -2194,19 +2273,19 @@ export default function DashboardPage() {
                 )}
 
                 {activeMenuCategory.children.map((child) => (
-                  <div key={child.id} className="rounded-xl border border-gray-100 p-4">
-                    <div className="text-[11px] font-black uppercase tracking-wider text-[#4d2c1e]">
-                      {child.name}
+                  <div key={child.id} className="rounded-xl border border-[#eadfce] bg-white p-3">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#8f6a33]">
+                      {toTitleCase(child.name)}
                     </div>
                     {child.products.length > 0 ? (
-                      <div className="mt-2 space-y-2">
+                      <div className="mt-2 space-y-1.5">
                         {child.products.map((product) => (
                           <a
                             key={product.id}
                             href={product.slug ? `/products/${product.slug}` : "#"}
-                            className="block rounded-md px-2 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#0468a3]"
+                            className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
                           >
-                            {product.name}
+                            {toTitleCase(product.name)}
                           </a>
                         ))}
                       </div>
@@ -2230,9 +2309,9 @@ export default function DashboardPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-[#f7f2ed] py-4 lg:py-8">
-        <div className={dashboardShellClass}>
-          <div className="relative rounded-3xl bg-[url('https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px] shadow-sm">
+      <section className="relative overflow-hidden">
+        <div className="w-full">
+          <div className="relative bg-[url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px]">
              {/* Overlay for text readability */}
              <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">
@@ -2253,40 +2332,320 @@ export default function DashboardPage() {
                 </div>
              </div>
 
-             {/* Slider Navigation */}
-             <button className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md md:left-8">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-             </button>
-             <button className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-md md:right-8">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-             </button>
-
-             {/* Pagination Dots */}
-             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-                <div className="h-2 w-6 rounded-full bg-white" />
-                <div className="h-2 w-2 rounded-full bg-white/40" />
-                <div className="h-2 w-2 rounded-full bg-white/40" />
-                <div className="h-2 w-2 rounded-full bg-white/40" />
-             </div>
           </div>
         </div>
       </section>
 
-      {/* Product Section Intro */}
-      <section className={dashboardShellClass}>
-        <div className="py-8">
-         <div className="flex items-center gap-2 mb-2">
-            <span className="flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-500 shadow-sm">
-                <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
-                Newly Launched
-                <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
-            </span>
-         </div>
-         <h3 className="text-3xl lg:text-4xl font-black uppercase italic tracking-tighter">
-            Karigari Laminates
-         </h3>
+      <section className={`${dashboardShellClass} pt-10 pb-7`}>
+        <div className="mb-8 flex items-center justify-between gap-3">
+          <h3 className="ml-[70px] text-left text-[32px] font-bold leading-[40px] tracking-normal text-[#977543]">
+            Everything You Need for Interiors - In One Place
+          </h3>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollCategoryTiles("left")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#9f7a47] text-white"
+              aria-label="Scroll category tiles left"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollCategoryTiles("right")}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#9f7a47] text-white"
+              aria-label="Scroll category tiles right"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div
+          ref={categoryTilesScrollRef}
+          className="ml-[70px] flex w-[calc(100%-70px)] gap-3 overflow-x-auto pb-1 pr-2 scrollbar-hide"
+        >
+          {(menuCategories.length > 0 ? menuCategories : resolvedMenuCategories).map(
+            (category, index) => (
+              <button
+                type="button"
+                key={`tile-${category.id}`}
+                onClick={() => {
+                  if (category.slug) router.push(`/categories/${category.slug}`);
+                }}
+                className="w-[203px] flex-shrink-0"
+              >
+                <div className="overflow-hidden rounded-[16px] border border-white bg-white shadow-sm">
+                  <div className="relative h-[203px] w-[203px] bg-[#eadfcf]">
+                    <Image
+                      src={CATEGORY_TILE_IMAGES[index % CATEGORY_TILE_IMAGES.length]}
+                      alt={category.name}
+                      fill
+                      sizes="203px"
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 text-center text-sm font-medium text-[#977543]">
+                  {toTitleCase(category.name)}
+                </div>
+              </button>
+            ),
+          )}
         </div>
       </section>
+
+      <section className="bg-[#AE8953] py-12 lg:py-14">
+        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+                Trending Designs
+              </h3>
+              <p className="mt-3 text-sm text-white/90">
+                Get inspired by the latest interior design trends.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/trending/manage")}
+              className="text-[14px] font-medium text-white"
+            >
+              View All Designs
+            </button>
+          </div>
+
+          {trendingDesignsError && (
+            <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+              {trendingDesignsError}
+            </div>
+          )}
+
+          {isLoadingTrendingDesigns ? (
+            <div className="rounded-xl bg-white/20 p-4 text-sm text-white">
+              Loading trending designs...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {trendingCards.map((trending, idx) => {
+                  const imageUrl = trending
+                    ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
+                    : "https://images.unsplash.com/photo-1493666438817-866a91353ca9?q=80&w=1200&auto=format&fit=crop";
+                  const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
+                  const tag = trending?.styleTag || "Kitchen";
+
+                  return (
+                    <article
+                      key={trending?.id ?? `trending-placeholder-${idx}`}
+                      className="h-[430px] w-full max-w-[360px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm"
+                    >
+                      <div className="relative h-[312px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={title}
+                            fill
+                            sizes="(max-width: 1024px) 50vw, 360px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-xs font-semibold text-gray-400">
+                            No image
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-2">
+                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                          {tag}
+                        </span>
+                        <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-[#977543]">
+                          {title}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className={`${dashboardShellClass} bg-[#F8F0E4] py-10 lg:py-12`}>
+        <h3 className="text-center text-[36px] font-bold leading-[40px] text-[#977543]">
+          Why Choose CustomFurnish?
+        </h3>
+        <div className="mx-auto mt-8 grid max-w-[1320px] grid-cols-1 gap-y-7 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-14">
+          {[
+            {
+              title: "Wide Variety",
+              subtitle: "Explore thousands of designs across 15+ categories.",
+              icon: "list",
+            },
+            {
+              title: "Curated Collections",
+              subtitle: "Handpicked materials by top interior designers.",
+              icon: "list",
+            },
+            {
+              title: "Wide Variety",
+              subtitle: "Explore thousands of designs across 15+ categories.",
+              icon: "spark",
+            },
+            {
+              title: "Quality Tested",
+              subtitle: "Every material undergoes rigorous quality checks.",
+              icon: "wave",
+            },
+            {
+              title: "Easy Comparison",
+              subtitle: "Compare textures, prices, and specs side-by-side.",
+              icon: "spark",
+            },
+            {
+              title: "Wide Variety",
+              subtitle: "Explore thousands of designs across 15+ categories.",
+              icon: "spark",
+            },
+          ].map((feature, index) => (
+            <article
+              key={`${feature.title}-${index}`}
+              className="flex min-h-[96px] items-center gap-5"
+            >
+              <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-[#AC8852] text-white">
+                {feature.icon === "wave" ? (
+                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                    <path d="M3 7c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+                    <path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+                    <path d="M3 17c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
+                  </svg>
+                ) : feature.icon === "spark" ? (
+                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                    <circle cx="12" cy="12" r="2.2" />
+                    <path d="M12 3.5v3M12 17.5v3M20.5 12h-3M6.5 12h-3M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1M17.8 17.8l-2.1-2.1M8.3 8.3 6.2 6.2" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                    <path d="M6 6v12h12" />
+                    <path d="M10 6v8h8" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex h-[96px] w-[303px] flex-col justify-center">
+                <h4 className="text-[26px] font-semibold leading-[34px] text-[#977543]">{feature.title}</h4>
+                <p className="mt-1 text-[13px] leading-[18px] text-[#977543]">{feature.subtitle}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-[#AE8953] py-12 lg:py-14">
+        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+                Latest Products
+              </h3>
+              <p className="mt-3 text-sm text-white/90">
+                Get inspired by the latest interior design trends.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/products")}
+              className="text-[14px] font-medium text-white"
+            >
+              View All Products
+            </button>
+          </div>
+
+          {isLoadingLatestProducts ? (
+            <div className="rounded-xl bg-white/20 p-4 text-sm text-white">
+              Loading latest products...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+              {latestProductCards.map((product, idx) => {
+                const imageUrl =
+                  (product ? inlineProductImageUrl(product) : null) ||
+                  CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
+                const title = product?.name || "Modern Minimalist Kitchen";
+                const label = toTitleCase(product?.materialType || "Kitchen");
+
+                return (
+                  <article
+                    key={product?.id ?? `latest-product-${idx}`}
+                    className="h-[410px] w-full max-w-[340px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm"
+                  >
+                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                      <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
+                    </div>
+                    <div className="mt-2">
+                      <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                        {label}
+                      </span>
+                      <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-black">
+                        {title}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="bg-[#F8F0E4] py-12">
+        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+          <div className="mx-auto max-w-[1449px] text-center">
+          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CF</h3>
+          <p className="mt-2 text-sm text-[#8B6E46]">
+            Your dream furniture and interior specialists are all right here.
+          </p>
+          </div>
+          <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
+          {showcaseDesignCards.map((product, idx) => {
+            const imageUrl = CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
+            const label = toTitleCase(product?.materialType || "Kitchen");
+
+            return (
+              <article
+                key={product?.id ?? `cf-design-${idx}`}
+                className="h-[320px] w-[248px] overflow-hidden rounded-[28px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)]"
+              >
+                <div className="relative h-[285px] w-full overflow-hidden rounded-t-[28px] bg-[#eadfcf]">
+                  <Image src={imageUrl} alt={label} fill sizes="248px" className="object-cover" />
+                </div>
+                <div className="flex h-[37px] items-center justify-center bg-[#AE8953]">
+                  <span className="text-[23px] font-medium leading-none text-white">{label}</span>
+                </div>
+              </article>
+            );
+          })}
+          </div>
+        </div>
+      </section>
+
+      {userRole !== "customer" && (
+        <>
+          {/* Product Section Intro */}
+          <section className={dashboardShellClass}>
+            <div className="py-8">
+             <div className="flex items-center gap-2 mb-2">
+                <span className="flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-500 shadow-sm">
+                    <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
+                    Newly Launched
+                    <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
+                </span>
+             </div>
+             <h3 className="text-3xl lg:text-4xl font-black uppercase italic tracking-tighter">
+                Karigari Laminates
+             </h3>
+            </div>
+          </section>
+        </>
+      )}
 
       {userRole === "designer" && (
         <section className={dashboardShellClass}>
@@ -2391,8 +2750,9 @@ export default function DashboardPage() {
         </section>
       )}
 
-      <section className={dashboardShellClass}>
-        <div className="pb-10">
+      {userRole !== "customer" && (
+        <section className={dashboardShellClass}>
+          <div className="pb-10">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
@@ -2670,9 +3030,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
-        </div>
-      </section>
+          <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+          </div>
+        </section>
+      )}
 
       {userRole === "customer" && isShortlistOpen && (
         <div
