@@ -16,6 +16,7 @@ import {
   deleteProduct,
   updateProductStatus,
   getCategories,
+  getCategoryMenu,
   getShortlist,
   requestShortlistSample,
   updateShortlistNote,
@@ -41,10 +42,22 @@ import {
   type ShortlistItem,
   type UpdateDesignerSamplePayload,
   type UpdateDesignerNotePayload,
-  type NotificationItem
+  type NotificationItem,
+  type CategoryMenuItem
 } from "@/lib/api";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const FALLBACK_MENU_NAMES = [
+  "Flooring",
+  "Laminates",
+  "Louvers & Panels",
+  "Wallpaper",
+  "Kitchen",
+  "Bathroom",
+  "Wardrobe",
+  "TV Unit",
+  "Outdoor",
+];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -61,6 +74,9 @@ export default function DashboardPage() {
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
+  const [menuCategories, setMenuCategories] = useState<CategoryMenuItem[]>([]);
+  const [isLoadingMenuCategories, setIsLoadingMenuCategories] = useState(false);
+  const [activeMenuCategoryId, setActiveMenuCategoryId] = useState<string | null>(null);
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -1371,6 +1387,31 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    const loadMenuCategories = async () => {
+      setIsLoadingMenuCategories(true);
+      try {
+        const data = await getCategoryMenu({ includeChildren: true, productLimit: 8 });
+        if (isMounted) {
+          setMenuCategories(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        if (isMounted) {
+          setMenuCategories([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingMenuCategories(false);
+        }
+      }
+    };
+    loadMenuCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const loadCats = async () => {
       if (!isBindCategoriesOpen && !isProductModalOpen) return;
       try {
@@ -1446,6 +1487,22 @@ export default function DashboardPage() {
       setIsBindingCats(false);
     }
   };
+
+  const activeMenuCategory =
+    menuCategories.find((category) => category.id === activeMenuCategoryId) ?? null;
+  const resolvedMenuCategories =
+    menuCategories.length > 0
+      ? menuCategories
+      : FALLBACK_MENU_NAMES.map((name, index) => ({
+          id: `fallback-${index}`,
+          name,
+          slug: "",
+          type: "material" as const,
+          displayOrder: index,
+          productCount: 0,
+          products: [],
+          children: [],
+        }));
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -2048,18 +2105,108 @@ export default function DashboardPage() {
       )}
 
       {/* Main Navigation */}
-      <nav className="bg-[#4d2c1e] text-white">
-        <div className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide`}>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Flooring <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Laminates <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Louvers & Panels <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Wallpaper <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Kitchen <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Bathroom <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Wardrobe <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">TV Unit <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
-          <a href="#" className="flex items-center gap-1 hover:text-[#ffcb05]">Outdoor <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></a>
+      <nav
+        className="relative z-[210] bg-[#4d2c1e] text-white"
+        onMouseLeave={() => setActiveMenuCategoryId(null)}
+      >
+        <div
+          className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[11px] font-bold uppercase tracking-widest overflow-x-auto whitespace-nowrap scrollbar-hide`}
+        >
+          {resolvedMenuCategories.map((category) => {
+            const hasFlyout =
+              category.products.length > 0 || category.children.length > 0;
+            return (
+              <div
+                key={category.id}
+                onMouseEnter={() => setActiveMenuCategoryId(category.id)}
+                className="flex-shrink-0"
+              >
+                <button
+                  type="button"
+                  className="flex items-center gap-1 hover:text-[#ffcb05]"
+                >
+                  {category.name}
+                  {hasFlyout && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            );
+          })}
         </div>
+
+        {activeMenuCategory && (
+          <div className="absolute left-0 right-0 top-full bg-white text-gray-900 shadow-2xl">
+            <div className={`${dashboardShellClass} py-5`}>
+              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                {activeMenuCategory.name}
+              </div>
+              <div className="mt-3 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {activeMenuCategory.products.length > 0 && (
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                      Featured Products
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {activeMenuCategory.products.map((product) => (
+                        <a
+                          key={product.id}
+                          href={product.slug ? `/products/${product.slug}` : "#"}
+                          className="block rounded-md px-2 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#0468a3]"
+                        >
+                          {product.name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeMenuCategory.children.map((child) => (
+                  <div key={child.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="text-[11px] font-black uppercase tracking-wider text-[#4d2c1e]">
+                      {child.name}
+                    </div>
+                    {child.products.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {child.products.map((product) => (
+                          <a
+                            key={product.id}
+                            href={product.slug ? `/products/${product.slug}` : "#"}
+                            className="block rounded-md px-2 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#0468a3]"
+                          >
+                            {product.name}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-xs text-gray-400">No products available.</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {!isLoadingMenuCategories &&
+                activeMenuCategory.products.length === 0 &&
+                activeMenuCategory.children.length === 0 && (
+                  <div className="mt-3 text-xs text-gray-500">
+                    No products mapped to this category yet.
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}

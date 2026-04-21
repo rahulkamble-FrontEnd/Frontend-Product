@@ -1653,6 +1653,53 @@ export async function getCategories(type?: 'material' | 'furniture') {
   return response.json();
 }
 
+export type CategoryMenuProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  brand: string | null;
+};
+
+export type CategoryMenuItem = {
+  id: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+  displayOrder: number;
+  productCount: number;
+  products: CategoryMenuProduct[];
+  children: CategoryMenuItem[];
+};
+
+export async function getCategoryMenu(params?: {
+  type?: "material" | "furniture";
+  productLimit?: number;
+  includeChildren?: boolean;
+}) {
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/categories/menu`);
+  if (params?.type) {
+    url.searchParams.set("type", params.type);
+  }
+  if (typeof params?.productLimit === "number") {
+    url.searchParams.set("productLimit", String(params.productLimit));
+  }
+  if (typeof params?.includeChildren === "boolean") {
+    url.searchParams.set("includeChildren", String(params.includeChildren));
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch category menu");
+  }
+  return response.json() as Promise<CategoryMenuItem[]>;
+}
+
 export async function deleteCategory(id: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
     method: 'DELETE',
