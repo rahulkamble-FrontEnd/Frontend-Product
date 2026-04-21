@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   logout,
   createUser,
   createCategory,
   createProduct,
+  bulkUploadProducts,
   uploadProductImage,
   bindProductCategories,
   getProducts,
@@ -113,6 +114,10 @@ export default function DashboardPage() {
   const [uploadMsg, setUploadMsg] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [uploadedImage, setUploadedImage] = useState<ProductImageUploadResponse | null>(null);
+  const [isBulkUploadingProducts, setIsBulkUploadingProducts] = useState(false);
+  const [bulkUploadMsg, setBulkUploadMsg] = useState("");
+  const [bulkUploadError, setBulkUploadError] = useState("");
+  const bulkUploadInputRef = useRef<HTMLInputElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
   const [bindProductId, setBindProductId] = useState("");
@@ -1318,6 +1323,53 @@ export default function DashboardPage() {
     }
   };
 
+  const triggerBulkUploadPicker = () => {
+    if (userRole !== "admin") {
+      setBulkUploadError("Only admin can bulk upload products.");
+      return;
+    }
+    setBulkUploadMsg("");
+    setBulkUploadError("");
+    bulkUploadInputRef.current?.click();
+  };
+
+  const handleBulkUploadFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+
+    setBulkUploadMsg("");
+    setBulkUploadError("");
+
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith(".xlsx")) {
+      setBulkUploadError("Please upload an .xlsx file.");
+      e.target.value = "";
+      return;
+    }
+
+    setIsBulkUploadingProducts(true);
+    try {
+      const result = await bulkUploadProducts(file);
+      setBulkUploadMsg(
+        `Bulk upload completed. Rows: ${result.totalRows}, Created: ${result.createdCount}, Failed: ${result.failedCount}`
+      );
+      if (result.failedCount > 0) {
+        const firstError = result.errors?.[0]?.message || "Some rows failed.";
+        setBulkUploadError(`Some rows failed: ${firstError}`);
+      }
+      loadProducts();
+    } catch (err: unknown) {
+      setBulkUploadError(
+        err instanceof Error ? err.message : "Bulk product upload failed."
+      );
+    } finally {
+      setIsBulkUploadingProducts(false);
+      e.target.value = "";
+    }
+  };
+
   useEffect(() => {
     const loadCats = async () => {
       if (!isBindCategoriesOpen && !isProductModalOpen) return;
@@ -1397,6 +1449,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
+      <input
+        ref={bulkUploadInputRef}
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        className="hidden"
+        onChange={handleBulkUploadFileChange}
+      />
       {/* Top Header */}
       <header className="relative z-[200] border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-4 px-0`}>
@@ -1674,6 +1733,16 @@ export default function DashboardPage() {
                         >
                           Upload Image
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
+                            triggerBulkUploadPicker();
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Bulk Upload
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1790,6 +1859,21 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
+      {(bulkUploadMsg || bulkUploadError) && (
+        <div className={`${dashboardShellClass} px-3 pt-3`}>
+          {bulkUploadMsg && (
+            <div className="mb-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
+              {bulkUploadMsg}
+            </div>
+          )}
+          {bulkUploadError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+              {bulkUploadError}
+            </div>
+          )}
+        </div>
+      )}
 
       {userRole === "admin" && (
         <div className="border-b border-gray-100 bg-white px-3 py-2 md:hidden">
@@ -1945,6 +2029,16 @@ export default function DashboardPage() {
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     Upload Image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      triggerBulkUploadPicker();
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    {isBulkUploadingProducts ? "Uploading..." : "Bulk Upload"}
                   </button>
                 </div>
               )}

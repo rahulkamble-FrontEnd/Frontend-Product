@@ -800,6 +800,35 @@ export async function createProduct(payload: CreateProductPayload) {
   return response.json();
 }
 
+export type BulkUploadProductsResponse = {
+  totalRows: number;
+  createdCount: number;
+  failedCount: number;
+  created: Array<{ row: number; id: string; sku: string; name: string }>;
+  errors: Array<{ row: number; message: string }>;
+};
+
+export async function bulkUploadProducts(file: File) {
+  if (!(file instanceof File)) {
+    throw new Error("XLSX file is required");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-upload`, {
+    method: "POST",
+    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    body: formData,
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Bulk product upload failed");
+  }
+  return response.json() as Promise<BulkUploadProductsResponse>;
+}
+
 export async function uploadProductImage(productId: string, imageFile: File) {
   const formData = new FormData();
   formData.append('image', imageFile);
