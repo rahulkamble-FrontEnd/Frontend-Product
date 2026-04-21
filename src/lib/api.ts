@@ -1700,6 +1700,16 @@ export async function getCategoryMenu(params?: {
   return response.json() as Promise<CategoryMenuItem[]>;
 }
 
+export type CategoryDetails = {
+  id: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+  displayOrder?: number;
+  isActive?: boolean;
+  children?: CategoryDetails[];
+};
+
 export async function deleteCategory(id: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
     method: 'DELETE',
@@ -1737,5 +1747,5 @@ export async function getCategoryBySlug(slug: string) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch category details');
   }
-  return response.json();
+  return response.json() as Promise<CategoryDetails>;
 }

@@ -1,0 +1,371 @@
+"use client";
+
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  getCategoryBySlug,
+  getProducts,
+  type CategoryDetails,
+  type ProductImageUploadResponse,
+  type ProductListItem,
+} from "@/lib/api";
+
+function cleanUrl(value: string) {
+  return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+}
+
+function pickProductImageUrl(product: ProductListItem) {
+  const raw = product as ProductListItem & {
+    images?: ProductImageUploadResponse[] | null;
+    imageUrl?: string | null;
+    primaryImageUrl?: string | null;
+  };
+  if (typeof raw.imageUrl === "string" && cleanUrl(raw.imageUrl)) {
+    return cleanUrl(raw.imageUrl);
+  }
+  if (typeof raw.primaryImageUrl === "string" && cleanUrl(raw.primaryImageUrl)) {
+    return cleanUrl(raw.primaryImageUrl);
+  }
+  const images = Array.isArray(raw.images) ? raw.images : [];
+  const primary = images.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
+  if (primary?.url) return cleanUrl(primary.url);
+  const byOrder = [...images].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
+  return first?.url ? cleanUrl(first.url) : null;
+}
+
+type SortValue = "newest" | "name_asc" | "name_desc";
+const PRODUCTS_PAGE_LIMIT = 100;
+
+export default function CategoryProductsPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const router = useRouter();
+
+  const [userName, setUserName] = useState("");
+  const [category, setCategory] = useState<CategoryDetails | null>(null);
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<SortValue>("newest");
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    if (!storedName) {
+      router.push("/login");
+      return;
+    }
+    setUserName(storedName);
+  }, [router]);
+
+  useEffect(() => {
+    if (!userName || !slug) return;
+    const loadData = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const categoryData = await getCategoryBySlug(slug);
+        setCategory(categoryData);
+
+        const categoryId = categoryData?.id?.trim();
+        if (!categoryId) {
+          setProducts([]);
+          return;
+        }
+        const fetchAllProductsForCategory = async (targetCategoryId: string) => {
+          const firstPage = await getProducts({
+            categoryId: targetCategoryId,
+            status: "active",
+            includeImages: true,
+            includeCategories: true,
+            page: 1,
+            limit: PRODUCTS_PAGE_LIMIT,
+          });
+
+          let allItems = [...(Array.isArray(firstPage.items) ? firstPage.items : [])];
+          const total = Number(firstPage.total ?? allItems.length);
+          const limit = Number(firstPage.limit ?? PRODUCTS_PAGE_LIMIT);
+
+          if (total > allItems.length && limit > 0) {
+            const totalPages = Math.ceil(total / limit);
+            for (let page = 2; page <= totalPages; page++) {
+              const nextPage = await getProducts({
+                categoryId: targetCategoryId,
+                status: "active",
+                includeImages: true,
+                includeCategories: true,
+                page,
+                limit,
+              });
+              allItems = allItems.concat(
+                Array.isArray(nextPage.items) ? nextPage.items : [],
+              );
+            }
+          }
+
+          return allItems;
+        };
+
+        const childCategoryIds = Array.isArray(categoryData.children)
+          ? categoryData.children
+              .map((child) => child?.id?.trim())
+              .filter((value): value is string => Boolean(value))
+          : [];
+        const categoryIdsToLoad = Array.from(
+          new Set([categoryId, ...childCategoryIds]),
+        );
+
+        const productsByCategory = await Promise.all(
+          categoryIdsToLoad.map((targetCategoryId) =>
+            fetchAllProductsForCategory(targetCategoryId),
+          ),
+        );
+
+        const merged = productsByCategory.flat();
+        const deduped = Array.from(
+          new Map(merged.map((item) => [item.id, item])).values(),
+        );
+        setProducts(deduped);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load category products.");
+        setCategory(null);
+        setProducts([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [slug, userName]);
+
+  const availableBrands = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => (product.brand ?? "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const availableThicknesses = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => (product.thickness ?? "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    let next = [...products];
+
+    if (selectedBrands.size > 0) {
+      next = next.filter((product) => {
+        const brand = (product.brand ?? "").trim();
+        return brand ? selectedBrands.has(brand) : false;
+      });
+    }
+
+    if (selectedThicknesses.size > 0) {
+      next = next.filter((product) => {
+        const thickness = (product.thickness ?? "").trim();
+        return thickness ? selectedThicknesses.has(thickness) : false;
+      });
+    }
+
+    next.sort((a, b) => {
+      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return next;
+  }, [products, selectedBrands, selectedThicknesses, sortBy]);
+
+  const toggleSetValue = (prev: Set<string>, value: string) => {
+    const next = new Set(prev);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    return next;
+  };
+
+  if (!userName) return null;
+
+  return (
+    <div className="min-h-screen bg-[#f4eee5] text-gray-900">
+      <header className="border-b border-[#d9cab5] bg-white px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="rounded-md border border-[#b69a72] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#6a4b2b]"
+          >
+            Back
+          </button>
+          <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45]">
+            {category?.name ?? "Category"}
+          </div>
+          <div className="text-xs font-bold text-gray-500">{userName}</div>
+        </div>
+      </header>
+
+      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-[280px_minmax(0,1fr)] gap-0 px-0">
+        <aside className="border-r border-[#d9cab5] bg-[#efe7db] p-5">
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+            Filter
+          </div>
+          <div className="mt-1 text-xs font-bold text-gray-500">
+            {category?.name ?? "Products"}
+          </div>
+
+          <div className="mt-6 border-t border-[#d9cab5] pt-5">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+              Brand
+            </div>
+            <div className="mt-3 space-y-2">
+              {availableBrands.length === 0 ? (
+                <div className="text-xs text-gray-400">No brand options</div>
+              ) : (
+                availableBrands.map((brand) => (
+                  <label key={brand} className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={selectedBrands.has(brand)}
+                      onChange={() =>
+                        setSelectedBrands((prev) => toggleSetValue(prev, brand))
+                      }
+                      className="h-3.5 w-3.5 rounded border-gray-300"
+                    />
+                    <span>{brand}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-[#d9cab5] pt-5">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+              Thickness
+            </div>
+            <div className="mt-3 space-y-2">
+              {availableThicknesses.length === 0 ? (
+                <div className="text-xs text-gray-400">No thickness options</div>
+              ) : (
+                availableThicknesses.map((thickness) => (
+                  <label
+                    key={thickness}
+                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedThicknesses.has(thickness)}
+                      onChange={() =>
+                        setSelectedThicknesses((prev) =>
+                          toggleSetValue(prev, thickness),
+                        )
+                      }
+                      className="h-3.5 w-3.5 rounded border-gray-300"
+                    />
+                    <span>{thickness}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <section className="bg-[#f4eee5] p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45]">
+              {category?.name ?? "Category"} Products
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                Sort By
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortValue)}
+                className="rounded-md border border-[#d9cab5] bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
+              >
+                <option value="newest">Newest</option>
+                <option value="name_asc">Name (A-Z)</option>
+                <option value="name_desc">Name (Z-A)</option>
+              </select>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+              {error}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="rounded-lg border border-[#d9cab5] bg-white p-6 text-sm text-gray-500">
+              Loading category products...
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="rounded-lg border border-[#d9cab5] bg-white p-6 text-sm text-gray-500">
+              No products found for this category/filter.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => {
+                const imageUrl = pickProductImageUrl(product);
+                return (
+                  <article
+                    key={product.id}
+                    className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/products/${product.slug}`)}
+                      className="block w-full text-left"
+                    >
+                      <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 1200px) 50vw, 25vw"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-wider text-gray-400">
+                            No Image
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-3">
+                        <div className="text-xs font-black uppercase tracking-wider text-gray-800">
+                          {product.name}
+                        </div>
+                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                          {(product.brand ?? "-")} | {(product.finishType ?? "-")}
+                        </div>
+                        <div className="mt-1 text-[10px] text-gray-500">
+                          Thickness: {product.thickness || "-"}
+                        </div>
+                        <div className="mt-3 rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white">
+                          View Details
+                        </div>
+                      </div>
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}

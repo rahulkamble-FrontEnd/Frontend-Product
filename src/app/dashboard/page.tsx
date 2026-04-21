@@ -2123,6 +2123,11 @@ export default function DashboardPage() {
               >
                 <button
                   type="button"
+                  onClick={() => {
+                    if (category.slug) {
+                      router.push(`/categories/${category.slug}`);
+                    }
+                  }}
                   className="flex items-center gap-1 hover:text-[#ffcb05]"
                 >
                   {category.name}

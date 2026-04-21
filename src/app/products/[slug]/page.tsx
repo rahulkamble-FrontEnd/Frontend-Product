@@ -3,7 +3,20 @@
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
-import { createShortlist, deleteProductCategory, deleteProductImage, getProductBySlug, updateProduct, type ProductDetailsResponse, type ProductImageUploadResponse, type ShortlistResponse, type UpdateProductPayload, type UpdateProductResponse } from "@/lib/api";
+import {
+  createShortlist,
+  deleteProductCategory,
+  deleteProductImage,
+  getProductBySlug,
+  getProducts,
+  updateProduct,
+  type ProductDetailsResponse,
+  type ProductImageUploadResponse,
+  type ProductListItem,
+  type ShortlistResponse,
+  type UpdateProductPayload,
+  type UpdateProductResponse,
+} from "@/lib/api";
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -16,6 +29,21 @@ function pickBestImageUrl(images: ProductImageUploadResponse[] | null | undefine
   const byOrder = [...list].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
   const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
   return first?.url ? cleanUrl(first.url) : null;
+}
+
+function pickListProductImageUrl(product: ProductListItem) {
+  const raw = product as ProductListItem & {
+    images?: ProductImageUploadResponse[] | null;
+    imageUrl?: string | null;
+    primaryImageUrl?: string | null;
+  };
+  if (typeof raw.imageUrl === "string" && cleanUrl(raw.imageUrl)) {
+    return cleanUrl(raw.imageUrl);
+  }
+  if (typeof raw.primaryImageUrl === "string" && cleanUrl(raw.primaryImageUrl)) {
+    return cleanUrl(raw.primaryImageUrl);
+  }
+  return pickBestImageUrl(raw.images);
 }
 
 export default function ProductDetailsPage() {
@@ -84,6 +112,9 @@ export default function ProductDetailsPage() {
   const [shortlistMsg, setShortlistMsg] = useState("");
   const [shortlistError, setShortlistError] = useState("");
   const [shortlistItem, setShortlistItem] = useState<ShortlistResponse | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<ProductListItem[]>([]);
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
+  const [similarError, setSimilarError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -186,6 +217,79 @@ export default function ProductDetailsPage() {
       consText: Array.isArray(product.cons) ? product.cons.join("\n") : "",
       status,
     });
+  }, [product]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const loadSimilarProducts = async () => {
+      const categoryIds = Array.from(
+        new Set(
+          (product.categories ?? [])
+            .map((category) => category.categoryId || category.id)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      );
+
+      if (categoryIds.length === 0) {
+        setSimilarProducts([]);
+        setSimilarError("");
+        return;
+      }
+
+      setIsLoadingSimilar(true);
+      setSimilarError("");
+      try {
+        const getByCategoryId = async (categoryId: string) => {
+          const firstPage = await getProducts({
+            categoryId,
+            status: "active",
+            includeImages: true,
+            page: 1,
+            limit: 100,
+          });
+
+          let items = [...(Array.isArray(firstPage.items) ? firstPage.items : [])];
+          const total = Number(firstPage.total ?? items.length);
+          const limit = Number(firstPage.limit ?? 100);
+
+          if (total > items.length && limit > 0) {
+            const totalPages = Math.ceil(total / limit);
+            for (let page = 2; page <= totalPages; page++) {
+              const nextPage = await getProducts({
+                categoryId,
+                status: "active",
+                includeImages: true,
+                page,
+                limit,
+              });
+              items = items.concat(
+                Array.isArray(nextPage.items) ? nextPage.items : [],
+              );
+            }
+          }
+          return items;
+        };
+
+        const grouped = await Promise.all(
+          categoryIds.map((categoryId) => getByCategoryId(categoryId)),
+        );
+        const merged = grouped.flat();
+        const deduped = Array.from(
+          new Map(merged.map((item) => [item.id, item])).values(),
+        ).filter((item) => item.id !== product.id);
+        setSimilarProducts(deduped);
+      } catch (err: unknown) {
+        setSimilarProducts([]);
+        setSimilarError(
+          err instanceof Error ? err.message : "Failed to load similar products.",
+        );
+      } finally {
+        setIsLoadingSimilar(false);
+      }
+    };
+
+    loadSimilarProducts();
   }, [product]);
 
   const handleUpdateProduct = async () => {
@@ -313,8 +417,8 @@ export default function ProductDetailsPage() {
   if (!userName) return null;
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900">
-      <header className="border-b border-gray-100 bg-white px-4 py-3 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f3eee5] font-sans text-gray-900">
+      <header className="border-b border-[#e0d4c4] bg-white px-4 py-3 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <button
             type="button"
@@ -328,7 +432,7 @@ export default function ProductDetailsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+      <main className="mx-auto max-w-[1680px] px-4 py-8 lg:px-8">
         {error && (
           <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {error}
@@ -381,6 +485,7 @@ export default function ProductDetailsPage() {
             {isLoading ? "Loading..." : "No product found."}
           </div>
         ) : (
+          <>
           <div className="grid gap-8 lg:grid-cols-2">
             <div>
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 shadow-sm">
@@ -434,8 +539,12 @@ export default function ProductDetailsPage() {
 
             <div className="space-y-5">
               <div>
-                <div className="text-[11px] font-black uppercase tracking-widest text-gray-400">{product.materialType}</div>
-                <h1 className="mt-1 text-3xl font-black uppercase tracking-tight">{product.name}</h1>
+                <div className="inline-flex rounded-full bg-[#b58d52] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
+                  {product.materialType || "Product"}
+                </div>
+                <h1 className="mt-2 text-[36px] font-bold leading-[40px] tracking-normal text-[#AE8953]">
+                  {product.name}
+                </h1>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
                     {product.status}
@@ -449,30 +558,30 @@ export default function ProductDetailsPage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <div className="rounded-2xl border border-[#d8cab8] bg-[#f3ecdf] p-5 shadow-sm">
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Description</div>
-                <div className="text-sm text-gray-700 leading-6">{product.description}</div>
+                <div className="text-[13px] leading-6 text-[#3f3a33]">{product.description}</div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Specs</div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="text-gray-500">Color</div>
-                  <div className="font-bold text-gray-900">{product.colorName || "-"}</div>
-                  <div className="text-gray-500">Dimensions</div>
-                  <div className="font-bold text-gray-900">{product.dimensions || "-"}</div>
-                  <div className="text-gray-500">Finish</div>
-                  <div className="font-bold text-gray-900">{product.finishType || "-"}</div>
-                  <div className="text-gray-500">Thickness</div>
-                  <div className="font-bold text-gray-900">{product.thickness || "-"}</div>
-                  <div className="text-gray-500">Performance</div>
-                  <div className="font-bold text-gray-900">{String(product.performanceRating ?? 0)}</div>
-                  <div className="text-gray-500">Durability</div>
-                  <div className="font-bold text-gray-900">{String(product.durabilityRating ?? 0)}</div>
-                  <div className="text-gray-500">Maintenance</div>
-                  <div className="font-bold text-gray-900">{String(product.maintenanceRating ?? 0)}</div>
-                  <div className="text-gray-500">Price Category</div>
-                  <div className="font-bold text-gray-900">{String(product.priceCategory ?? 0)}</div>
+              <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-5 shadow-sm">
+                <div className="mb-3 text-[24px] font-semibold tracking-tight text-[#3e3a34]">Technical Specifications</div>
+                <div className="grid grid-cols-2 gap-y-3 border-t border-[#dacdbb] pt-3 text-[12px]">
+                  <div className="text-[#968e84]">Color</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.colorName || "-"}</div>
+                  <div className="text-[#968e84]">Dimensions</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.dimensions || "-"}</div>
+                  <div className="text-[#968e84]">Finish</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.finishType || "-"}</div>
+                  <div className="text-[#968e84]">Thickness</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.thickness || "-"}</div>
+                  <div className="text-[#968e84]">Performance</div>
+                  <div className="font-semibold text-[#3f3a33]">{String(product.performanceRating ?? 0)}</div>
+                  <div className="text-[#968e84]">Durability</div>
+                  <div className="font-semibold text-[#3f3a33]">{String(product.durabilityRating ?? 0)}</div>
+                  <div className="text-[#968e84]">Maintenance</div>
+                  <div className="font-semibold text-[#3f3a33]">{String(product.maintenanceRating ?? 0)}</div>
+                  <div className="text-[#968e84]">Price Category</div>
+                  <div className="font-semibold text-[#3f3a33]">{String(product.priceCategory ?? 0)}</div>
                 </div>
               </div>
 
@@ -519,9 +628,9 @@ export default function ProductDetailsPage() {
                       type="button"
                       disabled={isCreatingShortlist}
                       onClick={handleCreateShortlist}
-                      className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                      className="rounded-full bg-[#b58d52] px-6 py-3 text-[15px] font-bold text-white disabled:opacity-50"
                     >
-                      {isCreatingShortlist ? "Saving..." : "Add to Shortlist"}
+                      {isCreatingShortlist ? "Saving..." : "Short List Now"}
                     </button>
                   </div>
                   <div className="mt-4">
@@ -793,6 +902,85 @@ export default function ProductDetailsPage() {
               </div>
             </div>
           </div>
+          <section className="mt-14">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[36px] font-bold leading-[40px] tracking-normal text-[#AE8953]">
+                View Similar
+              </h2>
+            </div>
+
+            {similarError && (
+              <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+                {similarError}
+              </div>
+            )}
+
+            {isLoadingSimilar ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+                Loading similar products...
+              </div>
+            ) : similarProducts.length === 0 ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+                No similar products found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {similarProducts.map((item) => {
+                  const imageUrl = pickListProductImageUrl(item);
+                  return (
+                    <article
+                      key={item.id}
+                      className="overflow-hidden rounded-2xl border border-[#d6c8b6] bg-white shadow-sm"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/products/${item.slug}`)}
+                        className="block w-full text-left"
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={item.name}
+                              fill
+                              sizes="(max-width: 1024px) 50vw, 25vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-3 pb-3 pt-2">
+                          <div className="text-[30px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
+                            {item.name}
+                          </div>
+                          <div className="mt-1 text-[12px] text-[#6d665d]">
+                            {item.description || "Classic Oak Natural"}
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[10px] uppercase text-[#8f877d]">
+                            <div>
+                              <div className="font-semibold">Thickness</div>
+                              <div className="font-bold text-[#4b443c]">{item.thickness || "-"}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">Finish</div>
+                              <div className="font-bold text-[#4b443c]">{item.finishType || "-"}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
+                            View Details
+                          </div>
+                        </div>
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          </>
         )}
       </main>
     </div>
