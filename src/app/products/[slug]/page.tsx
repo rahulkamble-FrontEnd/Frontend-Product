@@ -8,8 +8,10 @@ import {
   deleteProductCategory,
   deleteProductImage,
   getProductBySlug,
+  getPortfolios,
   getProducts,
   updateProduct,
+  type PortfolioResponse,
   type ProductDetailsResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
@@ -115,6 +117,9 @@ export default function ProductDetailsPage() {
   const [similarProducts, setSimilarProducts] = useState<ProductListItem[]>([]);
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [similarError, setSimilarError] = useState("");
+  const [relevantArticles, setRelevantArticles] = useState<PortfolioResponse[]>([]);
+  const [isLoadingRelevantArticles, setIsLoadingRelevantArticles] = useState(false);
+  const [relevantArticlesError, setRelevantArticlesError] = useState("");
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -290,6 +295,52 @@ export default function ProductDetailsPage() {
     };
 
     loadSimilarProducts();
+  }, [product]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const loadRelevantArticles = async () => {
+      const categorySlugs = Array.from(
+        new Set(
+          (product.categories ?? [])
+            .map((category) => category.slug?.trim())
+            .filter((value): value is string => Boolean(value)),
+        ),
+      );
+
+      if (categorySlugs.length === 0) {
+        setRelevantArticles([]);
+        setRelevantArticlesError("");
+        return;
+      }
+
+      setIsLoadingRelevantArticles(true);
+      setRelevantArticlesError("");
+      try {
+        const grouped = await Promise.all(
+          categorySlugs.map((categorySlug) =>
+            getPortfolios({ category: categorySlug }),
+          ),
+        );
+        const merged = grouped.flat();
+        const deduped = Array.from(
+          new Map(merged.map((item) => [item.portfolio.id, item])).values(),
+        );
+        setRelevantArticles(deduped);
+      } catch (err: unknown) {
+        setRelevantArticles([]);
+        setRelevantArticlesError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load relevant articles.",
+        );
+      } finally {
+        setIsLoadingRelevantArticles(false);
+      }
+    };
+
+    loadRelevantArticles();
   }, [product]);
 
   const handleUpdateProduct = async () => {
@@ -971,6 +1022,75 @@ export default function ProductDetailsPage() {
                           </div>
                           <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
                             View Details
+                          </div>
+                        </div>
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          <section className="mt-10">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[28px] font-bold leading-[34px] tracking-normal text-[#AE8953]">
+                Relevant Articles
+              </h2>
+            </div>
+
+            {relevantArticlesError && (
+              <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+                {relevantArticlesError}
+              </div>
+            )}
+
+            {isLoadingRelevantArticles ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+                Loading relevant articles...
+              </div>
+            ) : relevantArticles.length === 0 ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-white p-4 text-sm text-gray-500">
+                No relevant articles found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {relevantArticles.slice(0, 8).map((item) => {
+                  const articleImageUrl =
+                    item.images.find((image) => image.url)?.url ?? null;
+                  return (
+                    <article
+                      key={item.portfolio.id}
+                      className="overflow-hidden rounded-2xl border border-[#d6c8b6] bg-white shadow-sm"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => router.push("/blog")}
+                        className="block w-full text-left"
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
+                          {articleImageUrl ? (
+                            <Image
+                              src={articleImageUrl}
+                              alt={item.portfolio.title}
+                              fill
+                              sizes="(max-width: 1024px) 50vw, 25vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="px-3 pb-3 pt-2">
+                          <div className="line-clamp-1 text-base font-black uppercase tracking-wide text-[#2f2a24]">
+                            {item.portfolio.title}
+                          </div>
+                          <div className="mt-1 line-clamp-2 text-[12px] text-[#6d665d]">
+                            {item.portfolio.description || "Portfolio article"}
+                          </div>
+                          <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
+                            Read Now
                           </div>
                         </div>
                       </button>

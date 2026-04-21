@@ -1172,6 +1172,7 @@ export type PortfolioImageInput = {
 export type CreatePortfolioPayload = {
   title: string;
   roomType: string;
+  category: string;
   description: string;
   images: PortfolioImageInput[];
 };
@@ -1184,6 +1185,7 @@ export type PortfolioItem = {
   id: string;
   title: string;
   roomType: string;
+  category: string | null;
   description: string;
   createdBy: PortfolioCreatedBy | null;
   createdAt: string;
@@ -1207,6 +1209,7 @@ type RawPortfolio = {
   title?: string;
   roomType?: string;
   room_type?: string;
+  category?: string | null;
   description?: string;
   createdBy?: PortfolioCreatedBy | null;
   created_by?: PortfolioCreatedBy | null;
@@ -1230,6 +1233,7 @@ function normalizePortfolio(raw: RawPortfolio): PortfolioItem {
     id: raw.id ?? "",
     title: raw.title ?? "",
     roomType: raw.roomType ?? raw.room_type ?? "",
+    category: raw.category ?? null,
     description: raw.description ?? "",
     createdBy: raw.createdBy ?? raw.created_by ?? null,
     createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
@@ -1262,6 +1266,7 @@ function normalizePortfolioResponse(raw: unknown): PortfolioResponse {
 export async function createPortfolio(payload: CreatePortfolioPayload, imageFiles?: File[]) {
   const cleanTitle = payload?.title?.trim() || "";
   const cleanRoomType = payload?.roomType?.trim() || "";
+  const cleanCategory = payload?.category?.trim() || "";
   const cleanDescription = payload?.description?.trim() || "";
   const cleanImages = Array.isArray(payload?.images)
     ? payload.images
@@ -1274,6 +1279,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
 
   if (!cleanTitle) throw new Error("Portfolio title is required");
   if (!cleanRoomType) throw new Error("Room type is required");
+  if (!cleanCategory) throw new Error("Category is required");
   if (!cleanDescription) throw new Error("Description is required");
 
   const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
@@ -1291,6 +1297,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
             const formData = new FormData();
             formData.append("title", cleanTitle);
             formData.append("roomType", cleanRoomType);
+            formData.append("category", cleanCategory);
             formData.append("description", cleanDescription);
             if (cleanImages.length > 0) {
               formData.append("imagesMeta", JSON.stringify(cleanImages));
@@ -1306,6 +1313,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
           body: JSON.stringify({
             title: cleanTitle,
             roomType: cleanRoomType,
+            category: cleanCategory,
             description: cleanDescription,
             images: cleanImages,
           }),
@@ -1320,8 +1328,13 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
   return normalizePortfolioResponse(await response.json());
 }
 
-export async function getPortfolios() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/portfolio`, {
+export async function getPortfolios(params?: { category?: string }) {
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/portfolio`);
+  if (params?.category?.trim()) {
+    url.searchParams.set("category", params.category.trim());
+  }
+
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",

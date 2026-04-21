@@ -5,8 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   getCategoryBySlug,
+  getPortfolios,
   getProducts,
   type CategoryDetails,
+  type PortfolioResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
 } from "@/lib/api";
@@ -46,8 +48,11 @@ export default function CategoryProductsPage() {
   const [userName, setUserName] = useState("");
   const [category, setCategory] = useState<CategoryDetails | null>(null);
   const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [portfolioArticles, setPortfolioArticles] = useState<PortfolioResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
+  const [portfolioError, setPortfolioError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
@@ -139,6 +144,28 @@ export default function CategoryProductsPage() {
       }
     };
     loadData();
+  }, [slug, userName]);
+
+  useEffect(() => {
+    if (!userName || !slug) return;
+
+    const loadPortfolioArticles = async () => {
+      setIsLoadingPortfolio(true);
+      setPortfolioError("");
+      try {
+        const records = await getPortfolios({ category: slug });
+        setPortfolioArticles(Array.isArray(records) ? records : []);
+      } catch (err: unknown) {
+        setPortfolioArticles([]);
+        setPortfolioError(
+          err instanceof Error ? err.message : "Failed to load relevant articles.",
+        );
+      } finally {
+        setIsLoadingPortfolio(false);
+      }
+    };
+
+    loadPortfolioArticles();
   }, [slug, userName]);
 
   const availableBrands = useMemo(() => {
@@ -316,53 +343,123 @@ export default function CategoryProductsPage() {
               No products found for this category/filter.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredProducts.map((product) => {
-                const imageUrl = pickProductImageUrl(product);
-                return (
-                  <article
-                    key={product.id}
-                    className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/products/${product.slug}`)}
-                      className="block w-full text-left"
+            <>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filteredProducts.map((product) => {
+                  const imageUrl = pickProductImageUrl(product);
+                  return (
+                    <article
+                      key={product.id}
+                      className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
                     >
-                      <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
-                        {imageUrl ? (
-                          <Image
-                            src={imageUrl}
-                            alt={product.name}
-                            fill
-                            sizes="(max-width: 1200px) 50vw, 25vw"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-wider text-gray-400">
-                            No Image
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/products/${product.slug}`)}
+                        className="block w-full text-left"
+                      >
+                        <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={product.name}
+                              fill
+                              sizes="(max-width: 1200px) 50vw, 25vw"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-wider text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <div className="text-xs font-black uppercase tracking-wider text-gray-800">
+                            {product.name}
                           </div>
-                        )}
-                      </div>
-                      <div className="p-3">
-                        <div className="text-xs font-black uppercase tracking-wider text-gray-800">
-                          {product.name}
+                          <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                            {(product.brand ?? "-")} | {(product.finishType ?? "-")}
+                          </div>
+                          <div className="mt-1 text-[10px] text-gray-500">
+                            Thickness: {product.thickness || "-"}
+                          </div>
+                          <div className="mt-3 rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white">
+                            View Details
+                          </div>
                         </div>
-                        <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                          {(product.brand ?? "-")} | {(product.finishType ?? "-")}
-                        </div>
-                        <div className="mt-1 text-[10px] text-gray-500">
-                          Thickness: {product.thickness || "-"}
-                        </div>
-                        <div className="mt-3 rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white">
-                          View Details
-                        </div>
-                      </div>
-                    </button>
-                  </article>
-                );
-              })}
-            </div>
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="mt-8">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-lg font-black tracking-tight text-[#b38a50]">
+                    Relevant Articles
+                  </h3>
+                </div>
+
+                {portfolioError && (
+                  <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+                    {portfolioError}
+                  </div>
+                )}
+
+                {isLoadingPortfolio ? (
+                  <div className="rounded-lg border border-[#d9cab5] bg-white p-4 text-sm text-gray-500">
+                    Loading relevant articles...
+                  </div>
+                ) : portfolioArticles.length === 0 ? (
+                  <div className="rounded-lg border border-[#d9cab5] bg-white p-4 text-sm text-gray-500">
+                    No relevant articles found for this category.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {portfolioArticles.slice(0, 8).map((item) => {
+                      const firstImageUrl =
+                        item.images.find((image) => image.url)?.url ?? null;
+                      return (
+                        <article
+                          key={item.portfolio.id}
+                          className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
+                        >
+                          <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
+                            {firstImageUrl ? (
+                              <Image
+                                src={firstImageUrl}
+                                alt={item.portfolio.title}
+                                fill
+                                sizes="(max-width: 1200px) 50vw, 25vw"
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-wider text-gray-400">
+                                No Image
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <div className="line-clamp-1 text-xs font-black uppercase tracking-wider text-gray-800">
+                              {item.portfolio.title}
+                            </div>
+                            <div className="mt-1 line-clamp-2 text-[10px] text-gray-500">
+                              {item.portfolio.description || "Portfolio article"}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => router.push("/blog")}
+                              className="mt-3 w-full rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white"
+                            >
+                              Read Now
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </section>
       </main>
