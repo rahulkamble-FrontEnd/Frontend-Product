@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { login, getMe, forgotPassword, resetPassword } from "@/lib/api";
 
 type ViewMode = "login" | "forgot";
+const THEME_GOLD_GRADIENT =
+  "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)";
+const THEME_LIGHT_GRADIENT = "linear-gradient(90deg, #F2EFE5 0%, #FFF0E3 100%)";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -82,13 +85,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white font-sans">
+    <div className="flex min-h-screen font-sans" style={{ background: THEME_LIGHT_GRADIENT }}>
       {/* Left Section - Benefits */}
-      <div className="hidden w-2/5 flex-col bg-[#0468a3] p-12 text-white lg:flex">
+      <div
+        className="hidden w-2/5 flex-col p-12 text-white lg:flex"
+        style={{ background: THEME_GOLD_GRADIENT }}
+      >
         {/* Brand Block */}
         <div className="mb-12">
           <div className="flex items-center gap-2">
-            <div className="rounded bg-[#ffde59] px-2 py-1 text-xs font-black uppercase tracking-wider text-[#0468a3]">
+            <div
+              className="rounded px-2 py-1 text-xs font-black uppercase tracking-wider text-[#3b2416]"
+              style={{ background: THEME_GOLD_GRADIENT }}
+            >
               custom
             </div>
             <div className="flex flex-col tracking-tighter">
@@ -96,18 +105,21 @@ export default function LoginPage() {
               <span className="text-[10px] font-medium leading-none uppercase">Interior Platform</span>
             </div>
           </div>
-          <div className="mt-4 h-0.5 w-12 bg-white/50" />
+          <div
+            className="mt-4 h-0.5 w-16 opacity-90"
+            style={{ background: THEME_GOLD_GRADIENT }}
+          />
         </div>
 
         <h1 className="mb-4 text-2xl font-bold">Benefits of Login</h1>
-        <p className="mb-10 text-sm font-light text-blue-50/80">
+        <p className="mb-10 text-sm font-light text-[#f8ecd9]/90">
           Access your Custom Furnish dashboard, products, and design workflow in one place.
         </p>
 
         {/* Benefits List */}
         <div className="space-y-12">
           <div className="flex gap-4 items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d6b27c]/40 bg-[#d2ad70]/20">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
               </svg>
@@ -118,7 +130,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex gap-4 items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d6b27c]/40 bg-[#d2ad70]/20">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
               </svg>
@@ -129,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex gap-4 items-center">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#d6b27c]/40 bg-[#d2ad70]/20">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 11 11 13 15 9" />
               </svg>
@@ -158,16 +170,16 @@ export default function LoginPage() {
 
       {/* Right Section - Forms */}
       <div className="flex w-full items-center justify-center p-8 lg:w-3/5">
-        <div className="w-full max-w-md space-y-8">
+        <div className="w-full max-w-md space-y-8 rounded-3xl border border-[#dfcfb6] bg-[#fff9f2]/85 p-8 shadow-[0_20px_55px_rgba(73,42,19,0.14)] backdrop-blur-sm">
 
           {/* VIEW: LOGIN */}
           {view === "login" && (
             <>
               <div className="text-center">
-                <h2 className="text-2xl font-bold tracking-tight text-[#0468a3]">
+                <h2 className="text-3xl font-bold tracking-tight text-[#5d3b24]">
                   Start your journey with us
                 </h2>
-                <p className="mt-4 text-sm text-gray-500">
+                <p className="mt-4 text-sm text-[#8d7458]">
                   Sign in to Custom Furnish to manage products, categories, and your furnishing catalog.
                 </p>
               </div>
@@ -182,7 +194,7 @@ export default function LoginPage() {
                   <input
                     type="text"
                     required
-                    className="block w-full rounded-full bg-gray-100 py-3.5 pl-12 pr-4 text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#ffde59]"
+                    className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                     placeholder="Email id"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -198,7 +210,7 @@ export default function LoginPage() {
                   <input
                     type="password"
                     required
-                    className="block w-full rounded-full bg-gray-100 py-3.5 pl-12 pr-4 text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#ffde59]"
+                    className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -209,7 +221,7 @@ export default function LoginPage() {
                 {success && <div className="text-center text-sm font-medium text-green-600 bg-green-50 p-3 rounded-xl">{success}</div>}
 
                 <div className="flex justify-end pr-2">
-                  <button type="button" onClick={() => setView("forgot")} className="text-xs font-semibold text-[#0468a3] hover:underline">
+                  <button type="button" onClick={() => setView("forgot")} className="text-xs font-semibold text-[#6c4a2a] hover:underline">
                     Forgot password?
                   </button>
                 </div>
@@ -218,7 +230,8 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-1/2 rounded-full bg-[#ffde59] py-3.5 text-sm font-black uppercase tracking-wider text-[#0468a3] shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    className="w-1/2 rounded-full py-3.5 text-sm font-black uppercase tracking-wider text-[#3b2416] shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    style={{ background: THEME_GOLD_GRADIENT }}
                   >
                     {isLoading ? "PROCEEDING..." : "PROCEED"}
                   </button>
@@ -231,8 +244,8 @@ export default function LoginPage() {
           {view === "forgot" && (
             <>
               <div className="text-center">
-                <h2 className="text-2xl font-bold tracking-tight text-[#0468a3]">Reset Password</h2>
-                <p className="mt-4 text-sm text-gray-500">Enter your email and new password to reset.</p>
+                <h2 className="text-3xl font-bold tracking-tight text-[#5d3b24]">Reset Password</h2>
+                <p className="mt-4 text-sm text-[#8d7458]">Enter your email and new password to reset.</p>
               </div>
 
               <form className="mt-10 space-y-6" onSubmit={handleResetPassword}>
@@ -246,7 +259,7 @@ export default function LoginPage() {
                     <input
                       type="email"
                       required
-                      className="block w-full rounded-full bg-gray-100 py-3.5 pl-12 pr-4 text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#ffde59]"
+                      className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                       placeholder="Enter registered email"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
@@ -262,7 +275,7 @@ export default function LoginPage() {
                     <input
                       type="password"
                       required
-                      className="block w-full rounded-full bg-gray-100 py-3.5 pl-12 pr-4 text-sm text-gray-900 shadow-inner focus:outline-none focus:ring-2 focus:ring-[#ffde59]"
+                      className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                       placeholder="New password (8+ chars)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
@@ -281,14 +294,15 @@ export default function LoginPage() {
                         setError("");
                         setSuccess("");
                     }}
-                    className="w-1/3 rounded-full border-2 border-[#0468a3] py-2.5 text-xs font-bold text-[#0468a3] active:scale-95"
+                    className="w-1/3 rounded-full border-2 border-[#7f5a34] py-2.5 text-xs font-bold text-[#6c4a2a] active:scale-95"
                   >
                     BACK
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-1/2 rounded-full bg-[#ffde59] py-3.5 text-sm font-black uppercase tracking-wider text-[#0468a3] shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    className="w-1/2 rounded-full py-3.5 text-sm font-black uppercase tracking-wider text-[#3b2416] shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    style={{ background: THEME_GOLD_GRADIENT }}
                   >
                     {isLoading ? "RESETTING..." : "RESET PASSWORD"}
                   </button>
