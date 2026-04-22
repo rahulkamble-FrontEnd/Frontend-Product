@@ -846,6 +846,40 @@ export async function uploadProductImage(productId: string, imageFile: File) {
   return response.json() as Promise<ProductImageUploadResponse>;
 }
 
+export async function uploadProductImages(productId: string, imageFiles: File[]) {
+  const pid = productId.trim();
+  if (!pid) throw new Error("Product id is required");
+
+  const files = Array.isArray(imageFiles)
+    ? imageFiles.filter((file) => file instanceof File)
+    : [];
+  if (files.length < 1 || files.length > 3) {
+    throw new Error("Please select minimum 1 and maximum 3 images.");
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images`,
+    {
+      method: "POST",
+      headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+      body: formData,
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Product image upload failed");
+  }
+
+  const data: unknown = await response.json();
+  return Array.isArray(data)
+    ? (data as ProductImageUploadResponse[])
+    : ([data] as ProductImageUploadResponse[]);
+}
+
 export type DeleteProductImageResponse = {
   message: string;
 };
@@ -1172,6 +1206,7 @@ export type PortfolioImageInput = {
 export type CreatePortfolioPayload = {
   title: string;
   roomType: string;
+  category: string;
   description: string;
   images: PortfolioImageInput[];
 };
@@ -1184,6 +1219,7 @@ export type PortfolioItem = {
   id: string;
   title: string;
   roomType: string;
+  category: string | null;
   description: string;
   createdBy: PortfolioCreatedBy | null;
   createdAt: string;
@@ -1207,6 +1243,7 @@ type RawPortfolio = {
   title?: string;
   roomType?: string;
   room_type?: string;
+  category?: string | null;
   description?: string;
   createdBy?: PortfolioCreatedBy | null;
   created_by?: PortfolioCreatedBy | null;
@@ -1230,6 +1267,7 @@ function normalizePortfolio(raw: RawPortfolio): PortfolioItem {
     id: raw.id ?? "",
     title: raw.title ?? "",
     roomType: raw.roomType ?? raw.room_type ?? "",
+    category: raw.category ?? null,
     description: raw.description ?? "",
     createdBy: raw.createdBy ?? raw.created_by ?? null,
     createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
@@ -1262,6 +1300,7 @@ function normalizePortfolioResponse(raw: unknown): PortfolioResponse {
 export async function createPortfolio(payload: CreatePortfolioPayload, imageFiles?: File[]) {
   const cleanTitle = payload?.title?.trim() || "";
   const cleanRoomType = payload?.roomType?.trim() || "";
+  const cleanCategory = payload?.category?.trim() || "";
   const cleanDescription = payload?.description?.trim() || "";
   const cleanImages = Array.isArray(payload?.images)
     ? payload.images
@@ -1274,6 +1313,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
 
   if (!cleanTitle) throw new Error("Portfolio title is required");
   if (!cleanRoomType) throw new Error("Room type is required");
+  if (!cleanCategory) throw new Error("Category is required");
   if (!cleanDescription) throw new Error("Description is required");
 
   const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
@@ -1291,6 +1331,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
             const formData = new FormData();
             formData.append("title", cleanTitle);
             formData.append("roomType", cleanRoomType);
+            formData.append("category", cleanCategory);
             formData.append("description", cleanDescription);
             if (cleanImages.length > 0) {
               formData.append("imagesMeta", JSON.stringify(cleanImages));
@@ -1306,6 +1347,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
           body: JSON.stringify({
             title: cleanTitle,
             roomType: cleanRoomType,
+            category: cleanCategory,
             description: cleanDescription,
             images: cleanImages,
           }),
@@ -1320,8 +1362,13 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
   return normalizePortfolioResponse(await response.json());
 }
 
-export async function getPortfolios() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/portfolio`, {
+export async function getPortfolios(params?: { category?: string }) {
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/portfolio`);
+  if (params?.category?.trim()) {
+    url.searchParams.set("category", params.category.trim());
+  }
+
+  const response = await fetch(url.toString(), {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -1653,6 +1700,63 @@ export async function getCategories(type?: 'material' | 'furniture') {
   return response.json();
 }
 
+export type CategoryMenuProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  brand: string | null;
+};
+
+export type CategoryMenuItem = {
+  id: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+  displayOrder: number;
+  productCount: number;
+  products: CategoryMenuProduct[];
+  children: CategoryMenuItem[];
+};
+
+export async function getCategoryMenu(params?: {
+  type?: "material" | "furniture";
+  productLimit?: number;
+  includeChildren?: boolean;
+}) {
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/categories/menu`);
+  if (params?.type) {
+    url.searchParams.set("type", params.type);
+  }
+  if (typeof params?.productLimit === "number") {
+    url.searchParams.set("productLimit", String(params.productLimit));
+  }
+  if (typeof params?.includeChildren === "boolean") {
+    url.searchParams.set("includeChildren", String(params.includeChildren));
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch category menu");
+  }
+  return response.json() as Promise<CategoryMenuItem[]>;
+}
+
+export type CategoryDetails = {
+  id: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+  displayOrder?: number;
+  isActive?: boolean;
+  children?: CategoryDetails[];
+};
+
 export async function deleteCategory(id: string) {
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
     method: 'DELETE',
@@ -1690,5 +1794,5 @@ export async function getCategoryBySlug(slug: string) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch category details');
   }
-  return response.json();
+  return response.json() as Promise<CategoryDetails>;
 }
