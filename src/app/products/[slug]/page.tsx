@@ -69,6 +69,12 @@ function formatCategoryName(value: string | null | undefined) {
     .join(" ");
 }
 
+function truncateText(value: string, maxChars: number) {
+  const text = value.trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars)}...`;
+}
+
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
   const slug = typeof params?.slug === "string" ? params.slug : "";
@@ -1025,8 +1031,8 @@ export default function ProductDetailsPage() {
                           )}
                         </div>
                         <div className="px-3 pb-3 pt-2">
-                          <div className="text-[30px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
-                            {formatProductName(item.name)}
+                          <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
+                            {truncateText(formatProductName(item.name), 16)}
                           </div>
                           <div className="mt-1 text-[12px] text-[#6d665d]">
                             {item.description || "Classic Oak Natural"}

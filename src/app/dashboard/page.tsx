@@ -2464,7 +2464,7 @@ export default function DashboardPage() {
                         <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                           {tag}
                         </span>
-                        <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-[#977543]">
+                        <div className="text-[26px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
                           {title}
                         </div>
                       </div>
@@ -2596,7 +2596,7 @@ export default function DashboardPage() {
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                         {label}
                       </span>
-                      <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-black">
+                      <div className="text-[26px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
                         {title}
                       </div>
                     </div>
