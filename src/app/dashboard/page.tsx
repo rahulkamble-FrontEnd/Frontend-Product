@@ -3065,7 +3065,7 @@ export default function DashboardPage() {
           onClick={() => setIsShortlistOpen(false)}
         >
           <div
-            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="absolute right-4 top-32 h-[calc(100vh-9rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -3085,14 +3085,14 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+            <div className="h-[calc(100%-4.5rem)] min-w-0 overflow-x-hidden overflow-y-auto p-4">
               {shortlistMsg && (
-                <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                <div className="mb-4 w-full rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
                   {shortlistMsg}
                 </div>
               )}
               {shortlistError && (
-                <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                <div className="mb-4 w-full rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
                   {shortlistError}
                 </div>
               )}
@@ -3138,11 +3138,11 @@ export default function DashboardPage() {
                           }
                         }}
                         className={[
-                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          "w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
-                        <div className="relative aspect-[4/3] w-full bg-gray-100">
+                        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full bg-gray-100">
                           {imageUrl ? (
                             <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
                           ) : (
@@ -3162,23 +3162,23 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-3 p-4">
-                          <div>
+                        <div className="min-w-0 space-y-3 p-4">
+                          <div className="min-w-0">
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
                             </div>
-                            <div className="mt-1 font-black leading-snug text-gray-900">
+                            <div className="mt-1 break-words font-black leading-snug text-gray-900">
                               {shortlistedProduct?.name || item.productId}
                             </div>
                             {shortlistedProduct && (
-                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
-                                <span>SKU: {shortlistedProduct.sku}</span>
-                                <span>{shortlistedProduct.brand}</span>
+                              <div className="mt-2 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[11px] font-bold text-gray-600">
+                                <span className="min-w-0 break-words">SKU: {shortlistedProduct.sku}</span>
+                                <span className="shrink-0 text-right">{shortlistedProduct.brand}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2">
                             <button
                               type="button"
                               disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
@@ -3186,7 +3186,7 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleRequestSample(item.id);
                               }}
-                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              className="min-w-0 rounded-full bg-[#0468a3] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {requestingSampleId === item.id
                                 ? "Requesting..."
@@ -3201,15 +3201,17 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleDeleteShortlist(item.id);
                               }}
-                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="min-w-0 rounded-full border border-red-200 bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {deletingShortlistId === item.id ? "Removing..." : "Remove"}
                             </button>
                           </div>
 
-                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                          <div className="min-w-0 overflow-hidden rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                            <div className="flex min-w-0 items-start justify-between gap-2 sm:items-center sm:gap-3">
+                              <div className="min-w-0 flex-1 text-[10px] font-black uppercase leading-tight tracking-widest text-gray-400">
+                                Customer Note
+                              </div>
                               <button
                                 type="button"
                                 disabled={savingNoteId === item.id}
@@ -3217,7 +3219,7 @@ export default function DashboardPage() {
                                   e.stopPropagation();
                                   handleUpdateShortlistNote(item.id);
                                 }}
-                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="shrink-0 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {savingNoteId === item.id ? "Saving..." : "Save Note"}
                               </button>
@@ -3233,15 +3235,15 @@ export default function DashboardPage() {
                                 }))
                               }
                               placeholder="Updated note text"
-                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                              className="mt-2 box-border block min-h-[96px] w-full min-w-0 max-w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                             />
                           </div>
 
-                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                          <div className="min-w-0 overflow-hidden rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               Designer Reply
                             </div>
-                            <div className="mt-1 whitespace-pre-wrap">
+                            <div className="mt-1 max-w-full break-words whitespace-pre-wrap">
                               {item.designerReplyNote?.trim() || "-"}
                             </div>
                             <div className="mt-2 text-[11px] font-bold text-gray-600">
@@ -3252,9 +3254,9 @@ export default function DashboardPage() {
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
-                            <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
-                            <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                          <div className="grid min-w-0 grid-cols-1 gap-1 text-[11px] font-bold text-gray-600 sm:grid-cols-2 sm:gap-3">
+                            <div className="min-w-0 break-words">Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                            <div className="min-w-0 break-words">Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
                           </div>
                         </div>
                       </div>
