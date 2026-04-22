@@ -57,6 +57,7 @@ export default function CategoryProductsPage() {
   const router = useRouter();
 
   const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
   const [category, setCategory] = useState<CategoryDetails | null>(null);
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [portfolioArticles, setPortfolioArticles] = useState<PortfolioResponse[]>([]);
@@ -77,6 +78,7 @@ export default function CategoryProductsPage() {
       return;
     }
     setUserName(storedName);
+    setUserRole(localStorage.getItem("userRole") || "");
   }, [router]);
 
   useEffect(() => {
@@ -276,7 +278,8 @@ export default function CategoryProductsPage() {
           { label: "Home", href: "/dashboard" },
           { label: category?.name ?? "Category" },
         ]}
-        rightText={userName}
+        userName={userName}
+        userRole={userRole}
       />
 
       <main className="mx-auto grid w-full max-w-[1680px] grid-cols-[280px_minmax(0,1fr)] gap-0 px-0">

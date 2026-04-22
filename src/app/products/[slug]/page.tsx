@@ -141,6 +141,7 @@ export default function ProductDetailsPage() {
   const [shortlistMsg, setShortlistMsg] = useState("");
   const [shortlistError, setShortlistError] = useState("");
   const [shortlistItem, setShortlistItem] = useState<ShortlistResponse | null>(null);
+  const [shortlistHeaderRefreshKey, setShortlistHeaderRefreshKey] = useState(0);
   const [similarProducts, setSimilarProducts] = useState<ProductListItem[]>([]);
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [similarError, setSimilarError] = useState("");
@@ -201,6 +202,7 @@ export default function ProductDetailsPage() {
       });
       setShortlistItem(created);
       setShortlistMsg("Product added to shortlist.");
+      setShortlistHeaderRefreshKey((k) => k + 1);
       setCustomerNote("");
     } catch (err: unknown) {
       setShortlistError(err instanceof Error ? err.message : "Failed to add shortlist item.");
@@ -511,7 +513,9 @@ export default function ProductDetailsPage() {
             : []),
           { label: formatProductName(product?.name) || "Product Details" },
         ]}
-        rightText={userName}
+        userName={userName}
+        userRole={userRole}
+        shortlistRefreshKey={shortlistHeaderRefreshKey}
       />
 
       <main className="mx-auto max-w-[1680px] px-4 py-8 lg:px-8">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import StoreHeaderUserBar from "@/components/store-header-user-bar";
 import { getCategoryMenu, type CategoryMenuItem } from "@/lib/api";
 
 function formatLabel(value: string | null | undefined) {
@@ -22,6 +23,9 @@ type CommonStoreHeaderProps = {
     href?: string;
   }>;
   rightText?: string;
+  userName?: string;
+  userRole?: string;
+  shortlistRefreshKey?: number;
 };
 
 export default function CommonStoreHeader({
@@ -29,6 +33,9 @@ export default function CommonStoreHeader({
   breadcrumbText,
   breadcrumbItems,
   rightText,
+  userName,
+  userRole = "",
+  shortlistRefreshKey = 0,
 }: CommonStoreHeaderProps) {
   const [categories, setCategories] = useState<CategoryMenuItem[]>([]);
 
@@ -50,14 +57,18 @@ export default function CommonStoreHeader({
     };
   }, []);
 
+  const showUserBar = Boolean(userName);
+
   return (
-    <header className="border-b border-[#d9cab5] bg-white">
+    <header className="relative z-[320] border-b border-[#d9cab5] bg-[#F8F0E4]">
       <div className="mx-auto w-full max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <Link href="/dashboard" className="text-[34px] leading-none text-[#1f1f1f]">
             <span className="font-serif">CustomFurnish</span>
           </Link>
-          {rightText ? (
+          {showUserBar ? (
+            <StoreHeaderUserBar userName={userName!} userRole={userRole} shortlistRefreshKey={shortlistRefreshKey} />
+          ) : rightText ? (
             <div className="text-xs font-semibold text-gray-500">{rightText}</div>
           ) : (
             <div />

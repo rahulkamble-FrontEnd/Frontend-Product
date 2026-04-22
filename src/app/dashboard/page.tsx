@@ -613,6 +613,18 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (userRole !== "customer") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("shortlist") !== "1") return;
+    setIsShortlistOpen(true);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("shortlist");
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, "", next);
+  }, [userRole]);
+
+  useEffect(() => {
     loadProducts();
   }, [loadProducts]);
 
