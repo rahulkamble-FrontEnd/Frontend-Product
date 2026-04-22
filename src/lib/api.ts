@@ -846,6 +846,40 @@ export async function uploadProductImage(productId: string, imageFile: File) {
   return response.json() as Promise<ProductImageUploadResponse>;
 }
 
+export async function uploadProductImages(productId: string, imageFiles: File[]) {
+  const pid = productId.trim();
+  if (!pid) throw new Error("Product id is required");
+
+  const files = Array.isArray(imageFiles)
+    ? imageFiles.filter((file) => file instanceof File)
+    : [];
+  if (files.length < 1 || files.length > 3) {
+    throw new Error("Please select minimum 1 and maximum 3 images.");
+  }
+
+  const formData = new FormData();
+  files.forEach((file) => formData.append("images", file));
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images`,
+    {
+      method: "POST",
+      headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+      body: formData,
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Product image upload failed");
+  }
+
+  const data: unknown = await response.json();
+  return Array.isArray(data)
+    ? (data as ProductImageUploadResponse[])
+    : ([data] as ProductImageUploadResponse[]);
+}
+
 export type DeleteProductImageResponse = {
   message: string;
 };

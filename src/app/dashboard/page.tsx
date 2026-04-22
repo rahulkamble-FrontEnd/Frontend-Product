@@ -10,6 +10,7 @@ import {
   createProduct,
   bulkUploadProducts,
   uploadProductImage,
+  uploadProductImages,
   bindProductCategories,
   getProducts,
   getProductsCompare,
@@ -137,11 +138,11 @@ export default function DashboardPage() {
 
   const [isUploadImageModalOpen, setIsUploadImageModalOpen] = useState(false);
   const [uploadProductId, setUploadProductId] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadMsg, setUploadMsg] = useState("");
   const [uploadError, setUploadError] = useState("");
-  const [uploadedImage, setUploadedImage] = useState<ProductImageUploadResponse | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<ProductImageUploadResponse[]>([]);
   const [isBulkUploadingProducts, setIsBulkUploadingProducts] = useState(false);
   const [bulkUploadMsg, setBulkUploadMsg] = useState("");
   const [bulkUploadError, setBulkUploadError] = useState("");
@@ -1390,7 +1391,7 @@ export default function DashboardPage() {
     setIsUploadingImage(true);
     setUploadMsg("");
     setUploadError("");
-    setUploadedImage(null);
+    setUploadedImages([]);
 
     if (userRole !== "admin") {
       setIsUploadingImage(false);
@@ -1404,18 +1405,20 @@ export default function DashboardPage() {
       setUploadError("Product ID is required.");
       return;
     }
-    if (!uploadFile) {
+    if (uploadFiles.length < 1 || uploadFiles.length > 3) {
       setIsUploadingImage(false);
-      setUploadError("Please select an image file.");
+      setUploadError("Please select minimum 1 and maximum 3 images.");
       return;
     }
 
     try {
-      const uploaded = await uploadProductImage(productId, uploadFile);
-      setUploadedImage(uploaded);
-      setUploadMsg("Image uploaded successfully!");
+      const uploaded = await uploadProductImages(productId, uploadFiles);
+      setUploadedImages(uploaded);
+      setUploadMsg(
+        `${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded successfully!`
+      );
       setUploadProductId("");
-      setUploadFile(null);
+      setUploadFiles([]);
       await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : "Failed to upload image.");
@@ -4289,9 +4292,9 @@ export default function DashboardPage() {
                   setIsUploadImageModalOpen(false);
                   setUploadError("");
                   setUploadMsg("");
-                  setUploadedImage(null);
+                  setUploadedImages([]);
                   setUploadProductId("");
-                  setUploadFile(null);
+                  setUploadFiles([]);
                 }}
                 className="text-gray-400 hover:text-black"
               >
@@ -4313,17 +4316,23 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Image</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Images (min 1, max 3)
+                </label>
                 <input
                   type="file"
                   accept="image/*"
+                  multiple
                   required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    setUploadFiles(files.slice(0, 3));
+                  }}
                 />
-                {uploadFile && (
+                {uploadFiles.length > 0 && (
                   <div className="mt-2 text-[11px] font-bold text-gray-500">
-                    Selected: {uploadFile.name}
+                    Selected: {uploadFiles.map((file) => file.name).join(", ")}
                   </div>
                 )}
               </div>
@@ -4339,19 +4348,24 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {uploadedImage?.url && (
+              {uploadedImages.length > 0 && (
                 <div className="rounded-lg border border-gray-200 bg-white p-3">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Uploaded URL
+                    Uploaded URL{uploadedImages.length > 1 ? "s" : ""}
                   </div>
-                  <a
-                    href={uploadedImage.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block break-all text-sm font-bold text-[#0468a3] underline"
-                  >
-                    {uploadedImage.url}
-                  </a>
+                  <div className="mt-2 space-y-1">
+                    {uploadedImages.map((image) => (
+                      <a
+                        key={image.id}
+                        href={image.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block break-all text-sm font-bold text-[#0468a3] underline"
+                      >
+                        {image.url}
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
 
