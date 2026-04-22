@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createPortfolio } from "@/lib/api";
+import { createPortfolio, getCategories } from "@/lib/api";
 
 type ManualImageRow = {
   id: string;
@@ -18,9 +18,12 @@ export default function CreatePortfolioPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [roomType, setRoomType] = useState("");
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [manualImages, setManualImages] = useState<ManualImageRow[]>([{ id: makeRowId(), s3Key: "", displayOrder: 1 }]);
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ id: string; name: string; slug: string }>>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -38,6 +41,43 @@ export default function CreatePortfolioPage() {
     setUserRole(storedRole);
   }, [router]);
 
+  useEffect(() => {
+    if (userRole !== "blogadmin") return;
+    let isMounted = true;
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const [materialCategories, furnitureCategories] = await Promise.all([
+          getCategories("material"),
+          getCategories("furniture"),
+        ]);
+        const raw = [
+          ...(Array.isArray(materialCategories) ? materialCategories : []),
+          ...(Array.isArray(furnitureCategories) ? furnitureCategories : []),
+        ];
+        const parsed = raw
+          .map((item) => {
+            const obj = item as Record<string, unknown>;
+            const id = typeof obj.id === "string" ? obj.id : "";
+            const name = typeof obj.name === "string" ? obj.name : "";
+            const slug = typeof obj.slug === "string" ? obj.slug : "";
+            return { id, name, slug };
+          })
+          .filter((item) => item.id && item.name && item.slug);
+        const deduped = Array.from(new Map(parsed.map((item) => [item.id, item])).values());
+        if (isMounted) setCategoryOptions(deduped);
+      } catch {
+        if (isMounted) setCategoryOptions([]);
+      } finally {
+        if (isMounted) setIsLoadingCategories(false);
+      }
+    };
+    loadCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, [userRole]);
+
   const isAllowed = userRole === "blogadmin";
   const hasFiles = imageFiles.length > 0;
   const validManualImages = useMemo(
@@ -45,8 +85,17 @@ export default function CreatePortfolioPage() {
     [manualImages]
   );
   const canSubmit = useMemo(
-    () => Boolean(isAllowed && title.trim() && roomType.trim() && description.trim() && (hasFiles || validManualImages.length > 0) && !isSaving),
-    [isAllowed, title, roomType, description, hasFiles, validManualImages.length, isSaving]
+    () =>
+      Boolean(
+        isAllowed &&
+          title.trim() &&
+          roomType.trim() &&
+          category.trim() &&
+          description.trim() &&
+          (hasFiles || validManualImages.length > 0) &&
+          !isSaving,
+      ),
+    [isAllowed, title, roomType, category, description, hasFiles, validManualImages.length, isSaving]
   );
 
   const addManualImageRow = () => {
@@ -75,6 +124,7 @@ export default function CreatePortfolioPage() {
         {
           title: title.trim(),
           roomType: roomType.trim(),
+          category: category.trim(),
           description: description.trim(),
           images: validManualImages.map((item) => ({
             s3Key: item.s3Key,
@@ -141,6 +191,30 @@ export default function CreatePortfolioPage() {
                 placeholder="Kitchen"
                 className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
               />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category</label>
+              <select
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+              >
+                <option value="">
+                  {isLoadingCategories ? "Loading categories..." : "Select category"}
+                </option>
+                {categoryOptions.map((option) => (
+                  <option key={option.id} value={option.slug}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+              {!isLoadingCategories && categoryOptions.length === 0 && (
+                <p className="mt-2 text-xs font-semibold text-red-600">
+                  No categories found. Please create categories first.
+                </p>
+              )}
             </div>
 
             <div>
