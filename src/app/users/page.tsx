@@ -15,6 +15,10 @@ type User = {
   assignedDesigner?: { id: string; name: string };
 };
 
+type EditableUser = User & {
+  assignedDesignerId?: string;
+};
+
 export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
@@ -26,7 +30,7 @@ export default function UsersPage() {
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<EditableUser | null>(null);
   const [designers, setDesigners] = useState<User[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
@@ -61,8 +65,8 @@ export default function UsersPage() {
     try {
       const data = await getUsers(filter === "all" ? undefined : filter);
       setUsers(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load users.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load users.");
     } finally {
       setLoading(false);
     }
@@ -79,8 +83,8 @@ export default function UsersPage() {
     try {
       await deleteUser(id);
       fetchUsers(roleFilter);
-    } catch (err: any) {
-      setError(err.message || "Failed to deactivate user.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to deactivate user.");
     }
   };
 
@@ -92,15 +96,21 @@ export default function UsersPage() {
     setError("");
 
     try {
-      const payload: any = {
+      const payload: {
+        name: string;
+        email: string;
+        role: string;
+        projectName?: string;
+        assignedDesignerId?: string;
+      } = {
         name: editingUser.name,
         email: editingUser.email,
         role: editingUser.role,
         projectName: editingUser.projectName || "",
       };
 
-      if (editingUser.role === "customer" && (editingUser as any).assignedDesignerId) {
-        payload.assignedDesignerId = (editingUser as any).assignedDesignerId;
+      if (editingUser.role === "customer" && editingUser.assignedDesignerId) {
+        payload.assignedDesignerId = editingUser.assignedDesignerId;
       }
 
       await updateUser(editingUser.id, payload);
@@ -111,8 +121,8 @@ export default function UsersPage() {
         setUpdateMsg("");
         setEditingUser(null);
       }, 1500);
-    } catch (err: any) {
-      setError(err.message || "Update failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Update failed.");
     } finally {
       setIsUpdating(false);
     }
@@ -343,8 +353,10 @@ export default function UsersPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Assign Designer</label>
                   <select
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={(editingUser as any).assignedDesignerId || (editingUser.assignedDesigner?.id || "")}
-                    onChange={(e) => setEditingUser({ ...editingUser, assignedDesignerId: e.target.value } as any)}
+                    value={editingUser.assignedDesignerId || editingUser.assignedDesigner?.id || ""}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, assignedDesignerId: e.target.value })
+                    }
                   >
                     <option value="">Select a designer</option>
                     {designers.map(d => (
