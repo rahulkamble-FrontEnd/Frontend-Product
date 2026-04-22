@@ -266,10 +266,16 @@ export default function DashboardPage() {
       .toLowerCase()
       .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
-  const truncateText = (value: string, maxChars: number) => {
+  const toSentenceCase = (value: string) => {
+    const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!normalized) return "";
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  };
+
+  const truncateText = (value: string, maxChars: number, suffix = "...") => {
     const normalized = value.trim();
     if (normalized.length <= maxChars) return normalized;
-    return `${normalized.slice(0, maxChars)}...`;
+    return `${normalized.slice(0, maxChars)}${suffix}`;
   };
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
@@ -2449,7 +2455,11 @@ export default function DashboardPage() {
                   const imageUrl = trending
                     ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
                     : "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop";
-                  const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
+                  const title = truncateText(
+                    toSentenceCase(trending?.title || "Modern Minimalist Kitchen"),
+                    16,
+                    "..",
+                  );
                   const tag = trending?.styleTag || "Kitchen";
 
                   return (
@@ -2476,7 +2486,7 @@ export default function DashboardPage() {
                         <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                           {tag}
                         </span>
-                        <div className="text-[26px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
+                        <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                           {title}
                         </div>
                       </div>
@@ -2593,7 +2603,11 @@ export default function DashboardPage() {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
                   CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-                const title = product?.name || "Modern Minimalist Kitchen";
+                const title = truncateText(
+                  toSentenceCase(product?.name || "Modern Minimalist Kitchen"),
+                  16,
+                  "..",
+                );
                 const label = toTitleCase(product?.materialType || "Kitchen");
 
                 return (
@@ -2608,7 +2622,7 @@ export default function DashboardPage() {
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                         {label}
                       </span>
-                      <div className="text-[26px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
+                      <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                         {title}
                       </div>
                     </div>
