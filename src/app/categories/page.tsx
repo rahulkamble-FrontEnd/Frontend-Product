@@ -12,6 +12,15 @@ type Category = {
   displayOrder: number;
   isActive: boolean;
   createdAt: string;
+  parent_id?: string;
+};
+
+type CategoryDetailsView = {
+  id: string;
+  name: string;
+  slug: string;
+  type: "material" | "furniture";
+  children?: CategoryDetailsView[];
 };
 
 export default function CategoriesPage() {
@@ -39,7 +48,7 @@ export default function CategoriesPage() {
 
   // Detail Modal State
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [selectedCatDetails, setSelectedCatDetails] = useState<any>(null);
+  const [selectedCatDetails, setSelectedCatDetails] = useState<CategoryDetailsView | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
@@ -58,11 +67,11 @@ export default function CategoriesPage() {
     setLoading(true);
     setError("");
     try {
-      const filter = type === "all" ? undefined : (type as any);
+      const filter = type === "material" || type === "furniture" ? type : undefined;
       const data = await getCategories(filter);
       setCategories(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load categories.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load categories.");
     } finally {
       setLoading(false);
     }
@@ -94,8 +103,8 @@ export default function CategoriesPage() {
         setIsCatModalOpen(false);
         setCatMsg("");
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to create category.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to create category.");
     } finally {
       setIsCreatingCat(false);
     }
@@ -106,8 +115,8 @@ export default function CategoriesPage() {
     try {
       await deleteCategory(id);
       fetchCategories(typeFilter);
-    } catch (err: any) {
-      setError(err.message || "Failed to deactivate category.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to deactivate category.");
     }
   };
 
@@ -118,13 +127,13 @@ export default function CategoriesPage() {
     setUpdateMsg("");
     setError("");
     try {
-      const payload: any = { 
+      const payload: { name: string; type: "material" | "furniture"; parent_id?: string } = {
         name: editingCategory.name, 
         type: editingCategory.type 
       };
       // parent_id can be added if your API supports it on partial updates
-      if ((editingCategory as any).parent_id) {
-         payload.parent_id = (editingCategory as any).parent_id;
+      if (editingCategory.parent_id) {
+         payload.parent_id = editingCategory.parent_id;
       }
       
       await updateCategory(editingCategory.id, payload);
@@ -135,8 +144,8 @@ export default function CategoriesPage() {
         setUpdateMsg("");
         setEditingCategory(null);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to update category.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update category.");
     } finally {
       setIsUpdatingCat(false);
     }
@@ -149,8 +158,8 @@ export default function CategoriesPage() {
     try {
       const data = await getCategoryBySlug(slug);
       setSelectedCatDetails(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to load category details.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load category details.");
       setIsDetailModalOpen(false);
     } finally {
       setLoadingDetails(false);
@@ -404,7 +413,12 @@ export default function CategoriesPage() {
                   required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={editingCategory.type}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, type: e.target.value as any })}
+                  onChange={(e) =>
+                    setEditingCategory({
+                      ...editingCategory,
+                      type: e.target.value as "material" | "furniture",
+                    })
+                  }
                 >
                   <option value="material">Material</option>
                   <option value="furniture">Furniture</option>
@@ -416,8 +430,13 @@ export default function CategoriesPage() {
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  value={(editingCategory as any).parent_id || ""}
-                  onChange={(e) => setEditingCategory({ ...editingCategory, parent_id: e.target.value } as any)}
+                  value={editingCategory.parent_id || ""}
+                  onChange={(e) =>
+                    setEditingCategory({
+                      ...editingCategory,
+                      parent_id: e.target.value,
+                    })
+                  }
                   placeholder="e.g. csaaa1scasa"
                 />
               </div>
@@ -490,7 +509,7 @@ export default function CategoriesPage() {
                    </h3>
                    <div className="max-h-48 overflow-y-auto pr-2 space-y-2">
                       {selectedCatDetails.children && selectedCatDetails.children.length > 0 ? (
-                        selectedCatDetails.children.map((child: any) => (
+                        selectedCatDetails.children.map((child) => (
                           <div key={child.id} className="flex items-center justify-between rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
                              <div className="flex items-center gap-3">
                                 <div className="h-2 w-2 rounded-full bg-black" />
