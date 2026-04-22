@@ -61,7 +61,7 @@ const FALLBACK_MENU_NAMES = [
   "Outdoor",
 ];
 const CATEGORY_TILE_IMAGES = [
-  "https://images.unsplash.com/photo-1493666438817-866a91353ca9?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1484154218962-a197022b5858?q=80&w=1200&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop",
@@ -1636,7 +1636,7 @@ export default function DashboardPage() {
         onChange={handleBulkUploadFileChange}
       />
       {/* Top Header */}
-      <header className="relative z-[200] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
+      <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-4 px-0`}>
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -2020,7 +2020,7 @@ export default function DashboardPage() {
       )}
 
       {userRole === "admin" && (
-        <div className="border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
+        <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
           <div className="grid grid-cols-3 gap-2">
             <div className="relative">
               <button
@@ -2395,7 +2395,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#AE8953] py-12 lg:py-14">
+      <section
+        className="py-12 lg:py-14"
+        style={{
+          background:
+            "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
+        }}
+      >
         <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -2430,7 +2436,7 @@ export default function DashboardPage() {
               {trendingCards.map((trending, idx) => {
                   const imageUrl = trending
                     ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
-                    : "https://images.unsplash.com/photo-1493666438817-866a91353ca9?q=80&w=1200&auto=format&fit=crop";
+                    : "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop";
                   const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
                   const tag = trending?.styleTag || "Kitchen";
 
@@ -2539,7 +2545,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#AE8953] py-12 lg:py-14">
+      <section
+        className="py-12 lg:py-14"
+        style={{
+          background:
+            "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
+        }}
+      >
         <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>

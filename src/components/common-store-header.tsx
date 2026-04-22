@@ -4,15 +4,30 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getCategoryMenu, type CategoryMenuItem } from "@/lib/api";
 
+function formatLabel(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 type CommonStoreHeaderProps = {
   pageTitle: string;
   breadcrumbText: string;
+  breadcrumbItems?: Array<{
+    label: string;
+    href?: string;
+  }>;
   rightText?: string;
 };
 
 export default function CommonStoreHeader({
   pageTitle,
   breadcrumbText,
+  breadcrumbItems,
   rightText,
 }: CommonStoreHeaderProps) {
   const [categories, setCategories] = useState<CategoryMenuItem[]>([]);
@@ -63,7 +78,7 @@ export default function CommonStoreHeader({
               href={category.slug ? `/categories/${category.slug}` : "#"}
               className="text-[16px] font-semibold leading-6 tracking-normal text-white/95 hover:text-white"
             >
-              {category.name}
+              {formatLabel(category.name)}
             </Link>
           ))}
         </div>
@@ -72,7 +87,27 @@ export default function CommonStoreHeader({
       <div className="border-t border-[#d9cab5] bg-white">
         <div className="mx-auto w-full max-w-[1680px] px-4 py-2 sm:px-6 lg:px-8">
           <div className="text-sm font-semibold text-[#1f1f1f]">{pageTitle}</div>
-          <div className="mt-0.5 text-[10px] text-gray-500">{breadcrumbText}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">
+            {Array.isArray(breadcrumbItems) && breadcrumbItems.length > 0 ? (
+              breadcrumbItems.map((item, index) => (
+                <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1">
+                  {item.href ? (
+                    <Link
+                      href={item.href}
+                      className="hover:text-[#1f1f1f] hover:underline"
+                    >
+                      {item.label}
+                    </Link>
+                  ) : (
+                    <span>{item.label}</span>
+                  )}
+                  {index < breadcrumbItems.length - 1 ? <span>&gt;</span> : null}
+                </span>
+              ))
+            ) : (
+              <span>{breadcrumbText}</span>
+            )}
+          </div>
         </div>
       </div>
     </header>

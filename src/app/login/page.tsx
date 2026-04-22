@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login, getMe, forgotPassword, resetPassword } from "@/lib/api";
 
@@ -37,8 +36,8 @@ export default function LoginPage() {
       localStorage.setItem("userEmail", email);
       localStorage.setItem("userPassword", password);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +74,8 @@ export default function LoginPage() {
       } else {
         throw new Error("Email not found or token generation failed.");
       }
-    } catch (err: any) {
-      setError(err.message || "Reset failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Reset failed.");
     } finally {
       setIsLoading(false);
     }

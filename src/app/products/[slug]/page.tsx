@@ -49,6 +49,26 @@ function pickListProductImageUrl(product: ProductListItem) {
   return pickBestImageUrl(raw.images);
 }
 
+function formatProductName(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatCategoryName(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
   const slug = typeof params?.slug === "string" ? params.slug : "";
@@ -473,6 +493,18 @@ export default function ProductDetailsPage() {
       <CommonStoreHeader
         pageTitle="CustomFurnish"
         breadcrumbText={`Home  >  ${product?.name ?? "Product Details"}`}
+        breadcrumbItems={[
+          { label: "Home", href: "/dashboard" },
+          ...(product?.categories?.[0]?.slug
+            ? [
+                {
+                  label: formatCategoryName(product.categories[0].name),
+                  href: `/categories/${product.categories[0].slug}`,
+                },
+              ]
+            : []),
+          { label: formatProductName(product?.name) || "Product Details" },
+        ]}
         rightText={userName}
       />
 
@@ -587,7 +619,7 @@ export default function ProductDetailsPage() {
                   {product.materialType || "Product"}
                 </div>
                 <h1 className="mt-2 text-[36px] font-bold leading-[40px] tracking-normal text-[#AE8953]">
-                  {product.name}
+                  {formatProductName(product.name)}
                 </h1>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
@@ -629,6 +661,37 @@ export default function ProductDetailsPage() {
                 </div>
               </div>
 
+              {userRole === "customer" && (
+                <>
+                  <div className="px-1">
+                    <button
+                      type="button"
+                      disabled={isCreatingShortlist}
+                      onClick={handleCreateShortlist}
+                      className="rounded-full bg-[#b58d52] px-10 py-3 text-[15px] font-bold text-white disabled:opacity-50"
+                    >
+                      {isCreatingShortlist ? "Saving..." : "Short List Now"}
+                    </button>
+                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                    <textarea
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value)}
+                      placeholder="For kitchen shutters"
+                      className="mt-2 block w-full rounded-xl border border-gray-200 bg-[#F8F0E4] px-4 py-3 text-sm shadow-inner min-h-[100px]"
+                    />
+                    {shortlistItem && (
+                      <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
+                        <div><span className="font-bold text-gray-900">Shortlist ID:</span> {shortlistItem.id}</div>
+                        <div><span className="font-bold text-gray-900">Sample Status:</span> {shortlistItem.sampleStatus}</div>
+                        <div><span className="font-bold text-gray-900">Created At:</span> {new Date(shortlistItem.createdAt).toLocaleString()}</div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
               <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                 <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Categories</div>
                 <div className="flex flex-wrap gap-2">
@@ -637,11 +700,11 @@ export default function ProductDetailsPage() {
                       <span
                         key={c.id}
                         className={[
-                          "relative inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          "relative inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-widest",
                           c.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
                         ].join(" ")}
                       >
-                        {c.name}
+                        {formatCategoryName(c.name)}
                         {userRole === "admin" && (
                           <button
                             type="button"
@@ -660,41 +723,6 @@ export default function ProductDetailsPage() {
                   )}
                 </div>
               </div>
-
-              {userRole === "customer" && (
-                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Shortlist</div>
-                      <div className="mt-1 text-sm text-gray-600">Save this product with your note.</div>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isCreatingShortlist}
-                      onClick={handleCreateShortlist}
-                      className="rounded-full bg-[#b58d52] px-6 py-3 text-[15px] font-bold text-white disabled:opacity-50"
-                    >
-                      {isCreatingShortlist ? "Saving..." : "Short List Now"}
-                    </button>
-                  </div>
-                  <div className="mt-4">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Customer Note</label>
-                    <textarea
-                      value={customerNote}
-                      onChange={(e) => setCustomerNote(e.target.value)}
-                      placeholder="For kitchen shutters"
-                      className="mt-1 block w-full rounded-xl border border-gray-200 bg-[#F8F0E4] px-4 py-3 text-sm shadow-inner min-h-[100px]"
-                    />
-                  </div>
-                  {shortlistItem && (
-                    <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
-                      <div><span className="font-bold text-gray-900">Shortlist ID:</span> {shortlistItem.id}</div>
-                      <div><span className="font-bold text-gray-900">Sample Status:</span> {shortlistItem.sampleStatus}</div>
-                      <div><span className="font-bold text-gray-900">Created At:</span> {new Date(shortlistItem.createdAt).toLocaleString()}</div>
-                    </div>
-                  )}
-                </div>
-              )}
 
               {userRole === "admin" && (
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -998,7 +1026,7 @@ export default function ProductDetailsPage() {
                         </div>
                         <div className="px-3 pb-3 pt-2">
                           <div className="text-[30px] font-semibold uppercase leading-tight tracking-tight text-[#2f2a24]">
-                            {item.name}
+                            {formatProductName(item.name)}
                           </div>
                           <div className="mt-1 text-[12px] text-[#6d665d]">
                             {item.description || "Classic Oak Natural"}

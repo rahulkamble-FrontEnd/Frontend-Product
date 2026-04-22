@@ -18,24 +18,34 @@ function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
 }
 
-function pickProductImageUrl(product: ProductListItem) {
+function getProductImageUrls(product: ProductListItem) {
   const raw = product as ProductListItem & {
     images?: ProductImageUploadResponse[] | null;
     imageUrl?: string | null;
     primaryImageUrl?: string | null;
   };
-  if (typeof raw.imageUrl === "string" && cleanUrl(raw.imageUrl)) {
-    return cleanUrl(raw.imageUrl);
-  }
-  if (typeof raw.primaryImageUrl === "string" && cleanUrl(raw.primaryImageUrl)) {
-    return cleanUrl(raw.primaryImageUrl);
-  }
-  const images = Array.isArray(raw.images) ? raw.images : [];
-  const primary = images.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
-  if (primary?.url) return cleanUrl(primary.url);
-  const byOrder = [...images].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
-  return first?.url ? cleanUrl(first.url) : null;
+
+  const fromCollection = (Array.isArray(raw.images) ? raw.images : [])
+    .filter((img) => typeof img.url === "string" && cleanUrl(img.url).length > 0)
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0))
+    .map((img) => cleanUrl(img.url));
+
+  const preferred = [raw.primaryImageUrl, raw.imageUrl]
+    .filter((url): url is string => typeof url === "string" && cleanUrl(url).length > 0)
+    .map((url) => cleanUrl(url));
+
+  const all = [...preferred, ...fromCollection];
+  return Array.from(new Set(all));
+}
+
+function formatProductName(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 type SortValue = "newest" | "name_asc" | "name_desc";
@@ -58,6 +68,7 @@ export default function CategoryProductsPage() {
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
   const [sortBy, setSortBy] = useState<SortValue>("newest");
+  const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -215,6 +226,38 @@ export default function CategoryProductsPage() {
     return next;
   }, [products, selectedBrands, selectedThicknesses, sortBy]);
 
+  const productImageMap = useMemo(() => {
+    return Object.fromEntries(
+      filteredProducts.map((product) => [product.id, getProductImageUrls(product)]),
+    ) as Record<string, string[]>;
+  }, [filteredProducts]);
+
+  useEffect(() => {
+    if (Object.keys(productImageMap).length === 0) {
+      setProductImageIndexes({});
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setProductImageIndexes((prev) => {
+        const next: Record<string, number> = {};
+        Object.entries(productImageMap).forEach(([productId, urls]) => {
+          if (urls.length <= 1) {
+            next[productId] = 0;
+            return;
+          }
+          const current = prev[productId] ?? 0;
+          next[productId] = (current + 1) % urls.length;
+        });
+        return next;
+      });
+    }, 2500);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [productImageMap]);
+
   const toggleSetValue = (prev: Set<string>, value: string) => {
     const next = new Set(prev);
     if (next.has(value)) next.delete(value);
@@ -229,6 +272,10 @@ export default function CategoryProductsPage() {
       <CommonStoreHeader
         pageTitle="CustomFurnish"
         breadcrumbText={`Home  >  ${category?.name ?? "Category"}`}
+        breadcrumbItems={[
+          { label: "Home", href: "/dashboard" },
+          { label: category?.name ?? "Category" },
+        ]}
         rightText={userName}
       />
 
@@ -337,7 +384,11 @@ export default function CategoryProductsPage() {
             <>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {filteredProducts.map((product) => {
-                  const imageUrl = pickProductImageUrl(product);
+                  const imageUrls = productImageMap[product.id] ?? [];
+                  const activeImageIndex =
+                    imageUrls.length > 0
+                      ? (productImageIndexes[product.id] ?? 0) % imageUrls.length
+                      : 0;
                   return (
                     <article
                       key={product.id}
@@ -348,15 +399,44 @@ export default function CategoryProductsPage() {
                         onClick={() => router.push(`/products/${product.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
-                          {imageUrl ? (
-                            <Image
-                              src={imageUrl}
-                              alt={product.name}
-                              fill
-                              sizes="(max-width: 1200px) 50vw, 25vw"
-                              className="object-cover"
-                            />
+                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e8dfd0]">
+                          {imageUrls.length > 0 ? (
+                            <>
+                              <div
+                                className="flex h-full transition-transform duration-500 ease-in-out"
+                                style={{ transform: `translateX(-${activeImageIndex * 100}%)` }}
+                              >
+                                {imageUrls.map((url, index) => (
+                                  <div
+                                    key={`${product.id}-img-${index}`}
+                                    className="relative h-full w-full shrink-0"
+                                  >
+                                    <Image
+                                      src={url}
+                                      alt={`${product.name} ${index + 1}`}
+                                      fill
+                                      sizes="(max-width: 1200px) 50vw, 25vw"
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                              {imageUrls.length > 1 ? (
+                                <div className="absolute bottom-2 left-0 right-0 flex items-center justify-center gap-1.5">
+                                  {imageUrls.map((_, index) => (
+                                    <span
+                                      key={`${product.id}-dot-${index}`}
+                                      className={[
+                                        "h-1.5 w-1.5 rounded-full transition-all",
+                                        index === activeImageIndex
+                                          ? "bg-white"
+                                          : "bg-white/50",
+                                      ].join(" ")}
+                                    />
+                                  ))}
+                                </div>
+                              ) : null}
+                            </>
                           ) : (
                             <div className="flex h-full items-center justify-center text-[10px] font-black uppercase tracking-wider text-gray-400">
                               No Image
@@ -365,7 +445,7 @@ export default function CategoryProductsPage() {
                         </div>
                         <div className="p-3">
                           <div className="text-xs font-black uppercase tracking-wider text-gray-800">
-                            {product.name}
+                            {formatProductName(product.name)}
                           </div>
                           <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                             {(product.brand ?? "-")} | {(product.finishType ?? "-")}
