@@ -266,16 +266,10 @@ export default function DashboardPage() {
       .toLowerCase()
       .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
-  const toSentenceCase = (value: string) => {
-    const normalized = value.trim().replace(/\s+/g, " ").toLowerCase();
-    if (!normalized) return "";
-    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-  };
-
-  const truncateText = (value: string, maxChars: number, suffix = "...") => {
+  const truncateText = (value: string, maxChars: number) => {
     const normalized = value.trim();
     if (normalized.length <= maxChars) return normalized;
-    return `${normalized.slice(0, maxChars)}${suffix}`;
+    return `${normalized.slice(0, maxChars)}...`;
   };
 
   const pickBestImageUrl = (images: ProductImageUploadResponse[] | null | undefined) => {
@@ -617,18 +611,6 @@ export default function DashboardPage() {
     window.addEventListener("click", close);
     return () => window.removeEventListener("click", close);
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (userRole !== "customer") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("shortlist") !== "1") return;
-    setIsShortlistOpen(true);
-    const url = new URL(window.location.href);
-    url.searchParams.delete("shortlist");
-    const next = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState({}, "", next);
-  }, [userRole]);
 
   useEffect(() => {
     loadProducts();
@@ -2455,11 +2437,7 @@ export default function DashboardPage() {
                   const imageUrl = trending
                     ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
                     : "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop";
-                  const title = truncateText(
-                    toSentenceCase(trending?.title || "Modern Minimalist Kitchen"),
-                    16,
-                    "..",
-                  );
+                  const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
                   const tag = trending?.styleTag || "Kitchen";
 
                   return (
@@ -2486,7 +2464,7 @@ export default function DashboardPage() {
                         <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                           {tag}
                         </span>
-                        <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
+                        <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-[#977543]">
                           {title}
                         </div>
                       </div>
@@ -2603,17 +2581,28 @@ export default function DashboardPage() {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
                   CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-                const title = truncateText(
-                  toSentenceCase(product?.name || "Modern Minimalist Kitchen"),
-                  16,
-                  "..",
-                );
+                const title = product?.name || "Modern Minimalist Kitchen";
+                const displayTitle = title.length > 16 ? `${title.slice(0, 16)}...` : title;
                 const label = toTitleCase(product?.materialType || "Kitchen");
 
                 return (
                   <article
                     key={product?.id ?? `latest-product-${idx}`}
-                    className="h-[410px] w-full max-w-[340px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm"
+                    role={product?.slug ? "button" : undefined}
+                    tabIndex={product?.slug ? 0 : undefined}
+                    onClick={() => {
+                      if (product?.slug) router.push(`/products/${product.slug}`);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!product?.slug) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        router.push(`/products/${product.slug}`);
+                      }
+                    }}
+                    className={`min-h-[410px] w-full max-w-[340px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm ${
+                      product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
+                    }`}
                   >
                     <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
@@ -2622,8 +2611,8 @@ export default function DashboardPage() {
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                         {label}
                       </span>
-                      <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
-                        {title}
+                      <div className="mt-1 text-[24px] font-semibold leading-[30px] tracking-normal text-black">
+                        {displayTitle}
                       </div>
                     </div>
                   </article>
@@ -3079,7 +3068,7 @@ export default function DashboardPage() {
           onClick={() => setIsShortlistOpen(false)}
         >
           <div
-            className="absolute right-4 top-32 h-[calc(100vh-9rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
@@ -3099,14 +3088,14 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="h-[calc(100%-4.5rem)] min-w-0 overflow-x-hidden overflow-y-auto p-4">
+            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
               {shortlistMsg && (
-                <div className="mb-4 w-full rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
                   {shortlistMsg}
                 </div>
               )}
               {shortlistError && (
-                <div className="mb-4 w-full rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
                   {shortlistError}
                 </div>
               )}
@@ -3152,11 +3141,11 @@ export default function DashboardPage() {
                           }
                         }}
                         className={[
-                          "w-full min-w-0 max-w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
-                        <div className="relative aspect-[4/3] w-full min-w-0 max-w-full bg-gray-100">
+                        <div className="relative aspect-[4/3] w-full bg-gray-100">
                           {imageUrl ? (
                             <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
                           ) : (
@@ -3176,23 +3165,23 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="min-w-0 space-y-3 p-4">
-                          <div className="min-w-0">
+                        <div className="space-y-3 p-4">
+                          <div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
                             </div>
-                            <div className="mt-1 break-words font-black leading-snug text-gray-900">
+                            <div className="mt-1 font-black leading-snug text-gray-900">
                               {shortlistedProduct?.name || item.productId}
                             </div>
                             {shortlistedProduct && (
-                              <div className="mt-2 flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[11px] font-bold text-gray-600">
-                                <span className="min-w-0 break-words">SKU: {shortlistedProduct.sku}</span>
-                                <span className="shrink-0 text-right">{shortlistedProduct.brand}</span>
+                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                                <span>SKU: {shortlistedProduct.sku}</span>
+                                <span>{shortlistedProduct.brand}</span>
                               </div>
                             )}
                           </div>
 
-                          <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+                          <div className="flex items-center gap-2">
                             <button
                               type="button"
                               disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
@@ -3200,7 +3189,7 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleRequestSample(item.id);
                               }}
-                              className="min-w-0 rounded-full bg-[#0468a3] px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {requestingSampleId === item.id
                                 ? "Requesting..."
@@ -3215,17 +3204,15 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleDeleteShortlist(item.id);
                               }}
-                              className="min-w-0 rounded-full border border-red-200 bg-white px-3 py-2 text-center text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {deletingShortlistId === item.id ? "Removing..." : "Remove"}
                             </button>
                           </div>
 
-                          <div className="min-w-0 overflow-hidden rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
-                            <div className="flex min-w-0 items-start justify-between gap-2 sm:items-center sm:gap-3">
-                              <div className="min-w-0 flex-1 text-[10px] font-black uppercase leading-tight tracking-widest text-gray-400">
-                                Customer Note
-                              </div>
+                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
                               <button
                                 type="button"
                                 disabled={savingNoteId === item.id}
@@ -3233,7 +3220,7 @@ export default function DashboardPage() {
                                   e.stopPropagation();
                                   handleUpdateShortlistNote(item.id);
                                 }}
-                                className="shrink-0 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {savingNoteId === item.id ? "Saving..." : "Save Note"}
                               </button>
@@ -3249,15 +3236,15 @@ export default function DashboardPage() {
                                 }))
                               }
                               placeholder="Updated note text"
-                              className="mt-2 box-border block min-h-[96px] w-full min-w-0 max-w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                             />
                           </div>
 
-                          <div className="min-w-0 overflow-hidden rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               Designer Reply
                             </div>
-                            <div className="mt-1 max-w-full break-words whitespace-pre-wrap">
+                            <div className="mt-1 whitespace-pre-wrap">
                               {item.designerReplyNote?.trim() || "-"}
                             </div>
                             <div className="mt-2 text-[11px] font-bold text-gray-600">
@@ -3268,9 +3255,9 @@ export default function DashboardPage() {
                             </div>
                           </div>
 
-                          <div className="grid min-w-0 grid-cols-1 gap-1 text-[11px] font-bold text-gray-600 sm:grid-cols-2 sm:gap-3">
-                            <div className="min-w-0 break-words">Created: {new Date(item.createdAt).toLocaleDateString()}</div>
-                            <div className="min-w-0 break-words">Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
+                          <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
+                            <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
+                            <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
                           </div>
                         </div>
                       </div>
