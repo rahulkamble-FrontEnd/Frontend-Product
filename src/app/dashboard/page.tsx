@@ -1627,7 +1627,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F0E4] font-sans text-gray-900">
+    <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
       <input
         ref={bulkUploadInputRef}
         type="file"
@@ -1637,16 +1637,16 @@ export default function DashboardPage() {
       />
       {/* Top Header */}
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
-        <div className={`${dashboardShellClass} flex items-center justify-between gap-4 px-0`}>
+        <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="text-[34px] leading-none text-[#1f1f1f]">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="max-w-[190px] truncate text-[22px] leading-none text-[#1f1f1f] sm:max-w-none sm:text-[34px]">
               <span className="font-serif">CustomFurnish</span>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             {userRole === "blogadmin" && (
               <div className="relative hidden md:block">
                 <button
@@ -1989,7 +1989,7 @@ export default function DashboardPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
                       {userName.charAt(0)}
                   </div>
-                  <span className="mt-0.5 text-[10px] font-bold uppercase">{isLoggingOut ? "..." : "Logout"}</span>
+                  <span className="mt-0.5 hidden text-[10px] font-bold uppercase sm:block">{isLoggingOut ? "..." : "Logout"}</span>
                </button>
              ) : (
                <button
@@ -2337,11 +2337,11 @@ export default function DashboardPage() {
       </section>
 
       <section className={`${dashboardShellClass} pt-10 pb-7`}>
-        <div className="mb-8 flex items-center justify-between gap-3">
-          <h3 className="ml-[70px] text-left text-[32px] font-bold leading-[40px] tracking-normal text-[#977543]">
+        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-left text-[30px] font-bold leading-[38px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Everything You Need for Interiors - In One Place
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
@@ -2363,7 +2363,7 @@ export default function DashboardPage() {
 
         <div
           ref={categoryTilesScrollRef}
-          className="ml-[70px] flex w-[calc(100%-70px)] gap-3 overflow-x-auto pb-1 pr-2 scrollbar-hide"
+          className="flex w-full gap-3 overflow-x-auto pb-1 pr-2 scrollbar-hide md:ml-[70px] md:w-[calc(100%-70px)]"
         >
           {(menuCategories.length > 0 ? menuCategories : resolvedMenuCategories).map(
             (category, index) => (
