@@ -37,7 +37,6 @@ import {
   type CreateDesignerRecommendationPayload,
   type DesignerCustomer,
   type DesignerCustomerDetailResponse,
-  type DesignerRecommendationResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
   type ProductCompareResponse,
@@ -204,6 +203,7 @@ export default function DashboardPage() {
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
   const [updateProductStatusError, setUpdateProductStatusError] = useState("");
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
+  const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
   const [shortlistMsg, setShortlistMsg] = useState("");
@@ -234,12 +234,12 @@ export default function DashboardPage() {
   const [designerNoteError, setDesignerNoteError] = useState("");
   const [designerNoteDrafts, setDesignerNoteDrafts] = useState<Record<string, string>>({});
   const [savingDesignerNoteId, setSavingDesignerNoteId] = useState<string | null>(null);
-  const [designerRecommendationProductId, setDesignerRecommendationProductId] = useState("");
-  const [designerRecommendationDraft, setDesignerRecommendationDraft] = useState("");
+  const [designerRecommendationDrafts, setDesignerRecommendationDrafts] = useState<Record<string, string>>({});
+  const [designerRecommendationProductSelections, setDesignerRecommendationProductSelections] = useState<Record<string, string>>({});
   const [isCreatingDesignerRecommendation, setIsCreatingDesignerRecommendation] = useState(false);
+  const [creatingDesignerRecommendationShortlistId, setCreatingDesignerRecommendationShortlistId] = useState<string | null>(null);
   const [designerRecommendationMsg, setDesignerRecommendationMsg] = useState("");
   const [designerRecommendationError, setDesignerRecommendationError] = useState("");
-  const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
   const buildProductImageUrl = (value?: string | null) => {
@@ -350,6 +350,12 @@ export default function DashboardPage() {
 
   const dashboardShellClass = "mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 2xl:px-10";
   const unreadNotificationsCount = notifications.filter((item) => !item.isRead).length;
+  const totalDesignerRecommendations = designerCustomerDetails
+    ? designerCustomerDetails.shortlist.reduce(
+        (sum, item) => sum + (Array.isArray(item.recommendations) ? item.recommendations.length : 0),
+        0
+      )
+    : 0;
   const formatNotificationTime = (value: string) => {
     if (!value) return "";
     const date = new Date(value);
@@ -364,6 +370,7 @@ export default function DashboardPage() {
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
+  const shortlistCompareSelectedList = Array.from(shortlistCompareSelectedIds);
   const trendingCards: Array<TrendingItem | null> = [
     ...trendingDesigns.slice(0, 4),
     ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
@@ -402,18 +409,65 @@ export default function DashboardPage() {
   };
 
   const openCompare = async () => {
+    await openCompareByIds(Array.from(compareSelectedIds));
+  };
+
+  const openCompareByIds = async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (uniqueIds.length < 2) {
+      setCompareError("Please select at least 2 products to compare.");
+      return;
+    }
+    if (uniqueIds.length > 4) {
+      setCompareError("You can compare maximum 4 products.");
+      return;
+    }
+
     setCompareError("");
     setIsCompareOpen(true);
     setIsComparing(true);
     setCompareData(null);
     try {
-      const data = await getProductsCompare(Array.from(compareSelectedIds));
+      const data = await getProductsCompare(uniqueIds);
       setCompareData(data);
     } catch (err: unknown) {
       setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
     } finally {
       setIsComparing(false);
     }
+  };
+
+  const isSelectedForShortlistCompare = (productId: string) =>
+    shortlistCompareSelectedIds.has(productId);
+
+  const toggleShortlistCompareSelection = (productId: string) => {
+    setShortlistError("");
+    setCompareError("");
+    setShortlistCompareSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+        return next;
+      }
+      if (next.size >= 4) {
+        setShortlistError("You can compare maximum 4 products.");
+        return next;
+      }
+      next.add(productId);
+      return next;
+    });
+  };
+
+  const clearShortlistCompareSelection = () => {
+    setShortlistCompareSelectedIds(new Set());
+    setShortlistError("");
+    setCompareError("");
+    setCompareData(null);
+  };
+
+  const openShortlistCompare = async () => {
+    setIsShortlistOpen(false);
+    await openCompareByIds(shortlistCompareSelectedList);
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -624,6 +678,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (userRole !== "customer") {
       setShortlistItems([]);
+      setShortlistCompareSelectedIds(new Set());
       setShortlistError("");
       setShortlistMsg("");
       setNoteDrafts({});
@@ -639,6 +694,18 @@ export default function DashboardPage() {
         const items = await getShortlist();
         const shortlist = Array.isArray(items) ? items : [];
         setShortlistItems(shortlist);
+        const shortlistProductIds = new Set(
+          shortlist
+            .map((item) => item.productId?.trim())
+            .filter((id): id is string => Boolean(id))
+        );
+        setShortlistCompareSelectedIds((prev) => {
+          const next = new Set<string>();
+          prev.forEach((id) => {
+            if (shortlistProductIds.has(id)) next.add(id);
+          });
+          return next;
+        });
         setNoteDrafts(
           shortlist.reduce<Record<string, string>>((acc, item) => {
             acc[item.id] = item.customerNote || "";
@@ -863,7 +930,17 @@ export default function DashboardPage() {
     setDeletingShortlistId(id);
     try {
       const result = await deleteShortlist(id);
-      setShortlistItems((prev) => prev.filter((item) => item.id !== id));
+      setShortlistItems((prev) => {
+        const deletedItem = prev.find((item) => item.id === id);
+        if (deletedItem?.productId) {
+          setShortlistCompareSelectedIds((selectedPrev) => {
+            const next = new Set(selectedPrev);
+            next.delete(deletedItem.productId);
+            return next;
+          });
+        }
+        return prev.filter((item) => item.id !== id);
+      });
       setNoteDrafts((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -894,11 +971,11 @@ export default function DashboardPage() {
     setDesignerNoteError("");
     setDesignerNoteDrafts({});
     setSavingDesignerNoteId(null);
-    setDesignerRecommendationDraft("");
-    setDesignerRecommendationProductId("");
+    setDesignerRecommendationDrafts({});
+    setDesignerRecommendationProductSelections({});
+    setCreatingDesignerRecommendationShortlistId(null);
     setDesignerRecommendationMsg("");
     setDesignerRecommendationError("");
-    setDesignerRecommendations([]);
     if (userRole !== "designer") {
       setDesignerCustomersError("Only designer can view customer details.");
       return;
@@ -918,6 +995,12 @@ export default function DashboardPage() {
       setDesignerSampleDrafts(
         (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
           acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      setDesignerRecommendationProductSelections(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          acc[item.id] = "";
           return acc;
         }, {})
       );
@@ -1164,7 +1247,11 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateDesignerRecommendation = async () => {
+  const handleCreateDesignerRecommendation = async (
+    shortlistItemId: string,
+    selectedProductId: string,
+    shortlistedProductId: string
+  ) => {
     setDesignerRecommendationError("");
     setDesignerRecommendationMsg("");
     if (userRole !== "designer") {
@@ -1176,12 +1263,22 @@ export default function DashboardPage() {
       setDesignerRecommendationError("Customer id is required.");
       return;
     }
-    const productId = designerRecommendationProductId.trim();
-    if (!productId) {
+    const linkedProductId = selectedProductId.trim();
+    if (!linkedProductId) {
       setDesignerRecommendationError("Product is required.");
       return;
     }
-    const note = designerRecommendationDraft.trim();
+    const baseShortlistedProductId = shortlistedProductId.trim();
+    if (baseShortlistedProductId && linkedProductId === baseShortlistedProductId) {
+      setDesignerRecommendationError("Recommended product must be different from shortlisted product.");
+      return;
+    }
+    const shortlistId = shortlistItemId.trim();
+    if (!shortlistId) {
+      setDesignerRecommendationError("Shortlist item id is required.");
+      return;
+    }
+    const note = (designerRecommendationDrafts[shortlistId] ?? "").trim();
     if (!note) {
       setDesignerRecommendationError("Recommendation note is required.");
       return;
@@ -1189,21 +1286,37 @@ export default function DashboardPage() {
 
     const payload: CreateDesignerRecommendationPayload = {
       customerId,
-      productId,
+      productId: linkedProductId,
+      shortlistedProductId: baseShortlistedProductId,
       note,
     };
 
     setIsCreatingDesignerRecommendation(true);
+    setCreatingDesignerRecommendationShortlistId(shortlistId);
     try {
       const created = await createDesignerRecommendation(payload);
-      setDesignerRecommendations((prev) => [created, ...prev]);
-      setDesignerRecommendationDraft("");
-      setDesignerRecommendationProductId("");
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              shortlist: prev.shortlist.map((item) =>
+                item.id === shortlistId
+                  ? {
+                      ...item,
+                      recommendations: [created, ...(Array.isArray(item.recommendations) ? item.recommendations : [])],
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerRecommendationDrafts((prev) => ({ ...prev, [shortlistId]: "" }));
       setDesignerRecommendationMsg("Recommendation added successfully.");
     } catch (err: unknown) {
       setDesignerRecommendationError(err instanceof Error ? err.message : "Failed to add recommendation.");
     } finally {
       setIsCreatingDesignerRecommendation(false);
+      setCreatingDesignerRecommendationShortlistId(null);
     }
   };
 
@@ -2991,7 +3104,7 @@ export default function DashboardPage() {
                     <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
                     <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
                       <span>SKU: {p.sku}</span>
-                      <span>{p.brand}</span>
+                      {userRole !== "customer" ? <span>{p.brand}</span> : null}
                     </div>
                     <div className="mt-2 text-[11px] font-bold text-gray-500">{p.id}</div>
                   </div>
@@ -3104,6 +3217,32 @@ export default function DashboardPage() {
               )}
 
               <div className="space-y-4">
+                <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+                      Compare: {shortlistCompareSelectedList.length}/4 selected
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={shortlistCompareSelectedList.length < 2 || isComparing}
+                        onClick={openShortlistCompare}
+                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+                      >
+                        {isComparing ? "Comparing..." : "Compare"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={shortlistCompareSelectedList.length === 0}
+                        onClick={clearShortlistCompareSelection}
+                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {isLoadingShortlist ? (
                   Array.from({ length: 3 }).map((_, idx) => (
                     <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -3123,6 +3262,9 @@ export default function DashboardPage() {
                   shortlistItems.map((item) => {
                     const shortlistedProduct = item.product ?? null;
                     const imageUrl = shortlistedProduct ? inlineProductImageUrl(shortlistedProduct) : null;
+                    const productRecommendations = Array.isArray(item.recommendations)
+                      ? item.recommendations
+                      : [];
                     return (
                       <div
                         key={item.id}
@@ -3166,6 +3308,35 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
+                          {shortlistedProduct?.id && (
+                            <button
+                              type="button"
+                              aria-label={
+                                isSelectedForShortlistCompare(shortlistedProduct.id)
+                                  ? "Untick from compare"
+                                  : "Tick for compare"
+                              }
+                              className={[
+                                "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm",
+                                isSelectedForShortlistCompare(shortlistedProduct.id)
+                                  ? "border-black bg-black text-white"
+                                  : "border-gray-200 bg-white/95 text-gray-800"
+                              ].join(" ")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleShortlistCompareSelection(shortlistedProduct.id);
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                className="pointer-events-none h-4 w-4 accent-black"
+                                checked={isSelectedForShortlistCompare(shortlistedProduct.id)}
+                                readOnly
+                                tabIndex={-1}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          )}
                         </div>
 
                         <div className="space-y-3 p-4">
@@ -3179,7 +3350,7 @@ export default function DashboardPage() {
                             {shortlistedProduct && (
                               <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
                                 <span>SKU: {shortlistedProduct.sku}</span>
-                                <span>{shortlistedProduct.brand}</span>
+                                {userRole !== "customer" ? <span>{shortlistedProduct.brand}</span> : null}
                               </div>
                             )}
                           </div>
@@ -3255,6 +3426,57 @@ export default function DashboardPage() {
                               {item.designerReplyUpdatedAt
                                 ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
                                 : "-"}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                Recommended By Designer
+                              </div>
+                              <div className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                {productRecommendations.length} Added
+                              </div>
+                            </div>
+                            <div className="mt-2 space-y-2">
+                              {productRecommendations.length === 0 ? (
+                                <div className="rounded-lg bg-white p-3 text-xs text-gray-500">
+                                  No recommendations from designer yet.
+                                </div>
+                              ) : (
+                                productRecommendations.map((recommendation) => (
+                                  <button
+                                    key={recommendation.id}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const slug =
+                                        recommendation.product?.slug ||
+                                        products.find((product) => product.id === recommendation.productId)?.slug ||
+                                        null;
+                                      if (!slug) return;
+                                      setIsShortlistOpen(false);
+                                      router.push(`/products/${slug}`);
+                                    }}
+                                    className="w-full rounded-lg bg-white p-3 text-left transition hover:bg-gray-100"
+                                  >
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      {recommendation.note}
+                                    </div>
+                                    <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-[#0468a3]">
+                                      Recommended Product:{" "}
+                                      {recommendation.product
+                                        ? [recommendation.product.name, recommendation.product.sku]
+                                            .filter(Boolean)
+                                            .join(" • ")
+                                        : getProductLabelForNote(recommendation.productId) || recommendation.productId}
+                                    </div>
+                                    <div className="mt-1 text-[11px] font-bold text-gray-500">
+                                      Recommended on {new Date(recommendation.createdAt).toLocaleString()}
+                                    </div>
+                                  </button>
+                                ))
+                              )}
                             </div>
                           </div>
 
@@ -3415,6 +3637,9 @@ export default function DashboardPage() {
                           designerCustomerDetails.shortlist.map((item) => {
                             const shortlistProduct = item.product ?? null;
                             const imageUrl = shortlistProduct ? inlineProductImageUrl(shortlistProduct) : null;
+                            const itemRecommendations = Array.isArray(item.recommendations) ? item.recommendations : [];
+                            const selectedRecommendationProductId =
+                              designerRecommendationProductSelections[item.id] ?? "";
                             return (
                               <div key={item.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
                                 <div className="grid gap-4 md:grid-cols-[140px_1fr]">
@@ -3504,6 +3729,80 @@ export default function DashboardPage() {
                                         {savingDesignerSampleId === item.id ? "Saving..." : "Update Sample"}
                                       </button>
                                     </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
+                                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                          {itemRecommendations.length} Added
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 space-y-2">
+                                        <select
+                                          value={selectedRecommendationProductId}
+                                          onChange={(e) =>
+                                            setDesignerRecommendationProductSelections((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        >
+                                          <option value="">Select recommended product</option>
+                                          {products
+                                            .filter((product) => product.id !== item.productId)
+                                            .map((product) => (
+                                            <option key={`${item.id}-${product.id}`} value={product.id}>
+                                              {[product.name, product.sku].filter(Boolean).join(" • ")}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <textarea
+                                          value={designerRecommendationDrafts[item.id] ?? ""}
+                                          onChange={(e) =>
+                                            setDesignerRecommendationDrafts((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="Add recommendation for this product"
+                                          className="block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isCreatingDesignerRecommendation && creatingDesignerRecommendationShortlistId === item.id}
+                                          onClick={() =>
+                                            handleCreateDesignerRecommendation(
+                                              item.id,
+                                              selectedRecommendationProductId,
+                                              item.productId
+                                            )
+                                          }
+                                          className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          {isCreatingDesignerRecommendation && creatingDesignerRecommendationShortlistId === item.id
+                                            ? "Saving..."
+                                            : "Add Recommendation"}
+                                        </button>
+                                      </div>
+                                      <div className="mt-3 space-y-2">
+                                        {itemRecommendations.length === 0 ? (
+                                          <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+                                            No recommendations for this product.
+                                          </div>
+                                        ) : (
+                                          itemRecommendations.map((recommendation) => (
+                                            <div key={recommendation.id} className="rounded-lg bg-gray-50 p-3">
+                                              <div className="text-sm font-semibold text-gray-900">
+                                                {recommendation.note}
+                                              </div>
+                                              <div className="mt-1 text-[11px] font-bold text-gray-500">
+                                                Created: {new Date(recommendation.createdAt).toLocaleString()}
+                                              </div>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
                                     <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-bold text-gray-600">
                                       <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
                                       <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
@@ -3521,73 +3820,22 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
-                          <div className="mt-1 text-sm text-gray-500">Recommend products to this customer with a designer note.</div>
+                          <div className="mt-1 text-sm text-gray-500">Use each shortlist card above to add product-wise recommendations.</div>
                         </div>
                         <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                          {designerRecommendations.length} Added
+                          {totalDesignerRecommendations} Added
                         </div>
                       </div>
-
-                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
-                          <div className="space-y-3">
-                            <select
-                              value={designerRecommendationProductId}
-                              onChange={(e) => setDesignerRecommendationProductId(e.target.value)}
-                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((product) => (
-                                <option key={product.id} value={product.id}>
-                                  {[product.name, product.sku].filter(Boolean).join(" • ")}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              disabled={isCreatingDesignerRecommendation}
-                              onClick={handleCreateDesignerRecommendation}
-                              className="w-full rounded-full bg-[#0468a3] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {isCreatingDesignerRecommendation ? "Saving..." : "Add Recommendation"}
-                            </button>
-                          </div>
-                          <textarea
-                            value={designerRecommendationDraft}
-                            onChange={(e) => setDesignerRecommendationDraft(e.target.value)}
-                            placeholder="Matte better than gloss for this kitchen direction"
-                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
-                          />
+                      {designerRecommendationError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerRecommendationError}
                         </div>
-                        {designerRecommendationError && (
-                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
-                            {designerRecommendationError}
-                          </div>
-                        )}
-                        {designerRecommendationMsg && (
-                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
-                            {designerRecommendationMsg}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-4 space-y-3">
-                        {designerRecommendations.length === 0 ? (
-                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No recommendations created in this session.</div>
-                        ) : (
-                          designerRecommendations.map((recommendation) => (
-                            <div key={recommendation.id} className="rounded-xl bg-gray-50 p-4">
-                              <div className="text-sm font-bold text-gray-900">{recommendation.note}</div>
-                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
-                                Product: {getProductLabelForNote(recommendation.productId) || recommendation.productId}
-                              </div>
-                              <div className="mt-2 text-[11px] font-bold text-gray-500">
-                                Created: {new Date(recommendation.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
+                      )}
+                      {designerRecommendationMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerRecommendationMsg}
+                        </div>
+                      )}
                     </div>
 
                     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -3699,7 +3947,7 @@ export default function DashboardPage() {
       )}
 
       {isCompareOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -3835,28 +4083,16 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newUserData.role}
-                    onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
-                  >
-                    <option value="customer">Customer</option>
-                    <option value="designer">Designer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Project Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newUserData.projectName}
-                    onChange={(e) => setNewUserData({ ...newUserData, projectName: e.target.value })}
-                    placeholder="e.g. 3BHK Kondapur"
-                  />
-                </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
+                <select
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newUserData.role}
+                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                >
+                  <option value="customer">Customer</option>
+                  <option value="designer">Designer</option>
+                </select>
               </div>
 
               {createError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{createError}</div>}

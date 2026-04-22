@@ -77,7 +77,7 @@ export type ProductListItem = {
   name: string;
   slug: string;
   sku: string;
-  brand: string;
+  brand?: string;
   description: string;
   materialType: string;
   finishType: string | null;
@@ -116,7 +116,7 @@ export type ProductCompareItem = {
   name: string;
   slug: string;
   sku: string;
-  brand: string;
+  brand?: string;
   materialType: string;
   finishType: string | null;
   colorName: string;
@@ -169,6 +169,7 @@ export type ShortlistProduct = ProductListItem & {
 
 export type ShortlistItem = ShortlistResponse & {
   product?: ShortlistProduct | null;
+  recommendations?: DesignerRecommendationResponse[];
 };
 
 type RawShortlistResponse = {
@@ -195,6 +196,7 @@ type RawShortlistResponse = {
 
 type RawShortlistItem = RawShortlistResponse & {
   product?: ShortlistProduct | null;
+  recommendations?: DesignerRecommendationResponse[];
 };
 
 function normalizeShortlistResponse(raw: RawShortlistResponse): ShortlistResponse {
@@ -217,6 +219,9 @@ function normalizeShortlistItem(raw: RawShortlistItem): ShortlistItem {
   return {
     ...normalizeShortlistResponse(raw),
     product: raw.product ?? null,
+    recommendations: Array.isArray(raw.recommendations)
+      ? raw.recommendations
+      : [],
   };
 }
 
@@ -270,6 +275,7 @@ export type DesignerCustomerDetailResponse = {
   customer: DesignerCustomer;
   shortlist: ShortlistItem[];
   notes: DesignerCustomerDetailNote[];
+  recommendations?: DesignerRecommendationResponse[];
 };
 
 export type CreateDesignerNotePayload = {
@@ -281,6 +287,7 @@ export type CreateDesignerNotePayload = {
 export type CreateDesignerRecommendationPayload = {
   customerId: string;
   productId: string;
+  shortlistedProductId: string;
   note: string;
 };
 
@@ -307,8 +314,10 @@ export type DesignerRecommendationResponse = {
   designerId: string;
   customerId: string;
   productId: string;
+  shortlistedProductId?: string | null;
   note: string;
   createdAt: string;
+  product?: ShortlistProduct | null;
 };
 
 export async function getProducts(params?: {
@@ -528,6 +537,9 @@ export async function createDesignerRecommendation(payload: CreateDesignerRecomm
   const productId = payload?.productId?.trim();
   if (!productId) throw new Error("Product id is required");
 
+  const shortlistedProductId = payload?.shortlistedProductId?.trim();
+  if (!shortlistedProductId) throw new Error("Shortlisted product id is required");
+
   const note = typeof payload?.note === "string" ? payload.note.trim() : "";
   if (!note) throw new Error("Note is required");
 
@@ -537,6 +549,7 @@ export async function createDesignerRecommendation(payload: CreateDesignerRecomm
     body: JSON.stringify({
       customerId,
       productId,
+      shortlistedProductId,
       note,
     }),
     credentials: 'include',
@@ -1705,7 +1718,7 @@ export type CategoryMenuProduct = {
   name: string;
   slug: string;
   sku: string;
-  brand: string | null;
+  brand?: string | null;
 };
 
 export type CategoryMenuItem = {
