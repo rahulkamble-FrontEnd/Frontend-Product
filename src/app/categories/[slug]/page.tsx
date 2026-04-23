@@ -182,6 +182,8 @@ export default function CategoryProductsPage() {
     loadPortfolioArticles();
   }, [slug, userName]);
 
+  const shouldShowBrand = userRole !== "customer";
+
   const availableBrands = useMemo(() => {
     return Array.from(
       new Set(
@@ -205,7 +207,7 @@ export default function CategoryProductsPage() {
   const filteredProducts = useMemo(() => {
     let next = [...products];
 
-    if (selectedBrands.size > 0) {
+    if (shouldShowBrand && selectedBrands.size > 0) {
       next = next.filter((product) => {
         const brand = (product.brand ?? "").trim();
         return brand ? selectedBrands.has(brand) : false;
@@ -226,7 +228,7 @@ export default function CategoryProductsPage() {
     });
 
     return next;
-  }, [products, selectedBrands, selectedThicknesses, sortBy]);
+  }, [products, selectedBrands, selectedThicknesses, sortBy, shouldShowBrand]);
 
   const productImageMap = useMemo(() => {
     return Object.fromEntries(
@@ -291,30 +293,32 @@ export default function CategoryProductsPage() {
             {category?.name ?? "Products"}
           </div>
 
-          <div className="mt-6 border-t border-[#d9cab5] pt-5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
-              Brand
+          {shouldShowBrand ? (
+            <div className="mt-6 border-t border-[#d9cab5] pt-5">
+              <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+                Brand
+              </div>
+              <div className="mt-3 space-y-2">
+                {availableBrands.length === 0 ? (
+                  <div className="text-xs text-gray-400">No brand options</div>
+                ) : (
+                  availableBrands.map((brand) => (
+                    <label key={brand} className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={selectedBrands.has(brand)}
+                        onChange={() =>
+                          setSelectedBrands((prev) => toggleSetValue(prev, brand))
+                        }
+                        className="h-3.5 w-3.5 rounded border-gray-300"
+                      />
+                      <span>{brand}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
-            <div className="mt-3 space-y-2">
-              {availableBrands.length === 0 ? (
-                <div className="text-xs text-gray-400">No brand options</div>
-              ) : (
-                availableBrands.map((brand) => (
-                  <label key={brand} className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={selectedBrands.has(brand)}
-                      onChange={() =>
-                        setSelectedBrands((prev) => toggleSetValue(prev, brand))
-                      }
-                      className="h-3.5 w-3.5 rounded border-gray-300"
-                    />
-                    <span>{brand}</span>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+          ) : null}
 
           <div className="mt-6 border-t border-[#d9cab5] pt-5">
             <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
@@ -451,7 +455,10 @@ export default function CategoryProductsPage() {
                             {formatProductName(product.name)}
                           </div>
                           <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                            {(product.brand ?? "-")} | {(product.finishType ?? "-")}
+                            {shouldShowBrand
+                              ? `${product.brand ?? "-"} | ${product.finishType ?? "-"}`
+                              : `${product.finishType ?? "-"}`
+                            }
                           </div>
                           <div className="mt-1 text-[10px] text-gray-500">
                             Thickness: {product.thickness || "-"}
