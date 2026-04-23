@@ -7,24 +7,19 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export default function CommonFooter() {
   const companyLinks = [
-    "About us",
+    "About Us",
     "Careers",
     "Blogs",
-    "Contact us",
-    "Internal Portal",
-    "FAQs",
+    "Contact Us",
+    "Consult Us",
   ];
 
   const serviceLinks = [
-    "Bed Room Design",
     "Kitchen Design",
-    "Living Room Design",
-    "Dining Room Design",
-    "Puja Room Design",
-    "Partition Design",
-    "Study Room Design",
-    "Office Room Design",
-    "VR Experience",
+    "Bedroom Interiors",
+    "Living Room",
+    "Office Interiors",
+    "Full Home Interiors",
   ];
 
   const socialLinks = [
@@ -47,13 +42,14 @@ export default function CommonFooter() {
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
         <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_1.2fr]">
-          <div className="space-y-4">
+          <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
             </div>
-            <p className="max-w-sm text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              CustomFurnish.com delivers customized home interiors with expert
-              craftsmanship and seamless design solutions.
+            <p className="max-w-sm text-[14px] font-normal leading-5 tracking-[0%] text-white/90">
+              CustomFurnish is India&apos;s leading platform for interior materials
+              and customized home interiors. We combine design, quality materials,
+              and execution to deliver dream homes faster.
             </p>
             <div className="flex flex-wrap items-center gap-2.5">
               {socialLinks.map((item) => (
@@ -157,11 +153,8 @@ export default function CommonFooter() {
         </div>
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">
-          <div>© 2026 CustomFurnish.com | All Rights Reserved.</div>
-          <div className="flex items-center gap-5">
-            <span>Terms and Conditions</span>
-            <span>Privacy Policy</span>
-          </div>
+          <div>© 2026 CustomFurnish.com</div>
+          <div>Terms & Conditions | Privacy Policy</div>
         </div>
       </div>
     </footer>

@@ -638,15 +638,12 @@ export default function ProductDetailsPage() {
                   <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
                     SKU: {product.sku}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                    {product.brand}
-                  </span>
+                  {userRole !== "customer" && product.brand ? (
+                    <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                      {product.brand}
+                    </span>
+                  ) : null}
                 </div>
-              </div>
-
-              <div className="rounded-2xl border border-[#d8cab8] bg-[#f3ecdf] p-5 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Description</div>
-                <div className="text-[13px] leading-6 text-[#3f3a33]">{product.description}</div>
               </div>
 
               <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-5 shadow-sm">
