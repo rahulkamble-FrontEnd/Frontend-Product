@@ -1928,6 +1928,21 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            <div className="hidden md:block">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                  router.push("/blog");
+                }}
+                className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm transition-all hover:bg-black hover:text-white"
+              >
+                Blogs
+              </button>
+            </div>
             {userRole === "blogadmin" && (
               <div className="relative hidden md:block">
                 <button
@@ -2668,7 +2683,7 @@ export default function DashboardPage() {
       <section className={`${dashboardShellClass} pt-10 pb-7`}>
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-left text-[30px] font-bold leading-[38px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
-            Everything You Need for Interiors - In One Place
+            Shop Interior Materials by Category
           </h3>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -2738,7 +2753,7 @@ export default function DashboardPage() {
                 Trending Designs
               </h3>
               <p className="mt-3 text-sm text-white/90">
-                Get inspired by the latest interior design trends.
+                Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
@@ -2812,33 +2827,33 @@ export default function DashboardPage() {
         <div className="mx-auto mt-8 grid max-w-[1320px] grid-cols-1 gap-y-7 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-14">
           {[
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "Wide Product Range",
+              subtitle: "Explore 10,000+ interior materials across categories",
               icon: "list",
             },
             {
-              title: "Curated Collections",
-              subtitle: "Handpicked materials by top interior designers.",
+              title: "Curated by Designers",
+              subtitle: "Handpicked collections by industry experts",
               icon: "list",
             },
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "Quality Assured",
+              subtitle: "Every product is tested for durability & finish",
               icon: "spark",
-            },
-            {
-              title: "Quality Tested",
-              subtitle: "Every material undergoes rigorous quality checks.",
-              icon: "wave",
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare textures, prices, and specs side-by-side.",
+              subtitle: "Compare materials, textures & pricing easily",
+              icon: "wave",
+            },
+            {
+              title: "Fast Delivery",
+              subtitle: "Get materials delivered within 10 days",
               icon: "spark",
             },
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "End-to-End Support",
+              subtitle: "From selection to execution — we guide you",
               icon: "spark",
             },
           ].map((feature, index) => (
@@ -2888,7 +2903,7 @@ export default function DashboardPage() {
                 Latest Products
               </h3>
               <p className="mt-3 text-sm text-white/90">
-                Get inspired by the latest interior design trends.
+                Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
@@ -2957,7 +2972,7 @@ export default function DashboardPage() {
           <div className="mx-auto max-w-[1449px] text-center">
           <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CF</h3>
           <p className="mt-2 text-sm text-[#8B6E46]">
-            Your dream furniture and interior specialists are all right here.
+            See how we transform spaces into beautiful homes.
           </p>
           </div>
           <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
