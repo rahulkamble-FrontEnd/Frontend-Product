@@ -12,9 +12,13 @@ import {
   uploadProductImage,
   uploadProductImages,
   bindProductCategories,
+  linkProductTag,
+  unlinkProductTag,
   getProducts,
   getProductsCompare,
   getTrendings,
+  getTags,
+  getProductTags,
   deleteProduct,
   updateProductStatus,
   getCategories,
@@ -46,6 +50,7 @@ import {
   type NotificationItem,
   type CategoryMenuItem,
   type TrendingItem,
+  type TagItem,
 } from "@/lib/api";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -156,8 +161,22 @@ export default function DashboardPage() {
   const [isBindingCats, setIsBindingCats] = useState(false);
   const [bindMsg, setBindMsg] = useState("");
   const [bindError, setBindError] = useState("");
+  const [isProductTagsOpen, setIsProductTagsOpen] = useState(false);
+  const [productTagProductId, setProductTagProductId] = useState("");
+  const [allTags, setAllTags] = useState<TagItem[]>([]);
+  const [selectedLinkTagId, setSelectedLinkTagId] = useState("");
+  const [selectedUnlinkTagId, setSelectedUnlinkTagId] = useState("");
+  const [productLinkedTagIds, setProductLinkedTagIds] = useState<string[]>([]);
+  const [hasLinkedTagData, setHasLinkedTagData] = useState(false);
+  const [isLoadingLinkedTags, setIsLoadingLinkedTags] = useState(false);
+  const [isLinkingTag, setIsLinkingTag] = useState(false);
+  const [isUnlinkingTag, setIsUnlinkingTag] = useState(false);
+  const [productTagMsg, setProductTagMsg] = useState("");
+  const [productTagError, setProductTagError] = useState("");
   const [createSelectedCategoryIds, setCreateSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [isCreateCategoriesDropdownOpen, setIsCreateCategoriesDropdownOpen] = useState(false);
+  const [createSelectedTagIds, setCreateSelectedTagIds] = useState<Set<string>>(new Set());
+  const [isCreateTagsDropdownOpen, setIsCreateTagsDropdownOpen] = useState(false);
 
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productsTotal, setProductsTotal] = useState(0);
@@ -1458,6 +1477,24 @@ export default function DashboardPage() {
         }
       }
 
+      let tagLinkNote = "";
+      if (createSelectedTagIds.size > 0) {
+        if (!created?.id) {
+          throw new Error("Product created, but product id is missing so tag linking cannot continue.");
+        }
+        let linkedCount = 0;
+        try {
+          for (const tagId of Array.from(createSelectedTagIds)) {
+            const linked = await linkProductTag(created.id, { tagId });
+            if (linked?.linked) linkedCount += 1;
+          }
+          tagLinkNote = ` • Tags linked: ${linkedCount}`;
+        } catch (err: unknown) {
+          tagLinkNote = " • Tag linking failed";
+          setProductError(err instanceof Error ? err.message : "Failed to link tags.");
+        }
+      }
+
       setProductMsg(() => {
         const base = `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`;
         const imageNote =
@@ -1466,7 +1503,7 @@ export default function DashboardPage() {
             : createProductImageFiles.length > 0
               ? " • Image upload skipped"
               : "";
-        return `${base}${imageNote}${bindNote}`;
+        return `${base}${imageNote}${bindNote}${tagLinkNote}`;
       });
       await Promise.all([loadProducts(), loadLatestProducts()]);
       setNewProductData({
@@ -1487,7 +1524,9 @@ export default function DashboardPage() {
       });
       setCreateProductImageFiles([]);
       setCreateSelectedCategoryIds(new Set());
+      setCreateSelectedTagIds(new Set());
       setIsCreateCategoriesDropdownOpen(false);
+      setIsCreateTagsDropdownOpen(false);
       setTimeout(() => {
         setIsProductModalOpen(false);
         setProductMsg("");
@@ -1665,6 +1704,19 @@ export default function DashboardPage() {
     loadCats();
   }, [isBindCategoriesOpen, isProductModalOpen]);
 
+  useEffect(() => {
+    const loadAllTags = async () => {
+      if (!isProductTagsOpen && !isProductModalOpen) return;
+      try {
+        const data = await getTags();
+        setAllTags(Array.isArray(data) ? data : []);
+      } catch {
+        setAllTags([]);
+      }
+    };
+    void loadAllTags();
+  }, [isProductTagsOpen, isProductModalOpen]);
+
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds(prev => {
       const next = new Set(prev);
@@ -1682,6 +1734,40 @@ export default function DashboardPage() {
       return next;
     });
   };
+
+  const toggleCreateTag = (id: string) => {
+    setCreateSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const loadLinkedTagsForProduct = useCallback(async (productId: string) => {
+    const pid = productId.trim();
+    if (!pid) {
+      setProductLinkedTagIds([]);
+      setHasLinkedTagData(false);
+      return;
+    }
+
+    setIsLoadingLinkedTags(true);
+    try {
+      const tags = await getProductTags(pid);
+      setProductLinkedTagIds(tags.map((tag) => tag.id));
+      setHasLinkedTagData(true);
+    } catch {
+      setProductLinkedTagIds([]);
+      setHasLinkedTagData(false);
+    } finally {
+      setIsLoadingLinkedTags(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLinkedTagsForProduct(productTagProductId);
+  }, [productTagProductId, loadLinkedTagsForProduct]);
 
   const handleBindCategories = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1715,6 +1801,85 @@ export default function DashboardPage() {
       setBindError(err instanceof Error ? err.message : "Failed to bind categories.");
     } finally {
       setIsBindingCats(false);
+    }
+  };
+
+  const handleLinkProductTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLinkingTag(true);
+    setProductTagMsg("");
+    setProductTagError("");
+
+    if (userRole !== "admin") {
+      setIsLinkingTag(false);
+      setProductTagError("Only admin can link tags.");
+      return;
+    }
+
+    const pid = productTagProductId.trim();
+    const tagId = selectedLinkTagId.trim();
+    if (!pid) {
+      setIsLinkingTag(false);
+      setProductTagError("Product ID is required.");
+      return;
+    }
+    if (!tagId) {
+      setIsLinkingTag(false);
+      setProductTagError("Please select a tag to link.");
+      return;
+    }
+    if (productLinkedTagIds.includes(tagId)) {
+      setIsLinkingTag(false);
+      setProductTagError("This tag is already linked to the selected product.");
+      return;
+    }
+
+    try {
+      const result = await linkProductTag(pid, { tagId });
+      setProductTagMsg(result.message || "Tag linked successfully.");
+      await loadLinkedTagsForProduct(pid);
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setProductTagError(err instanceof Error ? err.message : "Failed to link tag.");
+    } finally {
+      setIsLinkingTag(false);
+    }
+  };
+
+  const handleUnlinkProductTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUnlinkingTag(true);
+    setProductTagMsg("");
+    setProductTagError("");
+
+    if (userRole !== "admin") {
+      setIsUnlinkingTag(false);
+      setProductTagError("Only admin can delink tags.");
+      return;
+    }
+
+    const pid = productTagProductId.trim();
+    const tagId = selectedUnlinkTagId.trim();
+    if (!pid) {
+      setIsUnlinkingTag(false);
+      setProductTagError("Product ID is required.");
+      return;
+    }
+    if (!tagId) {
+      setIsUnlinkingTag(false);
+      setProductTagError("Please select a tag to delink.");
+      return;
+    }
+
+    try {
+      const result = await unlinkProductTag(pid, tagId);
+      setProductTagMsg(result.message || "Tag delinked successfully.");
+      await loadLinkedTagsForProduct(pid);
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setProductTagError(err instanceof Error ? err.message : "Failed to delink tag.");
+    } finally {
+      setIsUnlinkingTag(false);
     }
   };
 
@@ -1928,6 +2093,16 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            router.push("/tags");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Tags
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
                             setIsCategoryModalOpen(true);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -1945,6 +2120,18 @@ export default function DashboardPage() {
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
                           Bind Categories
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            setIsProductTagsOpen(true);
+                            setProductTagError("");
+                            setProductTagMsg("");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Link/Delink Tags
                         </button>
                       </div>
                     )}
@@ -1980,7 +2167,9 @@ export default function DashboardPage() {
                             setCreateProductImageFiles([]);
                             setCreatedProductImages([]);
                             setCreateSelectedCategoryIds(new Set());
+                            setCreateSelectedTagIds(new Set());
                             setIsCreateCategoriesDropdownOpen(false);
+                            setIsCreateTagsDropdownOpen(false);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
@@ -2220,6 +2409,16 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      router.push("/tags");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Tags
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
                       setIsCategoryModalOpen(true);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2237,6 +2436,18 @@ export default function DashboardPage() {
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     Bind Categories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsProductTagsOpen(true);
+                      setProductTagError("");
+                      setProductTagMsg("");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Link/Delink Tags
                   </button>
                 </div>
               )}
@@ -2274,7 +2485,9 @@ export default function DashboardPage() {
                       setCreateProductImageFiles([]);
                       setCreatedProductImages([]);
                       setCreateSelectedCategoryIds(new Set());
+                      setCreateSelectedTagIds(new Set());
                       setIsCreateCategoriesDropdownOpen(false);
+                      setIsCreateTagsDropdownOpen(false);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
@@ -4180,7 +4393,9 @@ export default function DashboardPage() {
                   setCreateProductImageFiles([]);
                   setCreatedProductImages([]);
                   setCreateSelectedCategoryIds(new Set());
+                  setCreateSelectedTagIds(new Set());
                   setIsCreateCategoriesDropdownOpen(false);
+                  setIsCreateTagsDropdownOpen(false);
                 }}
                 className="text-gray-400 hover:text-black"
               >
@@ -4220,6 +4435,44 @@ export default function DashboardPage() {
                               />
                               <span className="font-medium">{c.name}</span>
                               <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Link Tags (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateTagsDropdownOpen((v) => !v)}
+                    className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
+                  >
+                    <span>
+                      {createSelectedTagIds.size > 0 ? `${createSelectedTagIds.size} selected` : "Select tags"}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+
+                  {isCreateTagsDropdownOpen && (
+                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                      {allTags.length === 0 ? (
+                        <div className="px-2 py-2 text-xs text-gray-500">No tags available.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          {allTags.map((tag) => (
+                            <label key={tag.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={createSelectedTagIds.has(tag.id)}
+                                onChange={() => toggleCreateTag(tag.id)}
+                              />
+                              <span className="font-medium">{tag.name}</span>
+                              <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{tag.hexCode}</span>
                             </label>
                           ))}
                         </div>
@@ -4514,6 +4767,127 @@ export default function DashboardPage() {
                 {isBindingCats ? "Binding..." : "Bind Selected Categories"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isProductTagsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Link / Delink Product Tags</h2>
+              <button
+                onClick={() => {
+                  setIsProductTagsOpen(false);
+                  setProductTagError("");
+                  setProductTagMsg("");
+                  setProductTagProductId("");
+                  setSelectedLinkTagId("");
+                  setSelectedUnlinkTagId("");
+                  setProductLinkedTagIds([]);
+                  setHasLinkedTagData(false);
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Step 1: Product ID</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={productTagProductId}
+                  onChange={(e) => setProductTagProductId(e.target.value)}
+                  placeholder="e.g. f6eed0e7-ffa0-4272-b9b9-aaccd47a6488"
+                />
+                <p className="mt-1 text-[11px] font-medium text-gray-500">
+                  Enter the product ID once, then use either action below.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Currently linked tags</div>
+                {!productTagProductId.trim() ? (
+                  <div className="mt-1 text-xs text-gray-500">Enter product ID to view linked tags.</div>
+                ) : isLoadingLinkedTags ? (
+                  <div className="mt-1 text-xs text-gray-500">Loading linked tags...</div>
+                ) : !hasLinkedTagData ? (
+                  <div className="mt-1 text-xs text-gray-500">Could not fetch linked tags for this product. You can still use link/delink actions below.</div>
+                ) : productLinkedTagIds.length === 0 ? (
+                  <div className="mt-1 text-xs text-gray-500">No tags linked yet.</div>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {productLinkedTagIds.map((id) => {
+                      const tag = allTags.find((item) => item.id === id);
+                      return (
+                        <span key={id} className="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                          {tag ? `${tag.name} (${tag.hexCode})` : id}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <form onSubmit={handleLinkProductTag} className="space-y-3 rounded-xl border border-green-100 bg-green-50/40 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-green-700">Step 2A: Link Tag</div>
+                  <select
+                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={selectedLinkTagId}
+                    onChange={(e) => setSelectedLinkTagId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select tag to link</option>
+                    {allTags.map((tag) => (
+                      <option key={tag.id} value={tag.id} disabled={productLinkedTagIds.includes(tag.id)}>
+                        {tag.name} ({tag.hexCode}){productLinkedTagIds.includes(tag.id) ? " - already linked" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={isLinkingTag || !productTagProductId.trim() || !selectedLinkTagId}
+                    className="w-full rounded-full bg-green-700 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isLinkingTag ? "Linking..." : "Link Tag"}
+                  </button>
+                </form>
+
+                <form onSubmit={handleUnlinkProductTag} className="space-y-3 rounded-xl border border-red-100 bg-red-50/40 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-red-700">Step 2B: Delink Tag</div>
+                  <select
+                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={selectedUnlinkTagId}
+                    onChange={(e) => setSelectedUnlinkTagId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select tag to delink</option>
+                    {allTags
+                      .filter((tag) => productLinkedTagIds.includes(tag.id))
+                      .map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          {tag.name} ({tag.hexCode})
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={isUnlinkingTag || !productTagProductId.trim() || !selectedUnlinkTagId}
+                    className="w-full rounded-full bg-red-600 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isUnlinkingTag ? "Delinking..." : "Delink Tag"}
+                  </button>
+                </form>
+              </div>
+
+              {productTagError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productTagError}</div>}
+              {productTagMsg && <div className="text-xs font-bold text-green-700 bg-green-50 p-3 rounded-lg text-center">{productTagMsg}</div>}
+            </div>
           </div>
         </div>
       )}

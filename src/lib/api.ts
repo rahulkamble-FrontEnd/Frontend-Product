@@ -957,6 +957,63 @@ export async function deleteProductCategory(productId: string, categoryId: strin
   return response.json() as Promise<DeleteProductCategoryResponse>;
 }
 
+export type LinkProductTagPayload = {
+  tagId: string;
+};
+
+export type LinkProductTagResponse = {
+  message: string;
+  linked: boolean;
+};
+
+export type UnlinkProductTagResponse = {
+  message: string;
+};
+
+export async function linkProductTag(productId: string, payload: LinkProductTagPayload) {
+  const pid = productId.trim();
+  if (!pid) throw new Error("Product id is required");
+
+  const tagId = payload?.tagId?.trim();
+  if (!tagId) throw new Error("Tag id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ tagId }),
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to link tag to product");
+  }
+  return response.json() as Promise<LinkProductTagResponse>;
+}
+
+export async function unlinkProductTag(productId: string, tagId: string) {
+  const pid = productId.trim();
+  const tid = tagId.trim();
+  if (!pid) throw new Error("Product id is required");
+  if (!tid) throw new Error("Tag id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags/${encodeURIComponent(tid)}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(),
+      credentials: "include",
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to unlink tag from product");
+  }
+  return response.json() as Promise<UnlinkProductTagResponse>;
+}
+
 export type BlogStatus = "draft" | "published" | "archived";
 
 export type CreateBlogPayload = {
@@ -1808,4 +1865,155 @@ export async function getCategoryBySlug(slug: string) {
     throw new Error(errorData.message || 'Failed to fetch category details');
   }
   return response.json() as Promise<CategoryDetails>;
+}
+
+export type TagItem = {
+  id: string;
+  name: string;
+  slug: string;
+  hexCode: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+type RawTagItem = {
+  id?: string;
+  name?: string;
+  slug?: string;
+  hexCode?: string;
+  hex_code?: string;
+  createdBy?: string;
+  created_by?: string;
+  createdAt?: string;
+  created_at?: string;
+};
+
+function normalizeTag(raw: RawTagItem): TagItem {
+  return {
+    id: raw.id ?? "",
+    name: raw.name ?? "",
+    slug: raw.slug ?? "",
+    hexCode: raw.hexCode ?? raw.hex_code ?? "",
+    createdBy: raw.createdBy ?? raw.created_by ?? "",
+    createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+  };
+}
+
+export type CreateTagPayload = {
+  name: string;
+  hex_code: string;
+};
+
+export type UpdateTagPayload = {
+  name: string;
+  hex_code: string;
+};
+
+export type DeleteTagResponse = {
+  message: string;
+};
+
+export async function createTag(payload: CreateTagPayload) {
+  const name = payload?.name?.trim();
+  const hexCode = payload?.hex_code?.trim();
+  if (!name) throw new Error("Tag name is required");
+  if (!hexCode) throw new Error("Tag hex_code is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      name,
+      hex_code: hexCode,
+    }),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Tag creation failed");
+  }
+  return normalizeTag((await response.json()) as RawTagItem);
+}
+
+export async function getTags() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags`, {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch tags");
+  }
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) return [] as TagItem[];
+  return data.map((item) => normalizeTag(item as RawTagItem));
+}
+
+export async function getProductTags(productId: string) {
+  const pid = productId.trim();
+  if (!pid) throw new Error("Product id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`, {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch product tags");
+  }
+
+  const data: unknown = await response.json();
+  const list = Array.isArray(data)
+    ? data
+    : data && typeof data === "object"
+      ? (((data as { items?: unknown; data?: unknown; tags?: unknown }).items ??
+          (data as { items?: unknown; data?: unknown; tags?: unknown }).data ??
+          (data as { items?: unknown; data?: unknown; tags?: unknown }).tags) as unknown)
+      : [];
+
+  if (!Array.isArray(list)) return [] as TagItem[];
+  return list.map((item) => normalizeTag(item as RawTagItem));
+}
+
+export async function updateTag(id: string, payload: UpdateTagPayload) {
+  const tagId = id.trim();
+  if (!tagId) throw new Error("Tag id is required");
+
+  const name = payload?.name?.trim();
+  const hexCode = payload?.hex_code?.trim();
+  if (!name) throw new Error("Tag name is required");
+  if (!hexCode) throw new Error("Tag hex_code is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({
+      name,
+      hex_code: hexCode,
+    }),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update tag");
+  }
+  return normalizeTag((await response.json()) as RawTagItem);
+}
+
+export async function deleteTag(id: string) {
+  const tagId = id.trim();
+  if (!tagId) throw new Error("Tag id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete tag");
+  }
+  return response.json() as Promise<DeleteTagResponse>;
 }
