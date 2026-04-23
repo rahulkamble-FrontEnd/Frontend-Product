@@ -2770,7 +2770,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {userRole !== "customer" && (
+      {Boolean(userName) && userRole !== "customer" && (
         <>
           {/* Product Section Intro */}
           <section className={dashboardShellClass}>
@@ -2893,7 +2893,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {userRole !== "customer" && (
+      {Boolean(userName) && userRole !== "customer" && (
         <section className={dashboardShellClass}>
           <div className="pb-10">
         <div className="flex flex-col gap-3">
