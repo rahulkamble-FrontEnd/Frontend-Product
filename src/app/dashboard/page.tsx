@@ -12,9 +12,14 @@ import {
   uploadProductImage,
   uploadProductImages,
   bindProductCategories,
+  linkProductTag,
+  unlinkProductTag,
   getProducts,
   getProductsCompare,
   getTrendings,
+  getBlogs,
+  getTags,
+  getProductTags,
   deleteProduct,
   updateProductStatus,
   getCategories,
@@ -37,7 +42,6 @@ import {
   type CreateDesignerRecommendationPayload,
   type DesignerCustomer,
   type DesignerCustomerDetailResponse,
-  type DesignerRecommendationResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
   type ProductCompareResponse,
@@ -47,9 +51,12 @@ import {
   type NotificationItem,
   type CategoryMenuItem,
   type TrendingItem,
+  type BlogItem,
+  type TagItem,
 } from "@/lib/api";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const FALLBACK_MENU_NAMES = [
   "Flooring",
   "Laminates",
@@ -90,6 +97,9 @@ export default function DashboardPage() {
   const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
   const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
   const [trendingDesignsError, setTrendingDesignsError] = useState("");
+  const [latestBlogs, setLatestBlogs] = useState<BlogItem[]>([]);
+  const [isLoadingLatestBlogs, setIsLoadingLatestBlogs] = useState(false);
+  const [latestBlogsError, setLatestBlogsError] = useState("");
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -157,8 +167,22 @@ export default function DashboardPage() {
   const [isBindingCats, setIsBindingCats] = useState(false);
   const [bindMsg, setBindMsg] = useState("");
   const [bindError, setBindError] = useState("");
+  const [isProductTagsOpen, setIsProductTagsOpen] = useState(false);
+  const [productTagProductId, setProductTagProductId] = useState("");
+  const [allTags, setAllTags] = useState<TagItem[]>([]);
+  const [selectedLinkTagId, setSelectedLinkTagId] = useState("");
+  const [selectedUnlinkTagId, setSelectedUnlinkTagId] = useState("");
+  const [productLinkedTagIds, setProductLinkedTagIds] = useState<string[]>([]);
+  const [hasLinkedTagData, setHasLinkedTagData] = useState(false);
+  const [isLoadingLinkedTags, setIsLoadingLinkedTags] = useState(false);
+  const [isLinkingTag, setIsLinkingTag] = useState(false);
+  const [isUnlinkingTag, setIsUnlinkingTag] = useState(false);
+  const [productTagMsg, setProductTagMsg] = useState("");
+  const [productTagError, setProductTagError] = useState("");
   const [createSelectedCategoryIds, setCreateSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [isCreateCategoriesDropdownOpen, setIsCreateCategoriesDropdownOpen] = useState(false);
+  const [createSelectedTagIds, setCreateSelectedTagIds] = useState<Set<string>>(new Set());
+  const [isCreateTagsDropdownOpen, setIsCreateTagsDropdownOpen] = useState(false);
 
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productsTotal, setProductsTotal] = useState(0);
@@ -204,6 +228,7 @@ export default function DashboardPage() {
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
   const [updateProductStatusError, setUpdateProductStatusError] = useState("");
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
+  const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
   const [shortlistError, setShortlistError] = useState("");
   const [shortlistMsg, setShortlistMsg] = useState("");
@@ -234,12 +259,12 @@ export default function DashboardPage() {
   const [designerNoteError, setDesignerNoteError] = useState("");
   const [designerNoteDrafts, setDesignerNoteDrafts] = useState<Record<string, string>>({});
   const [savingDesignerNoteId, setSavingDesignerNoteId] = useState<string | null>(null);
-  const [designerRecommendationProductId, setDesignerRecommendationProductId] = useState("");
-  const [designerRecommendationDraft, setDesignerRecommendationDraft] = useState("");
+  const [designerRecommendationDrafts, setDesignerRecommendationDrafts] = useState<Record<string, string>>({});
+  const [designerRecommendationProductSelections, setDesignerRecommendationProductSelections] = useState<Record<string, string>>({});
   const [isCreatingDesignerRecommendation, setIsCreatingDesignerRecommendation] = useState(false);
+  const [creatingDesignerRecommendationShortlistId, setCreatingDesignerRecommendationShortlistId] = useState<string | null>(null);
   const [designerRecommendationMsg, setDesignerRecommendationMsg] = useState("");
   const [designerRecommendationError, setDesignerRecommendationError] = useState("");
-  const [designerRecommendations, setDesignerRecommendations] = useState<DesignerRecommendationResponse[]>([]);
 
   const cleanUrl = (value: string) => value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
   const buildProductImageUrl = (value?: string | null) => {
@@ -350,6 +375,12 @@ export default function DashboardPage() {
 
   const dashboardShellClass = "mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 2xl:px-10";
   const unreadNotificationsCount = notifications.filter((item) => !item.isRead).length;
+  const totalDesignerRecommendations = designerCustomerDetails
+    ? designerCustomerDetails.shortlist.reduce(
+        (sum, item) => sum + (Array.isArray(item.recommendations) ? item.recommendations.length : 0),
+        0
+      )
+    : 0;
   const formatNotificationTime = (value: string) => {
     if (!value) return "";
     const date = new Date(value);
@@ -364,6 +395,7 @@ export default function DashboardPage() {
   };
 
   const compareSelectedList = Array.from(compareSelectedIds);
+  const shortlistCompareSelectedList = Array.from(shortlistCompareSelectedIds);
   const trendingCards: Array<TrendingItem | null> = [
     ...trendingDesigns.slice(0, 4),
     ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
@@ -402,18 +434,65 @@ export default function DashboardPage() {
   };
 
   const openCompare = async () => {
+    await openCompareByIds(Array.from(compareSelectedIds));
+  };
+
+  const openCompareByIds = async (ids: string[]) => {
+    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+    if (uniqueIds.length < 2) {
+      setCompareError("Please select at least 2 products to compare.");
+      return;
+    }
+    if (uniqueIds.length > 4) {
+      setCompareError("You can compare maximum 4 products.");
+      return;
+    }
+
     setCompareError("");
     setIsCompareOpen(true);
     setIsComparing(true);
     setCompareData(null);
     try {
-      const data = await getProductsCompare(Array.from(compareSelectedIds));
+      const data = await getProductsCompare(uniqueIds);
       setCompareData(data);
     } catch (err: unknown) {
       setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
     } finally {
       setIsComparing(false);
     }
+  };
+
+  const isSelectedForShortlistCompare = (productId: string) =>
+    shortlistCompareSelectedIds.has(productId);
+
+  const toggleShortlistCompareSelection = (productId: string) => {
+    setShortlistError("");
+    setCompareError("");
+    setShortlistCompareSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+        return next;
+      }
+      if (next.size >= 4) {
+        setShortlistError("You can compare maximum 4 products.");
+        return next;
+      }
+      next.add(productId);
+      return next;
+    });
+  };
+
+  const clearShortlistCompareSelection = () => {
+    setShortlistCompareSelectedIds(new Set());
+    setShortlistError("");
+    setCompareError("");
+    setCompareData(null);
+  };
+
+  const openShortlistCompare = async () => {
+    setIsShortlistOpen(false);
+    await openCompareByIds(shortlistCompareSelectedList);
   };
 
   const handleDeleteProduct = async (id: string) => {
@@ -588,6 +667,34 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const makeBlogImageUrl = useCallback((blog: BlogItem) => {
+    const directUrl = blog.featuredImageUrl?.trim() || "";
+    if (directUrl) return directUrl;
+    const key = blog.featuredImageS3Key?.trim() || "";
+    if (!key) return null;
+    if (key.startsWith("http://") || key.startsWith("https://")) return key;
+    return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
+  }, []);
+
+  const loadLatestBlogs = useCallback(async () => {
+    setIsLoadingLatestBlogs(true);
+    setLatestBlogsError("");
+    try {
+      const blogs = await getBlogs({ publishedOnly: true });
+      const sortedByNewest = [...(Array.isArray(blogs) ? blogs : [])].sort((a, b) => {
+        const aTime = new Date(a.createdAt || "").getTime();
+        const bTime = new Date(b.createdAt || "").getTime();
+        return bTime - aTime;
+      });
+      setLatestBlogs(sortedByNewest.slice(0, 4));
+    } catch (err: unknown) {
+      setLatestBlogs([]);
+      setLatestBlogsError(err instanceof Error ? err.message : "Failed to load latest blogs.");
+    } finally {
+      setIsLoadingLatestBlogs(false);
+    }
+  }, []);
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
@@ -622,8 +729,13 @@ export default function DashboardPage() {
   }, [loadLatestProducts]);
 
   useEffect(() => {
+    loadLatestBlogs();
+  }, [loadLatestBlogs]);
+
+  useEffect(() => {
     if (userRole !== "customer") {
       setShortlistItems([]);
+      setShortlistCompareSelectedIds(new Set());
       setShortlistError("");
       setShortlistMsg("");
       setNoteDrafts({});
@@ -639,6 +751,18 @@ export default function DashboardPage() {
         const items = await getShortlist();
         const shortlist = Array.isArray(items) ? items : [];
         setShortlistItems(shortlist);
+        const shortlistProductIds = new Set(
+          shortlist
+            .map((item) => item.productId?.trim())
+            .filter((id): id is string => Boolean(id))
+        );
+        setShortlistCompareSelectedIds((prev) => {
+          const next = new Set<string>();
+          prev.forEach((id) => {
+            if (shortlistProductIds.has(id)) next.add(id);
+          });
+          return next;
+        });
         setNoteDrafts(
           shortlist.reduce<Record<string, string>>((acc, item) => {
             acc[item.id] = item.customerNote || "";
@@ -863,7 +987,17 @@ export default function DashboardPage() {
     setDeletingShortlistId(id);
     try {
       const result = await deleteShortlist(id);
-      setShortlistItems((prev) => prev.filter((item) => item.id !== id));
+      setShortlistItems((prev) => {
+        const deletedItem = prev.find((item) => item.id === id);
+        if (deletedItem?.productId) {
+          setShortlistCompareSelectedIds((selectedPrev) => {
+            const next = new Set(selectedPrev);
+            next.delete(deletedItem.productId);
+            return next;
+          });
+        }
+        return prev.filter((item) => item.id !== id);
+      });
       setNoteDrafts((prev) => {
         const next = { ...prev };
         delete next[id];
@@ -894,11 +1028,11 @@ export default function DashboardPage() {
     setDesignerNoteError("");
     setDesignerNoteDrafts({});
     setSavingDesignerNoteId(null);
-    setDesignerRecommendationDraft("");
-    setDesignerRecommendationProductId("");
+    setDesignerRecommendationDrafts({});
+    setDesignerRecommendationProductSelections({});
+    setCreatingDesignerRecommendationShortlistId(null);
     setDesignerRecommendationMsg("");
     setDesignerRecommendationError("");
-    setDesignerRecommendations([]);
     if (userRole !== "designer") {
       setDesignerCustomersError("Only designer can view customer details.");
       return;
@@ -918,6 +1052,12 @@ export default function DashboardPage() {
       setDesignerSampleDrafts(
         (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
           acc[item.id] = item.sampleStatus || "none";
+          return acc;
+        }, {})
+      );
+      setDesignerRecommendationProductSelections(
+        (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
+          acc[item.id] = "";
           return acc;
         }, {})
       );
@@ -1164,7 +1304,11 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateDesignerRecommendation = async () => {
+  const handleCreateDesignerRecommendation = async (
+    shortlistItemId: string,
+    selectedProductId: string,
+    shortlistedProductId: string
+  ) => {
     setDesignerRecommendationError("");
     setDesignerRecommendationMsg("");
     if (userRole !== "designer") {
@@ -1176,12 +1320,22 @@ export default function DashboardPage() {
       setDesignerRecommendationError("Customer id is required.");
       return;
     }
-    const productId = designerRecommendationProductId.trim();
-    if (!productId) {
+    const linkedProductId = selectedProductId.trim();
+    if (!linkedProductId) {
       setDesignerRecommendationError("Product is required.");
       return;
     }
-    const note = designerRecommendationDraft.trim();
+    const baseShortlistedProductId = shortlistedProductId.trim();
+    if (baseShortlistedProductId && linkedProductId === baseShortlistedProductId) {
+      setDesignerRecommendationError("Recommended product must be different from shortlisted product.");
+      return;
+    }
+    const shortlistId = shortlistItemId.trim();
+    if (!shortlistId) {
+      setDesignerRecommendationError("Shortlist item id is required.");
+      return;
+    }
+    const note = (designerRecommendationDrafts[shortlistId] ?? "").trim();
     if (!note) {
       setDesignerRecommendationError("Recommendation note is required.");
       return;
@@ -1189,21 +1343,37 @@ export default function DashboardPage() {
 
     const payload: CreateDesignerRecommendationPayload = {
       customerId,
-      productId,
+      productId: linkedProductId,
+      shortlistedProductId: baseShortlistedProductId,
       note,
     };
 
     setIsCreatingDesignerRecommendation(true);
+    setCreatingDesignerRecommendationShortlistId(shortlistId);
     try {
       const created = await createDesignerRecommendation(payload);
-      setDesignerRecommendations((prev) => [created, ...prev]);
-      setDesignerRecommendationDraft("");
-      setDesignerRecommendationProductId("");
+      setDesignerCustomerDetails((prev) =>
+        prev
+          ? {
+              ...prev,
+              shortlist: prev.shortlist.map((item) =>
+                item.id === shortlistId
+                  ? {
+                      ...item,
+                      recommendations: [created, ...(Array.isArray(item.recommendations) ? item.recommendations : [])],
+                    }
+                  : item
+              ),
+            }
+          : prev
+      );
+      setDesignerRecommendationDrafts((prev) => ({ ...prev, [shortlistId]: "" }));
       setDesignerRecommendationMsg("Recommendation added successfully.");
     } catch (err: unknown) {
       setDesignerRecommendationError(err instanceof Error ? err.message : "Failed to add recommendation.");
     } finally {
       setIsCreatingDesignerRecommendation(false);
+      setCreatingDesignerRecommendationShortlistId(null);
     }
   };
 
@@ -1345,6 +1515,24 @@ export default function DashboardPage() {
         }
       }
 
+      let tagLinkNote = "";
+      if (createSelectedTagIds.size > 0) {
+        if (!created?.id) {
+          throw new Error("Product created, but product id is missing so tag linking cannot continue.");
+        }
+        let linkedCount = 0;
+        try {
+          for (const tagId of Array.from(createSelectedTagIds)) {
+            const linked = await linkProductTag(created.id, { tagId });
+            if (linked?.linked) linkedCount += 1;
+          }
+          tagLinkNote = ` • Tags linked: ${linkedCount}`;
+        } catch (err: unknown) {
+          tagLinkNote = " • Tag linking failed";
+          setProductError(err instanceof Error ? err.message : "Failed to link tags.");
+        }
+      }
+
       setProductMsg(() => {
         const base = `Product created: ${created?.name || payload.name}${created?.id ? ` (ID: ${created.id})` : ""}`;
         const imageNote =
@@ -1353,7 +1541,7 @@ export default function DashboardPage() {
             : createProductImageFiles.length > 0
               ? " • Image upload skipped"
               : "";
-        return `${base}${imageNote}${bindNote}`;
+        return `${base}${imageNote}${bindNote}${tagLinkNote}`;
       });
       await Promise.all([loadProducts(), loadLatestProducts()]);
       setNewProductData({
@@ -1374,7 +1562,9 @@ export default function DashboardPage() {
       });
       setCreateProductImageFiles([]);
       setCreateSelectedCategoryIds(new Set());
+      setCreateSelectedTagIds(new Set());
       setIsCreateCategoriesDropdownOpen(false);
+      setIsCreateTagsDropdownOpen(false);
       setTimeout(() => {
         setIsProductModalOpen(false);
         setProductMsg("");
@@ -1552,6 +1742,19 @@ export default function DashboardPage() {
     loadCats();
   }, [isBindCategoriesOpen, isProductModalOpen]);
 
+  useEffect(() => {
+    const loadAllTags = async () => {
+      if (!isProductTagsOpen && !isProductModalOpen) return;
+      try {
+        const data = await getTags();
+        setAllTags(Array.isArray(data) ? data : []);
+      } catch {
+        setAllTags([]);
+      }
+    };
+    void loadAllTags();
+  }, [isProductTagsOpen, isProductModalOpen]);
+
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds(prev => {
       const next = new Set(prev);
@@ -1569,6 +1772,40 @@ export default function DashboardPage() {
       return next;
     });
   };
+
+  const toggleCreateTag = (id: string) => {
+    setCreateSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const loadLinkedTagsForProduct = useCallback(async (productId: string) => {
+    const pid = productId.trim();
+    if (!pid) {
+      setProductLinkedTagIds([]);
+      setHasLinkedTagData(false);
+      return;
+    }
+
+    setIsLoadingLinkedTags(true);
+    try {
+      const tags = await getProductTags(pid);
+      setProductLinkedTagIds(tags.map((tag) => tag.id));
+      setHasLinkedTagData(true);
+    } catch {
+      setProductLinkedTagIds([]);
+      setHasLinkedTagData(false);
+    } finally {
+      setIsLoadingLinkedTags(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLinkedTagsForProduct(productTagProductId);
+  }, [productTagProductId, loadLinkedTagsForProduct]);
 
   const handleBindCategories = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1602,6 +1839,85 @@ export default function DashboardPage() {
       setBindError(err instanceof Error ? err.message : "Failed to bind categories.");
     } finally {
       setIsBindingCats(false);
+    }
+  };
+
+  const handleLinkProductTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLinkingTag(true);
+    setProductTagMsg("");
+    setProductTagError("");
+
+    if (userRole !== "admin") {
+      setIsLinkingTag(false);
+      setProductTagError("Only admin can link tags.");
+      return;
+    }
+
+    const pid = productTagProductId.trim();
+    const tagId = selectedLinkTagId.trim();
+    if (!pid) {
+      setIsLinkingTag(false);
+      setProductTagError("Product ID is required.");
+      return;
+    }
+    if (!tagId) {
+      setIsLinkingTag(false);
+      setProductTagError("Please select a tag to link.");
+      return;
+    }
+    if (productLinkedTagIds.includes(tagId)) {
+      setIsLinkingTag(false);
+      setProductTagError("This tag is already linked to the selected product.");
+      return;
+    }
+
+    try {
+      const result = await linkProductTag(pid, { tagId });
+      setProductTagMsg(result.message || "Tag linked successfully.");
+      await loadLinkedTagsForProduct(pid);
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setProductTagError(err instanceof Error ? err.message : "Failed to link tag.");
+    } finally {
+      setIsLinkingTag(false);
+    }
+  };
+
+  const handleUnlinkProductTag = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUnlinkingTag(true);
+    setProductTagMsg("");
+    setProductTagError("");
+
+    if (userRole !== "admin") {
+      setIsUnlinkingTag(false);
+      setProductTagError("Only admin can delink tags.");
+      return;
+    }
+
+    const pid = productTagProductId.trim();
+    const tagId = selectedUnlinkTagId.trim();
+    if (!pid) {
+      setIsUnlinkingTag(false);
+      setProductTagError("Product ID is required.");
+      return;
+    }
+    if (!tagId) {
+      setIsUnlinkingTag(false);
+      setProductTagError("Please select a tag to delink.");
+      return;
+    }
+
+    try {
+      const result = await unlinkProductTag(pid, tagId);
+      setProductTagMsg(result.message || "Tag delinked successfully.");
+      await loadLinkedTagsForProduct(pid);
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setProductTagError(err instanceof Error ? err.message : "Failed to delink tag.");
+    } finally {
+      setIsUnlinkingTag(false);
     }
   };
 
@@ -1650,6 +1966,21 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            <div className="hidden md:block">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                  router.push("/blog");
+                }}
+                className="rounded-md border-2 border-black px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm transition-all hover:bg-black hover:text-white"
+              >
+                Blogs
+              </button>
+            </div>
             {userRole === "blogadmin" && (
               <div className="relative hidden md:block">
                 <button
@@ -1815,6 +2146,16 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            router.push("/tags");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Tags
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
                             setIsCategoryModalOpen(true);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -1832,6 +2173,18 @@ export default function DashboardPage() {
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
                           Bind Categories
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            setIsProductTagsOpen(true);
+                            setProductTagError("");
+                            setProductTagMsg("");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Link/Delink Tags
                         </button>
                       </div>
                     )}
@@ -1867,7 +2220,9 @@ export default function DashboardPage() {
                             setCreateProductImageFiles([]);
                             setCreatedProductImages([]);
                             setCreateSelectedCategoryIds(new Set());
+                            setCreateSelectedTagIds(new Set());
                             setIsCreateCategoriesDropdownOpen(false);
+                            setIsCreateTagsDropdownOpen(false);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
@@ -2107,6 +2462,16 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      router.push("/tags");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Tags
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
                       setIsCategoryModalOpen(true);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2124,6 +2489,18 @@ export default function DashboardPage() {
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     Bind Categories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
+                      setIsProductTagsOpen(true);
+                      setProductTagError("");
+                      setProductTagMsg("");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Link/Delink Tags
                   </button>
                 </div>
               )}
@@ -2161,7 +2538,9 @@ export default function DashboardPage() {
                       setCreateProductImageFiles([]);
                       setCreatedProductImages([]);
                       setCreateSelectedCategoryIds(new Set());
+                      setCreateSelectedTagIds(new Set());
                       setIsCreateCategoriesDropdownOpen(false);
+                      setIsCreateTagsDropdownOpen(false);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
@@ -2342,7 +2721,7 @@ export default function DashboardPage() {
       <section className={`${dashboardShellClass} pt-10 pb-7`}>
         <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="text-left text-[30px] font-bold leading-[38px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
-            Everything You Need for Interiors - In One Place
+            Shop Interior Materials by Category
           </h3>
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
@@ -2412,7 +2791,7 @@ export default function DashboardPage() {
                 Trending Designs
               </h3>
               <p className="mt-3 text-sm text-white/90">
-                Get inspired by the latest interior design trends.
+                Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
@@ -2486,33 +2865,33 @@ export default function DashboardPage() {
         <div className="mx-auto mt-8 grid max-w-[1320px] grid-cols-1 gap-y-7 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-14">
           {[
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "Wide Product Range",
+              subtitle: "Explore 10,000+ interior materials across categories",
               icon: "list",
             },
             {
-              title: "Curated Collections",
-              subtitle: "Handpicked materials by top interior designers.",
+              title: "Curated by Designers",
+              subtitle: "Handpicked collections by industry experts",
               icon: "list",
             },
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "Quality Assured",
+              subtitle: "Every product is tested for durability & finish",
               icon: "spark",
-            },
-            {
-              title: "Quality Tested",
-              subtitle: "Every material undergoes rigorous quality checks.",
-              icon: "wave",
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare textures, prices, and specs side-by-side.",
+              subtitle: "Compare materials, textures & pricing easily",
+              icon: "wave",
+            },
+            {
+              title: "Fast Delivery",
+              subtitle: "Get materials delivered within 10 days",
               icon: "spark",
             },
             {
-              title: "Wide Variety",
-              subtitle: "Explore thousands of designs across 15+ categories.",
+              title: "End-to-End Support",
+              subtitle: "From selection to execution — we guide you",
               icon: "spark",
             },
           ].map((feature, index) => (
@@ -2562,7 +2941,7 @@ export default function DashboardPage() {
                 Latest Products
               </h3>
               <p className="mt-3 text-sm text-white/90">
-                Get inspired by the latest interior design trends.
+                Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
@@ -2631,7 +3010,7 @@ export default function DashboardPage() {
           <div className="mx-auto max-w-[1449px] text-center">
           <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CF</h3>
           <p className="mt-2 text-sm text-[#8B6E46]">
-            Your dream furniture and interior specialists are all right here.
+            See how we transform spaces into beautiful homes.
           </p>
           </div>
           <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
@@ -2657,7 +3036,100 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {userRole !== "customer" && (
+      <section className="bg-[#F8F0E4] pb-16">
+        <div className={`${dashboardShellClass} px-4 sm:px-0`}>
+          <div className="flex items-center justify-between">
+            <h3 className="ml-[60px] text-[36px] font-bold leading-[40px] text-[#977543]">
+              Relevant Articles
+            </h3>
+            <div className="mr-[80px] hidden items-center gap-2 md:flex">
+              <button
+                type="button"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                aria-label="Previous relevant article"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                aria-label="Next relevant article"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-wrap justify-center gap-5">
+            {isLoadingLatestBlogs ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`relevant-article-loading-${idx}`}
+                  className="h-[332px] w-full max-w-[280px] animate-pulse rounded-[18px] bg-[#d8ccbb]"
+                />
+              ))
+            ) : latestBlogs.length === 0 ? (
+              <div className="w-full text-center text-sm text-[#8B6E46]">
+                {latestBlogsError || "No relevant articles available right now."}
+              </div>
+            ) : (
+              latestBlogs.map((blog, idx) => {
+                const imageUrl = makeBlogImageUrl(blog) || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
+                const articleTitle = (blog.title || "Blog").trim() || "Blog";
+                const blogSlug = (blog.slug || "").trim();
+                return (
+                  <article
+                    key={blog.id || `relevant-article-${idx}`}
+                    className={`w-full max-w-[280px] overflow-hidden rounded-[18px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                      blogSlug ? "cursor-pointer" : ""
+                    }`}
+                    onClick={() => {
+                      if (!blogSlug) return;
+                      router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                    }}
+                  >
+                    <div className="relative h-[270px] w-full">
+                      <Image
+                        src={imageUrl}
+                        alt={blog.title || "Relevant article"}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center justify-center bg-[#AE8953] px-3 py-2.5">
+                      <span className="truncate text-[11px] font-medium text-white">{articleTitle}</span>
+                    </div>
+                    <div className="flex items-center justify-center bg-[#262626] py-2.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!blogSlug) return;
+                          router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#AE8953] px-5 py-1 text-[11px] font-medium text-white"
+                      >
+                        Read Now
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M5 12h14" />
+                          <path d="m13 6 6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </section>
+
+      {Boolean(userName) && userRole !== "customer" && (
         <>
           {/* Product Section Intro */}
           <section className={dashboardShellClass}>
@@ -2780,7 +3252,7 @@ export default function DashboardPage() {
         </section>
       )}
 
-      {userRole !== "customer" && (
+      {Boolean(userName) && userRole !== "customer" && (
         <section className={dashboardShellClass}>
           <div className="pb-10">
         <div className="flex flex-col gap-3">
@@ -2991,7 +3463,7 @@ export default function DashboardPage() {
                     <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
                     <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
                       <span>SKU: {p.sku}</span>
-                      <span>{p.brand}</span>
+                      {userRole !== "customer" ? <span>{p.brand}</span> : null}
                     </div>
                     <div className="mt-2 text-[11px] font-bold text-gray-500">{p.id}</div>
                   </div>
@@ -3104,6 +3576,32 @@ export default function DashboardPage() {
               )}
 
               <div className="space-y-4">
+                <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+                      Compare: {shortlistCompareSelectedList.length}/4 selected
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={shortlistCompareSelectedList.length < 2 || isComparing}
+                        onClick={openShortlistCompare}
+                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+                      >
+                        {isComparing ? "Comparing..." : "Compare"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={shortlistCompareSelectedList.length === 0}
+                        onClick={clearShortlistCompareSelection}
+                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {isLoadingShortlist ? (
                   Array.from({ length: 3 }).map((_, idx) => (
                     <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -3123,6 +3621,9 @@ export default function DashboardPage() {
                   shortlistItems.map((item) => {
                     const shortlistedProduct = item.product ?? null;
                     const imageUrl = shortlistedProduct ? inlineProductImageUrl(shortlistedProduct) : null;
+                    const productRecommendations = Array.isArray(item.recommendations)
+                      ? item.recommendations
+                      : [];
                     return (
                       <div
                         key={item.id}
@@ -3166,6 +3667,35 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
+                          {shortlistedProduct?.id && (
+                            <button
+                              type="button"
+                              aria-label={
+                                isSelectedForShortlistCompare(shortlistedProduct.id)
+                                  ? "Untick from compare"
+                                  : "Tick for compare"
+                              }
+                              className={[
+                                "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm",
+                                isSelectedForShortlistCompare(shortlistedProduct.id)
+                                  ? "border-black bg-black text-white"
+                                  : "border-gray-200 bg-white/95 text-gray-800"
+                              ].join(" ")}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleShortlistCompareSelection(shortlistedProduct.id);
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                className="pointer-events-none h-4 w-4 accent-black"
+                                checked={isSelectedForShortlistCompare(shortlistedProduct.id)}
+                                readOnly
+                                tabIndex={-1}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          )}
                         </div>
 
                         <div className="space-y-3 p-4">
@@ -3179,7 +3709,7 @@ export default function DashboardPage() {
                             {shortlistedProduct && (
                               <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
                                 <span>SKU: {shortlistedProduct.sku}</span>
-                                <span>{shortlistedProduct.brand}</span>
+                                {userRole !== "customer" ? <span>{shortlistedProduct.brand}</span> : null}
                               </div>
                             )}
                           </div>
@@ -3255,6 +3785,57 @@ export default function DashboardPage() {
                               {item.designerReplyUpdatedAt
                                 ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
                                 : "-"}
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                Recommended By Designer
+                              </div>
+                              <div className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                {productRecommendations.length} Added
+                              </div>
+                            </div>
+                            <div className="mt-2 space-y-2">
+                              {productRecommendations.length === 0 ? (
+                                <div className="rounded-lg bg-white p-3 text-xs text-gray-500">
+                                  No recommendations from designer yet.
+                                </div>
+                              ) : (
+                                productRecommendations.map((recommendation) => (
+                                  <button
+                                    key={recommendation.id}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const slug =
+                                        recommendation.product?.slug ||
+                                        products.find((product) => product.id === recommendation.productId)?.slug ||
+                                        null;
+                                      if (!slug) return;
+                                      setIsShortlistOpen(false);
+                                      router.push(`/products/${slug}`);
+                                    }}
+                                    className="w-full rounded-lg bg-white p-3 text-left transition hover:bg-gray-100"
+                                  >
+                                    <div className="text-sm font-semibold text-gray-900">
+                                      {recommendation.note}
+                                    </div>
+                                    <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-[#0468a3]">
+                                      Recommended Product:{" "}
+                                      {recommendation.product
+                                        ? [recommendation.product.name, recommendation.product.sku]
+                                            .filter(Boolean)
+                                            .join(" • ")
+                                        : getProductLabelForNote(recommendation.productId) || recommendation.productId}
+                                    </div>
+                                    <div className="mt-1 text-[11px] font-bold text-gray-500">
+                                      Recommended on {new Date(recommendation.createdAt).toLocaleString()}
+                                    </div>
+                                  </button>
+                                ))
+                              )}
                             </div>
                           </div>
 
@@ -3415,6 +3996,9 @@ export default function DashboardPage() {
                           designerCustomerDetails.shortlist.map((item) => {
                             const shortlistProduct = item.product ?? null;
                             const imageUrl = shortlistProduct ? inlineProductImageUrl(shortlistProduct) : null;
+                            const itemRecommendations = Array.isArray(item.recommendations) ? item.recommendations : [];
+                            const selectedRecommendationProductId =
+                              designerRecommendationProductSelections[item.id] ?? "";
                             return (
                               <div key={item.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
                                 <div className="grid gap-4 md:grid-cols-[140px_1fr]">
@@ -3504,6 +4088,80 @@ export default function DashboardPage() {
                                         {savingDesignerSampleId === item.id ? "Saving..." : "Update Sample"}
                                       </button>
                                     </div>
+                                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
+                                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                          {itemRecommendations.length} Added
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 space-y-2">
+                                        <select
+                                          value={selectedRecommendationProductId}
+                                          onChange={(e) =>
+                                            setDesignerRecommendationProductSelections((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        >
+                                          <option value="">Select recommended product</option>
+                                          {products
+                                            .filter((product) => product.id !== item.productId)
+                                            .map((product) => (
+                                            <option key={`${item.id}-${product.id}`} value={product.id}>
+                                              {[product.name, product.sku].filter(Boolean).join(" • ")}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <textarea
+                                          value={designerRecommendationDrafts[item.id] ?? ""}
+                                          onChange={(e) =>
+                                            setDesignerRecommendationDrafts((prev) => ({
+                                              ...prev,
+                                              [item.id]: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="Add recommendation for this product"
+                                          className="block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isCreatingDesignerRecommendation && creatingDesignerRecommendationShortlistId === item.id}
+                                          onClick={() =>
+                                            handleCreateDesignerRecommendation(
+                                              item.id,
+                                              selectedRecommendationProductId,
+                                              item.productId
+                                            )
+                                          }
+                                          className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          {isCreatingDesignerRecommendation && creatingDesignerRecommendationShortlistId === item.id
+                                            ? "Saving..."
+                                            : "Add Recommendation"}
+                                        </button>
+                                      </div>
+                                      <div className="mt-3 space-y-2">
+                                        {itemRecommendations.length === 0 ? (
+                                          <div className="rounded-lg bg-gray-50 p-3 text-xs text-gray-500">
+                                            No recommendations for this product.
+                                          </div>
+                                        ) : (
+                                          itemRecommendations.map((recommendation) => (
+                                            <div key={recommendation.id} className="rounded-lg bg-gray-50 p-3">
+                                              <div className="text-sm font-semibold text-gray-900">
+                                                {recommendation.note}
+                                              </div>
+                                              <div className="mt-1 text-[11px] font-bold text-gray-500">
+                                                Created: {new Date(recommendation.createdAt).toLocaleString()}
+                                              </div>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
                                     <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-bold text-gray-600">
                                       <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
                                       <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
@@ -3521,73 +4179,22 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
-                          <div className="mt-1 text-sm text-gray-500">Recommend products to this customer with a designer note.</div>
+                          <div className="mt-1 text-sm text-gray-500">Use each shortlist card above to add product-wise recommendations.</div>
                         </div>
                         <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                          {designerRecommendations.length} Added
+                          {totalDesignerRecommendations} Added
                         </div>
                       </div>
-
-                      <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
-                          <div className="space-y-3">
-                            <select
-                              value={designerRecommendationProductId}
-                              onChange={(e) => setDesignerRecommendationProductId(e.target.value)}
-                              className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
-                            >
-                              <option value="">Select product</option>
-                              {products.map((product) => (
-                                <option key={product.id} value={product.id}>
-                                  {[product.name, product.sku].filter(Boolean).join(" • ")}
-                                </option>
-                              ))}
-                            </select>
-                            <button
-                              type="button"
-                              disabled={isCreatingDesignerRecommendation}
-                              onClick={handleCreateDesignerRecommendation}
-                              className="w-full rounded-full bg-[#0468a3] px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {isCreatingDesignerRecommendation ? "Saving..." : "Add Recommendation"}
-                            </button>
-                          </div>
-                          <textarea
-                            value={designerRecommendationDraft}
-                            onChange={(e) => setDesignerRecommendationDraft(e.target.value)}
-                            placeholder="Matte better than gloss for this kitchen direction"
-                            className="min-h-[110px] w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-gray-700 shadow-inner"
-                          />
+                      {designerRecommendationError && (
+                        <div className="mt-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
+                          {designerRecommendationError}
                         </div>
-                        {designerRecommendationError && (
-                          <div className="mt-3 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
-                            {designerRecommendationError}
-                          </div>
-                        )}
-                        {designerRecommendationMsg && (
-                          <div className="mt-3 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
-                            {designerRecommendationMsg}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-4 space-y-3">
-                        {designerRecommendations.length === 0 ? (
-                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No recommendations created in this session.</div>
-                        ) : (
-                          designerRecommendations.map((recommendation) => (
-                            <div key={recommendation.id} className="rounded-xl bg-gray-50 p-4">
-                              <div className="text-sm font-bold text-gray-900">{recommendation.note}</div>
-                              <div className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-500">
-                                Product: {getProductLabelForNote(recommendation.productId) || recommendation.productId}
-                              </div>
-                              <div className="mt-2 text-[11px] font-bold text-gray-500">
-                                Created: {new Date(recommendation.createdAt).toLocaleString()}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
+                      )}
+                      {designerRecommendationMsg && (
+                        <div className="mt-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
+                          {designerRecommendationMsg}
+                        </div>
+                      )}
                     </div>
 
                     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
@@ -3699,7 +4306,7 @@ export default function DashboardPage() {
       )}
 
       {isCompareOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
@@ -3835,28 +4442,16 @@ export default function DashboardPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newUserData.role}
-                    onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
-                  >
-                    <option value="customer">Customer</option>
-                    <option value="designer">Designer</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Project Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newUserData.projectName}
-                    onChange={(e) => setNewUserData({ ...newUserData, projectName: e.target.value })}
-                    placeholder="e.g. 3BHK Kondapur"
-                  />
-                </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Role</label>
+                <select
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newUserData.role}
+                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                >
+                  <option value="customer">Customer</option>
+                  <option value="designer">Designer</option>
+                </select>
               </div>
 
               {createError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{createError}</div>}
@@ -3944,7 +4539,9 @@ export default function DashboardPage() {
                   setCreateProductImageFiles([]);
                   setCreatedProductImages([]);
                   setCreateSelectedCategoryIds(new Set());
+                  setCreateSelectedTagIds(new Set());
                   setIsCreateCategoriesDropdownOpen(false);
+                  setIsCreateTagsDropdownOpen(false);
                 }}
                 className="text-gray-400 hover:text-black"
               >
@@ -3984,6 +4581,44 @@ export default function DashboardPage() {
                               />
                               <span className="font-medium">{c.name}</span>
                               <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Link Tags (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsCreateTagsDropdownOpen((v) => !v)}
+                    className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
+                  >
+                    <span>
+                      {createSelectedTagIds.size > 0 ? `${createSelectedTagIds.size} selected` : "Select tags"}
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+
+                  {isCreateTagsDropdownOpen && (
+                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                      {allTags.length === 0 ? (
+                        <div className="px-2 py-2 text-xs text-gray-500">No tags available.</div>
+                      ) : (
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                          {allTags.map((tag) => (
+                            <label key={tag.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={createSelectedTagIds.has(tag.id)}
+                                onChange={() => toggleCreateTag(tag.id)}
+                              />
+                              <span className="font-medium">{tag.name}</span>
+                              <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{tag.hexCode}</span>
                             </label>
                           ))}
                         </div>
@@ -4278,6 +4913,127 @@ export default function DashboardPage() {
                 {isBindingCats ? "Binding..." : "Bind Selected Categories"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {isProductTagsOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Link / Delink Product Tags</h2>
+              <button
+                onClick={() => {
+                  setIsProductTagsOpen(false);
+                  setProductTagError("");
+                  setProductTagMsg("");
+                  setProductTagProductId("");
+                  setSelectedLinkTagId("");
+                  setSelectedUnlinkTagId("");
+                  setProductLinkedTagIds([]);
+                  setHasLinkedTagData(false);
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Step 1: Product ID</label>
+                <input
+                  type="text"
+                  required
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={productTagProductId}
+                  onChange={(e) => setProductTagProductId(e.target.value)}
+                  placeholder="e.g. f6eed0e7-ffa0-4272-b9b9-aaccd47a6488"
+                />
+                <p className="mt-1 text-[11px] font-medium text-gray-500">
+                  Enter the product ID once, then use either action below.
+                </p>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Currently linked tags</div>
+                {!productTagProductId.trim() ? (
+                  <div className="mt-1 text-xs text-gray-500">Enter product ID to view linked tags.</div>
+                ) : isLoadingLinkedTags ? (
+                  <div className="mt-1 text-xs text-gray-500">Loading linked tags...</div>
+                ) : !hasLinkedTagData ? (
+                  <div className="mt-1 text-xs text-gray-500">Could not fetch linked tags for this product. You can still use link/delink actions below.</div>
+                ) : productLinkedTagIds.length === 0 ? (
+                  <div className="mt-1 text-xs text-gray-500">No tags linked yet.</div>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {productLinkedTagIds.map((id) => {
+                      const tag = allTags.find((item) => item.id === id);
+                      return (
+                        <span key={id} className="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                          {tag ? `${tag.name} (${tag.hexCode})` : id}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <form onSubmit={handleLinkProductTag} className="space-y-3 rounded-xl border border-green-100 bg-green-50/40 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-green-700">Step 2A: Link Tag</div>
+                  <select
+                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={selectedLinkTagId}
+                    onChange={(e) => setSelectedLinkTagId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select tag to link</option>
+                    {allTags.map((tag) => (
+                      <option key={tag.id} value={tag.id} disabled={productLinkedTagIds.includes(tag.id)}>
+                        {tag.name} ({tag.hexCode}){productLinkedTagIds.includes(tag.id) ? " - already linked" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={isLinkingTag || !productTagProductId.trim() || !selectedLinkTagId}
+                    className="w-full rounded-full bg-green-700 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isLinkingTag ? "Linking..." : "Link Tag"}
+                  </button>
+                </form>
+
+                <form onSubmit={handleUnlinkProductTag} className="space-y-3 rounded-xl border border-red-100 bg-red-50/40 p-4">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-red-700">Step 2B: Delink Tag</div>
+                  <select
+                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={selectedUnlinkTagId}
+                    onChange={(e) => setSelectedUnlinkTagId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select tag to delink</option>
+                    {allTags
+                      .filter((tag) => productLinkedTagIds.includes(tag.id))
+                      .map((tag) => (
+                        <option key={tag.id} value={tag.id}>
+                          {tag.name} ({tag.hexCode})
+                        </option>
+                      ))}
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={isUnlinkingTag || !productTagProductId.trim() || !selectedUnlinkTagId}
+                    className="w-full rounded-full bg-red-600 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {isUnlinkingTag ? "Delinking..." : "Delink Tag"}
+                  </button>
+                </form>
+              </div>
+
+              {productTagError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{productTagError}</div>}
+              {productTagMsg && <div className="text-xs font-bold text-green-700 bg-green-50 p-3 rounded-lg text-center">{productTagMsg}</div>}
+            </div>
           </div>
         </div>
       )}
