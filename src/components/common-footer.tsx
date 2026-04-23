@@ -42,11 +42,11 @@ export default function CommonFooter() {
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
         <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_1.2fr]">
-          <div className="space-y-4">
+          <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
             </div>
-            <p className="max-w-sm text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
+            <p className="max-w-sm text-[14px] font-normal leading-5 tracking-[0%] text-white/90">
               CustomFurnish is India&apos;s leading platform for interior materials
               and customized home interiors. We combine design, quality materials,
               and execution to deliver dream homes faster.

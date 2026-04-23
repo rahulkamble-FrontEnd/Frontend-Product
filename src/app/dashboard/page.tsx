@@ -17,6 +17,7 @@ import {
   getProducts,
   getProductsCompare,
   getTrendings,
+  getBlogs,
   getTags,
   getProductTags,
   deleteProduct,
@@ -50,10 +51,12 @@ import {
   type NotificationItem,
   type CategoryMenuItem,
   type TrendingItem,
+  type BlogItem,
   type TagItem,
 } from "@/lib/api";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const FALLBACK_MENU_NAMES = [
   "Flooring",
   "Laminates",
@@ -94,6 +97,9 @@ export default function DashboardPage() {
   const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
   const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
   const [trendingDesignsError, setTrendingDesignsError] = useState("");
+  const [latestBlogs, setLatestBlogs] = useState<BlogItem[]>([]);
+  const [isLoadingLatestBlogs, setIsLoadingLatestBlogs] = useState(false);
+  const [latestBlogsError, setLatestBlogsError] = useState("");
 
   // Create User Modal State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -661,6 +667,34 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const makeBlogImageUrl = useCallback((blog: BlogItem) => {
+    const directUrl = blog.featuredImageUrl?.trim() || "";
+    if (directUrl) return directUrl;
+    const key = blog.featuredImageS3Key?.trim() || "";
+    if (!key) return null;
+    if (key.startsWith("http://") || key.startsWith("https://")) return key;
+    return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
+  }, []);
+
+  const loadLatestBlogs = useCallback(async () => {
+    setIsLoadingLatestBlogs(true);
+    setLatestBlogsError("");
+    try {
+      const blogs = await getBlogs({ publishedOnly: true });
+      const sortedByNewest = [...(Array.isArray(blogs) ? blogs : [])].sort((a, b) => {
+        const aTime = new Date(a.createdAt || "").getTime();
+        const bTime = new Date(b.createdAt || "").getTime();
+        return bTime - aTime;
+      });
+      setLatestBlogs(sortedByNewest.slice(0, 4));
+    } catch (err: unknown) {
+      setLatestBlogs([]);
+      setLatestBlogsError(err instanceof Error ? err.message : "Failed to load latest blogs.");
+    } finally {
+      setIsLoadingLatestBlogs(false);
+    }
+  }, []);
+
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
@@ -693,6 +727,10 @@ export default function DashboardPage() {
   useEffect(() => {
     loadLatestProducts();
   }, [loadLatestProducts]);
+
+  useEffect(() => {
+    loadLatestBlogs();
+  }, [loadLatestBlogs]);
 
   useEffect(() => {
     if (userRole !== "customer") {
@@ -2994,6 +3032,99 @@ export default function DashboardPage() {
               </article>
             );
           })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#F8F0E4] pb-16">
+        <div className={`${dashboardShellClass} px-4 sm:px-0`}>
+          <div className="flex items-center justify-between">
+            <h3 className="ml-[60px] text-[36px] font-bold leading-[40px] text-[#977543]">
+              Relevant Articles
+            </h3>
+            <div className="mr-[80px] hidden items-center gap-2 md:flex">
+              <button
+                type="button"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                aria-label="Previous relevant article"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                aria-label="Next relevant article"
+              >
+                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-12 flex flex-wrap justify-center gap-5">
+            {isLoadingLatestBlogs ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`relevant-article-loading-${idx}`}
+                  className="h-[332px] w-full max-w-[280px] animate-pulse rounded-[18px] bg-[#d8ccbb]"
+                />
+              ))
+            ) : latestBlogs.length === 0 ? (
+              <div className="w-full text-center text-sm text-[#8B6E46]">
+                {latestBlogsError || "No relevant articles available right now."}
+              </div>
+            ) : (
+              latestBlogs.map((blog, idx) => {
+                const imageUrl = makeBlogImageUrl(blog) || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
+                const articleTitle = (blog.title || "Blog").trim() || "Blog";
+                const blogSlug = (blog.slug || "").trim();
+                return (
+                  <article
+                    key={blog.id || `relevant-article-${idx}`}
+                    className={`w-full max-w-[280px] overflow-hidden rounded-[18px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                      blogSlug ? "cursor-pointer" : ""
+                    }`}
+                    onClick={() => {
+                      if (!blogSlug) return;
+                      router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                    }}
+                  >
+                    <div className="relative h-[270px] w-full">
+                      <Image
+                        src={imageUrl}
+                        alt={blog.title || "Relevant article"}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 25vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center justify-center bg-[#AE8953] px-3 py-2.5">
+                      <span className="truncate text-[11px] font-medium text-white">{articleTitle}</span>
+                    </div>
+                    <div className="flex items-center justify-center bg-[#262626] py-2.5">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!blogSlug) return;
+                          router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                        }}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#AE8953] px-5 py-1 text-[11px] font-medium text-white"
+                      >
+                        Read Now
+                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
+                          <path d="M5 12h14" />
+                          <path d="m13 6 6 6-6 6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
