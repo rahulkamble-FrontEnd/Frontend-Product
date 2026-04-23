@@ -3080,6 +3080,7 @@ export default function DashboardPage() {
               latestBlogs.map((blog, idx) => {
                 const imageUrl = makeBlogImageUrl(blog) || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
                 const articleTitle = (blog.title || "Blog").trim() || "Blog";
+                const displayTitle = articleTitle.length > 26 ? `${articleTitle.slice(0, 23)}...` : articleTitle;
                 const blogSlug = (blog.slug || "").trim();
                 return (
                   <article
@@ -3102,7 +3103,7 @@ export default function DashboardPage() {
                       />
                     </div>
                     <div className="flex items-center justify-center bg-[#AE8953] px-3 py-2.5">
-                      <span className="truncate text-[11px] font-medium text-white">{articleTitle}</span>
+                      <span className="text-center text-[18px] font-medium leading-tight text-white">{displayTitle}</span>
                     </div>
                     <div className="flex items-center justify-center bg-[#262626] py-2.5">
                       <button
