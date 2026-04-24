@@ -68,6 +68,9 @@ export default function CategoryProductsPage() {
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
+  const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(
+    new Set(),
+  );
   const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
 
@@ -183,6 +186,15 @@ export default function CategoryProductsPage() {
   }, [slug, userName]);
 
   const shouldShowBrand = userRole !== "customer";
+  const availableSubcategories = useMemo(() => {
+    const children = Array.isArray(category?.children) ? category.children : [];
+    return children
+      .map((child) => ({
+        id: child?.id?.trim() ?? "",
+        name: child?.name?.trim() ?? "",
+      }))
+      .filter((item) => item.id && item.name);
+  }, [category]);
 
   const availableBrands = useMemo(() => {
     return Array.from(
@@ -221,6 +233,18 @@ export default function CategoryProductsPage() {
       });
     }
 
+    if (selectedSubcategories.size > 0) {
+      next = next.filter((product) => {
+        const productWithCategories = product as ProductListItem & {
+          categories?: Array<{ categoryId?: string; id?: string }>;
+        };
+        const linkedCategoryIds = (productWithCategories.categories ?? [])
+          .map((cat) => cat.categoryId || cat.id || "")
+          .filter(Boolean);
+        return linkedCategoryIds.some((id) => selectedSubcategories.has(id));
+      });
+    }
+
     next.sort((a, b) => {
       if (sortBy === "name_asc") return a.name.localeCompare(b.name);
       if (sortBy === "name_desc") return b.name.localeCompare(a.name);
@@ -228,7 +252,14 @@ export default function CategoryProductsPage() {
     });
 
     return next;
-  }, [products, selectedBrands, selectedThicknesses, sortBy, shouldShowBrand]);
+  }, [
+    products,
+    selectedBrands,
+    selectedThicknesses,
+    selectedSubcategories,
+    sortBy,
+    shouldShowBrand,
+  ]);
 
   const productImageMap = useMemo(() => {
     return Object.fromEntries(
@@ -291,6 +322,36 @@ export default function CategoryProductsPage() {
           </div>
           <div className="mt-1 text-xs font-bold text-gray-500">
             {category?.name ?? "Products"}
+          </div>
+
+          <div className="mt-6 border-t border-[#d9cab5] pt-5">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+              Sub-Category
+            </div>
+            <div className="mt-3 space-y-2">
+              {availableSubcategories.length === 0 ? (
+                <div className="text-xs text-gray-400">No sub-category options</div>
+              ) : (
+                availableSubcategories.map((subcat) => (
+                  <label
+                    key={subcat.id}
+                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSubcategories.has(subcat.id)}
+                      onChange={() =>
+                        setSelectedSubcategories((prev) =>
+                          toggleSetValue(prev, subcat.id),
+                        )
+                      }
+                      className="h-3.5 w-3.5 rounded border-gray-300"
+                    />
+                    <span>{subcat.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
           </div>
 
           {shouldShowBrand ? (

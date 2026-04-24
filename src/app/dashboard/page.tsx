@@ -9,7 +9,6 @@ import {
   createCategory,
   createProduct,
   bulkUploadProducts,
-  uploadProductImage,
   uploadProductImages,
   bindProductCategories,
   linkProductTag,
@@ -117,7 +116,8 @@ export default function DashboardPage() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCatData, setNewCatData] = useState({
     name: "",
-    parent_id: ""
+    parent_id: "",
+    type: "material" as "material" | "furniture",
   });
   const [isCreatingCat, setIsCreatingCat] = useState(false);
   const [catMsg, setCatMsg] = useState("");
@@ -161,8 +161,15 @@ export default function DashboardPage() {
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
   const [bindProductId, setBindProductId] = useState("");
-  type Category = { id: string; name: string; type: "material" | "furniture" };
+  type Category = {
+    id: string;
+    name: string;
+    type: "material" | "furniture";
+    parentId?: string;
+    parentName?: string;
+  };
   const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [topLevelCategories, setTopLevelCategories] = useState<Category[]>([]);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<Set<string>>(new Set());
   const [isBindingCats, setIsBindingCats] = useState(false);
   const [bindMsg, setBindMsg] = useState("");
@@ -1423,8 +1430,13 @@ export default function DashboardPage() {
     setCatMsg("");
     setCatError("");
     try {
-      const payload: { name: string; parent_id?: string } = {
+      const payload: {
+        name: string;
+        type: "material" | "furniture";
+        parent_id?: string;
+      } = {
         name: newCatData.name,
+        type: newCatData.type,
       };
       if (newCatData.parent_id.trim()) {
         payload.parent_id = newCatData.parent_id.trim();
@@ -1432,7 +1444,7 @@ export default function DashboardPage() {
       
       await createCategory(payload);
       setCatMsg("Category created successfully!");
-      setNewCatData({ name: "", parent_id: "" });
+      setNewCatData({ name: "", parent_id: "", type: "material" });
       setTimeout(() => {
         setIsCategoryModalOpen(false);
         setCatMsg("");
@@ -1493,11 +1505,7 @@ export default function DashboardPage() {
         if (!created?.id) {
           throw new Error("Product created, but product id is missing so image upload cannot continue.");
         }
-        uploadedImages = [];
-        for (const file of createProductImageFiles) {
-          const uploaded = await uploadProductImage(created.id, file);
-          uploadedImages.push(uploaded);
-        }
+        uploadedImages = await uploadProductImages(created.id, createProductImageFiles);
         setCreatedProductImages(uploadedImages);
       }
 
@@ -1722,20 +1730,35 @@ export default function DashboardPage() {
     const loadCats = async () => {
       if (!isBindCategoriesOpen && !isProductModalOpen) return;
       try {
-        const mats = await getCategories("material");
-        const furns = await getCategories("furniture");
-        const mapped: Category[] = [
-          ...(Array.isArray(mats) ? mats : []),
-          ...(Array.isArray(furns) ? furns : []),
-        ].map((raw) => {
-          const obj = raw as Record<string, unknown>;
-          const id = typeof obj.id === "string" ? obj.id : typeof (obj as Record<string, unknown>)._id === "string" ? String((obj as Record<string, unknown>)._id) : "";
-          const name = typeof obj.name === "string" ? obj.name : "";
-          const type: Category["type"] = obj.type === "furniture" ? "furniture" : "material";
-          return { id, name, type };
-        }).filter((c) => c.id && c.name);
-        setAllCategories(mapped);
+        const menu = await getCategoryMenu({ includeChildren: true, productLimit: 1 });
+        const top: Category[] = [];
+        const sub: Category[] = [];
+
+        for (const root of Array.isArray(menu) ? menu : []) {
+          const rootType: Category["type"] =
+            root.type === "furniture" ? "furniture" : "material";
+          top.push({
+            id: root.id,
+            name: root.name,
+            type: rootType,
+          });
+
+          const children = Array.isArray(root.children) ? root.children : [];
+          for (const child of children) {
+            sub.push({
+              id: child.id,
+              name: child.name,
+              type: rootType,
+              parentId: root.id,
+              parentName: root.name,
+            });
+          }
+        }
+
+        setTopLevelCategories(top);
+        setAllCategories(sub);
       } catch {
+        setTopLevelCategories([]);
         setAllCategories([]);
       }
     };
@@ -2146,6 +2169,16 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            router.push("/subcategories");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Subcategories
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
                             router.push("/tags");
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2172,7 +2205,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Bind Categories
+                          Bind Subcategories
                         </button>
                         <button
                           type="button"
@@ -2462,6 +2495,16 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      router.push("/subcategories");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Subcategories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCategoriesMenuOpen(false);
                       router.push("/tags");
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2488,7 +2531,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Bind Categories
+                    Bind Subcategories
                   </button>
                   <button
                     type="button"
@@ -4502,14 +4545,38 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent ID (Optional)</label>
-                <input
-                  type="text"
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Type</label>
+                <select
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  value={newCatData.type}
+                  onChange={(e) =>
+                    setNewCatData({
+                      ...newCatData,
+                      type: e.target.value === "furniture" ? "furniture" : "material",
+                    })
+                  }
+                >
+                  <option value="material">Material</option>
+                  <option value="furniture">Furniture</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent Category (Optional)</label>
+                <select
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={newCatData.parent_id}
                   onChange={(e) => setNewCatData({ ...newCatData, parent_id: e.target.value })}
-                  placeholder="e.g. csaaa1scasa"
-                />
+                >
+                  <option value="">No parent (Top-level category)</option>
+                  {topLevelCategories
+                    .filter((cat) => cat.type === newCatData.type)
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               {catError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{catError}</div>}
@@ -4554,7 +4621,7 @@ export default function DashboardPage() {
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Bind Categories (Optional)
+                    Bind Sub-Categories (Optional)
                   </label>
                   <button
                     type="button"
@@ -4562,7 +4629,7 @@ export default function DashboardPage() {
                     className="mt-1 flex w-full items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-bold text-gray-800 shadow-inner"
                   >
                     <span>
-                      {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select categories"}
+                      {createSelectedCategoryIds.size > 0 ? `${createSelectedCategoryIds.size} selected` : "Select sub-categories"}
                     </span>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                   </button>
@@ -4570,7 +4637,7 @@ export default function DashboardPage() {
                   {isCreateCategoriesDropdownOpen && (
                     <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
                       {allCategories.length === 0 ? (
-                        <div className="px-2 py-2 text-xs text-gray-500">No categories available.</div>
+                        <div className="px-2 py-2 text-xs text-gray-500">No sub-categories available.</div>
                       ) : (
                         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                           {allCategories.map((c) => (
@@ -4580,7 +4647,9 @@ export default function DashboardPage() {
                                 checked={createSelectedCategoryIds.has(c.id)}
                                 onChange={() => toggleCreateCategory(c.id)}
                               />
-                              <span className="font-medium">{c.name}</span>
+                              <span className="font-medium">
+                                {c.parentName ? `${c.parentName} > ${c.name}` : c.name}
+                              </span>
                               <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
                             </label>
                           ))}
@@ -4732,12 +4801,24 @@ export default function DashboardPage() {
                   multiple
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   onChange={(e) => {
-                    const files = Array.from(e.target.files ?? []);
-                    setCreateProductImageFiles(files.slice(0, 3));
+                    const picked = Array.from(e.target.files ?? []);
+                    setCreateProductImageFiles((prev) => {
+                      const merged = [...prev, ...picked];
+                      const deduped = Array.from(
+                        new Map(
+                          merged.map((file) => [
+                            `${file.name}-${file.size}-${file.lastModified}`,
+                            file,
+                          ]),
+                        ).values(),
+                      );
+                      return deduped.slice(0, 3);
+                    });
+                    e.currentTarget.value = "";
                   }}
                 />
                 <div className="mt-1 text-[10px] font-semibold text-gray-500">
-                  You can select up to 3 images.
+                  You can select up to 3 images (multiple picks supported).
                 </div>
                 {createProductImageFiles.length > 0 && (
                   <div className="mt-2 text-[11px] font-bold text-gray-500">
@@ -4855,7 +4936,7 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Categories to Product</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Sub-Categories to Product</h2>
               <button
                 onClick={() => {
                   setIsBindCategoriesOpen(false);
@@ -4884,7 +4965,7 @@ export default function DashboardPage() {
               </div>
 
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Categories</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Sub-Categories</div>
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {allCategories.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
@@ -4893,12 +4974,14 @@ export default function DashboardPage() {
                         checked={selectedCategoryIds.has(c.id)}
                         onChange={() => toggleCategory(c.id)}
                       />
-                      <span className="font-medium">{c.name}</span>
+                      <span className="font-medium">
+                        {c.parentName ? `${c.parentName} > ${c.name}` : c.name}
+                      </span>
                       <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
                     </label>
                   ))}
                   {allCategories.length === 0 && (
-                    <div className="text-xs text-gray-500">No categories available.</div>
+                    <div className="text-xs text-gray-500">No sub-categories available.</div>
                   )}
                 </div>
               </div>
@@ -4911,7 +4994,7 @@ export default function DashboardPage() {
                 disabled={isBindingCats}
                 className="w-full rounded-full bg-[#4d2c1e] py-3.5 text-sm font-black uppercase tracking-widest text-[#ffcb05] shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
-                {isBindingCats ? "Binding..." : "Bind Selected Categories"}
+                {isBindingCats ? "Binding..." : "Bind Selected Sub-Categories"}
               </button>
             </form>
           </div>

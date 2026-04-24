@@ -13,6 +13,7 @@ type Category = {
   isActive: boolean;
   createdAt: string;
   parent_id?: string;
+  parent?: { id: string; name: string } | null;
 };
 
 type CategoryDetailsView = {
@@ -50,6 +51,9 @@ export default function CategoriesPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCatDetails, setSelectedCatDetails] = useState<CategoryDetailsView | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const topLevelCategories = categories.filter(
+    (cat) => !cat.parent_id && !(cat.parent && cat.parent.id),
+  );
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
@@ -230,6 +234,7 @@ export default function CategoriesPage() {
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Category Name</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Slug</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Level</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Date Created</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
@@ -239,7 +244,7 @@ export default function CategoriesPage() {
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={5} className="px-6 py-4"><div className="h-4 w-full rounded bg-gray-100" /></td>
+                      <td colSpan={7} className="px-6 py-4"><div className="h-4 w-full rounded bg-gray-100" /></td>
                     </tr>
                   ))
                 ) : categories.length > 0 ? (
@@ -252,6 +257,11 @@ export default function CategoriesPage() {
                           </div>
                           <span className="text-sm font-bold text-gray-900">{cat.name}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                          {cat.parent_id || cat.parent?.id ? "Sub-category" : "Category"}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-xs font-mono text-gray-400">{cat.slug}</td>
                       <td className="px-6 py-4">
@@ -309,7 +319,7 @@ export default function CategoriesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-sm font-medium text-gray-400">
+                    <td colSpan={7} className="px-6 py-12 text-center text-sm font-medium text-gray-400">
                       No categories found for this selection.
                     </td>
                   </tr>
@@ -351,14 +361,19 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent ID (Optional)</label>
-                <input
-                  type="text"
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent Category (Optional)</label>
+                <select
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={newCatData.parent_id}
                   onChange={(e) => setNewCatData({ ...newCatData, parent_id: e.target.value })}
-                  placeholder="e.g. csaaa1scasa"
-                />
+                >
+                  <option value="">No parent (Top-level category)</option>
+                  {topLevelCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {catMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{catMsg}</div>}
@@ -426,9 +441,8 @@ export default function CategoriesPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent ID (Optional)</label>
-                <input
-                  type="text"
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Parent Category (Optional)</label>
+                <select
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={editingCategory.parent_id || ""}
                   onChange={(e) =>
@@ -437,8 +451,16 @@ export default function CategoriesPage() {
                       parent_id: e.target.value,
                     })
                   }
-                  placeholder="e.g. csaaa1scasa"
-                />
+                >
+                  <option value="">No parent (Top-level category)</option>
+                  {topLevelCategories
+                    .filter((cat) => cat.id !== editingCategory.id)
+                    .map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               {updateMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{updateMsg}</div>}
