@@ -344,6 +344,7 @@ export async function getProducts(params?: {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
+    cache: 'no-store',
   });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -1865,6 +1866,95 @@ export async function getCategoryBySlug(slug: string) {
     throw new Error(errorData.message || 'Failed to fetch category details');
   }
   return response.json() as Promise<CategoryDetails>;
+}
+
+export async function getSubcategories(categoryId: string) {
+  const id = categoryId.trim();
+  if (!id) throw new Error("Category id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
+    {
+      method: "GET",
+      headers: authHeaders(),
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch sub-categories");
+  }
+  return response.json();
+}
+
+export async function createSubcategory(
+  categoryId: string,
+  payload: { name: string; type?: "material" | "furniture" },
+) {
+  const id = categoryId.trim();
+  if (!id) throw new Error("Category id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
+    {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Sub-category creation failed");
+  }
+  return response.json();
+}
+
+export async function updateSubcategory(
+  categoryId: string,
+  subCategoryId: string,
+  payload: { name?: string; type?: "material" | "furniture"; parent_id?: string },
+) {
+  const cid = categoryId.trim();
+  const sid = subCategoryId.trim();
+  if (!cid) throw new Error("Category id is required");
+  if (!sid) throw new Error("Sub-category id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
+    {
+      method: "PUT",
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update sub-category");
+  }
+  return response.json();
+}
+
+export async function deleteSubcategory(categoryId: string, subCategoryId: string) {
+  const cid = categoryId.trim();
+  const sid = subCategoryId.trim();
+  if (!cid) throw new Error("Category id is required");
+  if (!sid) throw new Error("Sub-category id is required");
+
+  const response = await fetch(
+    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(),
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete sub-category");
+  }
+  return response.json();
 }
 
 export type TagItem = {
