@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createTag, deleteTag, getTags, updateTag, type TagItem } from "@/lib/api";
-
 type TagFormState = {
   name: string;
   hex_code: string;
