@@ -242,6 +242,7 @@ export default function SubcategoriesPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sub-Category</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sub-Category ID</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Parent Category</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Slug</th>
@@ -251,11 +252,11 @@ export default function SubcategoriesPage() {
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-sm text-gray-500">Loading...</td>
+                    <td colSpan={6} className="px-6 py-8 text-sm text-gray-500">Loading...</td>
                   </tr>
                 ) : filteredSubcategories.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-sm text-gray-500">
+                    <td colSpan={6} className="px-6 py-8 text-sm text-gray-500">
                       No sub-categories found for selected filter.
                     </td>
                   </tr>
@@ -263,6 +264,7 @@ export default function SubcategoriesPage() {
                   filteredSubcategories.map((item) => (
                     <tr key={item.id}>
                       <td className="px-6 py-4 text-sm font-bold text-gray-900">{item.name}</td>
+                      <td className="px-6 py-4 text-xs font-mono text-gray-500">{item.id}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{item.parentName}</td>
                       <td className="px-6 py-4 text-[11px] uppercase text-gray-600">{item.type}</td>
                       <td className="px-6 py-4 text-xs font-mono text-gray-400">{item.slug}</td>

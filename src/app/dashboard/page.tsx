@@ -156,7 +156,8 @@ export default function DashboardPage() {
   const [isBulkUploadingProducts, setIsBulkUploadingProducts] = useState(false);
   const [bulkUploadMsg, setBulkUploadMsg] = useState("");
   const [bulkUploadError, setBulkUploadError] = useState("");
-  const bulkUploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
+  const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
@@ -182,6 +183,17 @@ export default function DashboardPage() {
   const [productLinkedTagIds, setProductLinkedTagIds] = useState<string[]>([]);
   const [hasLinkedTagData, setHasLinkedTagData] = useState(false);
   const [isLoadingLinkedTags, setIsLoadingLinkedTags] = useState(false);
+
+  const closeAdminActionModals = () => {
+    setIsCreateModalOpen(false);
+    setIsCategoryModalOpen(false);
+    setIsProductModalOpen(false);
+    setIsUploadImageModalOpen(false);
+    setIsBulkUploadModalOpen(false);
+    setIsBindCategoriesOpen(false);
+    setIsProductTagsOpen(false);
+  };
+
   const [isLinkingTag, setIsLinkingTag] = useState(false);
   const [isUnlinkingTag, setIsUnlinkingTag] = useState(false);
   const [productTagMsg, setProductTagMsg] = useState("");
@@ -1632,14 +1644,17 @@ export default function DashboardPage() {
     }
     setBulkUploadMsg("");
     setBulkUploadError("");
-    bulkUploadInputRef.current?.click();
+    setBulkUploadFile(null);
+    setIsBulkUploadModalOpen(true);
   };
 
-  const handleBulkUploadFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0] ?? null;
-    if (!file) return;
+  const handleBulkUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const file = bulkUploadFile;
+    if (!file) {
+      setBulkUploadError("Please select an .xlsx file to upload.");
+      return;
+    }
 
     setBulkUploadMsg("");
     setBulkUploadError("");
@@ -1647,7 +1662,6 @@ export default function DashboardPage() {
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith(".xlsx")) {
       setBulkUploadError("Please upload an .xlsx file.");
-      e.target.value = "";
       return;
     }
 
@@ -1668,7 +1682,6 @@ export default function DashboardPage() {
       );
     } finally {
       setIsBulkUploadingProducts(false);
-      e.target.value = "";
     }
   };
 
@@ -1970,13 +1983,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
-      <input
-        ref={bulkUploadInputRef}
-        type="file"
-        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        className="hidden"
-        onChange={handleBulkUploadFileChange}
-      />
       {/* Top Header */}
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
@@ -2125,6 +2131,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsUsersMenuOpen(false);
+                            closeAdminActionModals();
                             setIsCreateModalOpen(true);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2189,6 +2196,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            closeAdminActionModals();
                             setIsCategoryModalOpen(true);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2199,6 +2207,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            closeAdminActionModals();
                             setIsBindCategoriesOpen(true);
                             setBindError("");
                             setBindMsg("");
@@ -2211,6 +2220,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsCategoriesMenuOpen(false);
+                            closeAdminActionModals();
                             setIsProductTagsOpen(true);
                             setProductTagError("");
                             setProductTagMsg("");
@@ -2247,6 +2257,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsProductsMenuOpen(false);
+                            closeAdminActionModals();
                             setIsProductModalOpen(true);
                             setProductError("");
                             setProductMsg("");
@@ -2265,6 +2276,7 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsProductsMenuOpen(false);
+                            closeAdminActionModals();
                             setIsUploadImageModalOpen(true);
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2395,21 +2407,6 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {(bulkUploadMsg || bulkUploadError) && (
-        <div className={`${dashboardShellClass} px-3 pt-3`}>
-          {bulkUploadMsg && (
-            <div className="mb-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-700">
-              {bulkUploadMsg}
-            </div>
-          )}
-          {bulkUploadError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
-              {bulkUploadError}
-            </div>
-          )}
-        </div>
-      )}
-
       {userRole === "admin" && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
           <div className="grid grid-cols-3 gap-2">
@@ -2449,6 +2446,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsUsersMenuOpen(false);
+                      closeAdminActionModals();
                       setIsCreateModalOpen(true);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2515,6 +2513,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      closeAdminActionModals();
                       setIsCategoryModalOpen(true);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -2525,6 +2524,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      closeAdminActionModals();
                       setIsBindCategoriesOpen(true);
                       setBindError("");
                       setBindMsg("");
@@ -2537,6 +2537,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsCategoriesMenuOpen(false);
+                      closeAdminActionModals();
                       setIsProductTagsOpen(true);
                       setProductTagError("");
                       setProductTagMsg("");
@@ -2575,6 +2576,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsProductsMenuOpen(false);
+                      closeAdminActionModals();
                       setIsProductModalOpen(true);
                       setProductError("");
                       setProductMsg("");
@@ -2593,6 +2595,7 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsProductsMenuOpen(false);
+                      closeAdminActionModals();
                       setIsUploadImageModalOpen(true);
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -5215,6 +5218,74 @@ export default function DashboardPage() {
                 className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
                 {isUploadingImage ? "Uploading..." : "Upload"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isBulkUploadModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">
+                Bulk Upload Products
+              </h2>
+              <button
+                onClick={() => {
+                  setIsBulkUploadModalOpen(false);
+                  setBulkUploadError("");
+                  setBulkUploadMsg("");
+                  setBulkUploadFile(null);
+                }}
+                className="text-gray-400 hover:text-black"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkUploadSubmit} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  XLSX File
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] ?? null;
+                    setBulkUploadFile(selected);
+                    setBulkUploadError("");
+                  }}
+                />
+                <p className="mt-2 text-[11px] font-bold text-gray-500">
+                  Upload Excel file in `.xlsx` format.
+                </p>
+                {bulkUploadFile && (
+                  <div className="mt-1 text-[11px] font-bold text-gray-600">
+                    Selected: {bulkUploadFile.name}
+                  </div>
+                )}
+              </div>
+
+              {bulkUploadError && (
+                <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+                  {bulkUploadError}
+                </div>
+              )}
+              {bulkUploadMsg && (
+                <div className="text-xs font-bold text-green-700 bg-green-50 p-3 rounded-lg text-center">
+                  {bulkUploadMsg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isBulkUploadingProducts}
+                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+              >
+                {isBulkUploadingProducts ? "Uploading..." : "Upload XLSX"}
               </button>
             </form>
           </div>
