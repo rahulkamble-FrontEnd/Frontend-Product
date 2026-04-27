@@ -315,8 +315,8 @@ export default function CategoryProductsPage() {
         userRole={userRole}
       />
 
-      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-[280px_minmax(0,1fr)] gap-0 px-0">
-        <aside className="border-r border-[#d9cab5] bg-[#efe7db] p-5">
+      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="border-b border-[#d9cab5] bg-[#efe7db] p-4 sm:p-5 lg:border-b-0 lg:border-r">
           <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
             Filter
           </div>
@@ -412,20 +412,20 @@ export default function CategoryProductsPage() {
           </div>
         </aside>
 
-        <section className="bg-[#f4eee5] p-5">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45]">
+        <section className="bg-[#f4eee5] p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45] sm:text-base">
               {category?.name ?? "Category"} Products
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortValue)}
-                className="rounded-md border border-[#d9cab5] bg-white px-2 py-1.5 text-xs font-semibold text-gray-700"
+                className="w-full rounded-md border border-[#d9cab5] bg-white px-2 py-1.5 text-xs font-semibold text-gray-700 sm:w-auto"
               >
                 <option value="newest">Newest</option>
                 <option value="name_asc">Name (A-Z)</option>
@@ -450,7 +450,7 @@ export default function CategoryProductsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {filteredProducts.map((product) => {
                   const imageUrls = productImageMap[product.id] ?? [];
                   const activeImageIndex =
