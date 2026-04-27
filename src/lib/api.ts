@@ -822,13 +822,16 @@ export type BulkUploadProductsResponse = {
   errors: Array<{ row: number; message: string }>;
 };
 
-export async function bulkUploadProducts(file: File) {
+export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
   if (!(file instanceof File)) {
     throw new Error("XLSX file is required");
   }
 
   const formData = new FormData();
   formData.append("file", file);
+  if (imagesZip instanceof File) {
+    formData.append("imagesZip", imagesZip);
+  }
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-upload`, {
     method: "POST",
