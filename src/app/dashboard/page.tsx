@@ -235,7 +235,6 @@ export default function DashboardPage() {
     includeCategories: false
   });
 
-  const [compareSelectedIds, setCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
   const [compareError, setCompareError] = useState("");
@@ -247,6 +246,11 @@ export default function DashboardPage() {
   const [updatingProductStatusId, setUpdatingProductStatusId] = useState<string | null>(null);
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
   const [updateProductStatusError, setUpdateProductStatusError] = useState("");
+  const [bulkTagSelectedIds, setBulkTagSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkTagging, setIsBulkTagging] = useState(false);
+  const [bulkTagId, setBulkTagId] = useState("");
+  const [bulkTagMsg, setBulkTagMsg] = useState("");
+  const [bulkTagError, setBulkTagError] = useState("");
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
   const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
@@ -414,8 +418,8 @@ export default function DashboardPage() {
     });
   };
 
-  const compareSelectedList = Array.from(compareSelectedIds);
   const shortlistCompareSelectedList = Array.from(shortlistCompareSelectedIds);
+  const bulkTagSelectedList = Array.from(bulkTagSelectedIds);
   const trendingCards: Array<TrendingItem | null> = [
     ...trendingDesigns.slice(0, 4),
     ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
@@ -428,35 +432,6 @@ export default function DashboardPage() {
     ...products.slice(0, 5),
     ...Array.from({ length: Math.max(0, 5 - products.length) }, () => null),
   ].slice(0, 5);
-  const isSelectedForCompare = (id: string) => compareSelectedIds.has(id);
-
-  const toggleCompareSelection = (id: string) => {
-    setCompareError("");
-    setCompareSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        return next;
-      }
-      if (next.size >= 4) {
-        setCompareError("You can compare maximum 4 products.");
-        return next;
-      }
-      next.add(id);
-      return next;
-    });
-  };
-
-  const clearCompareSelection = () => {
-    setCompareSelectedIds(new Set());
-    setCompareError("");
-    setCompareData(null);
-  };
-
-  const openCompare = async () => {
-    await openCompareByIds(Array.from(compareSelectedIds));
-  };
-
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length < 2) {
@@ -515,6 +490,83 @@ export default function DashboardPage() {
     await openCompareByIds(shortlistCompareSelectedList);
   };
 
+  const isSelectedForBulkTag = (id: string) => bulkTagSelectedIds.has(id);
+
+  const toggleBulkTagSelection = (id: string) => {
+    setBulkTagMsg("");
+    setBulkTagError("");
+    setBulkTagSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearBulkTagSelection = () => {
+    setBulkTagSelectedIds(new Set());
+    setBulkTagMsg("");
+    setBulkTagError("");
+  };
+
+  const handleBulkTagApply = async () => {
+    setBulkTagMsg("");
+    setBulkTagError("");
+    if (userRole !== "admin") {
+      setBulkTagError("Only admin can bulk tag products.");
+      return;
+    }
+    const selectedIds = Array.from(bulkTagSelectedIds);
+    if (selectedIds.length === 0) {
+      setBulkTagError("Select at least one product.");
+      return;
+    }
+    const selectedTagId = bulkTagId.trim();
+    if (!selectedTagId) {
+      setBulkTagError("Please select a tag.");
+      return;
+    }
+
+    setIsBulkTagging(true);
+    try {
+      const tagName =
+        allTags.find((tag) => tag.id === selectedTagId)?.name ??
+        "selected";
+      if (!tagName) {
+        setBulkTagError("Selected tag not found.");
+        return;
+      }
+
+      const results = await Promise.all(
+        selectedIds.map(async (productId) => {
+          try {
+            const res = await linkProductTag(productId, { tagId: selectedTagId });
+            return { ok: true, linked: Boolean(res.linked) };
+          } catch {
+            return { ok: false, linked: false };
+          }
+        }),
+      );
+
+      const successCount = results.filter((item) => item.ok).length;
+      const newlyLinkedCount = results.filter((item) => item.ok && item.linked).length;
+      const failedCount = results.length - successCount;
+      setBulkTagMsg(
+        `"${tagName}" tag processed for ${results.length} selected products. Newly tagged: ${newlyLinkedCount}, already tagged: ${
+          successCount - newlyLinkedCount
+        }, failed: ${failedCount}.`,
+      );
+      if (failedCount > 0) {
+        setBulkTagError(`${failedCount} product(s) failed while tagging.`);
+      }
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setBulkTagError(err instanceof Error ? err.message : "Failed to bulk tag products.");
+    } finally {
+      setIsBulkTagging(false);
+    }
+  };
+
   const handleDeleteProduct = async (id: string) => {
     setDeleteProductMsg("");
     setDeleteProductError("");
@@ -532,7 +584,7 @@ export default function DashboardPage() {
     try {
       const res = await deleteProduct(id);
       setDeleteProductMsg(res.message || "Product deleted.");
-      setCompareSelectedIds((prev) => {
+      setBulkTagSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(id);
         return next;
@@ -743,6 +795,18 @@ export default function DashboardPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    setBulkTagSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const visibleIds = new Set(products.map((item) => item.id));
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (visibleIds.has(id)) next.add(id);
+      });
+      return next.size === prev.size ? prev : next;
+    });
+  }, [products]);
 
   useEffect(() => {
     loadLatestProducts();
@@ -1790,16 +1854,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadAllTags = async () => {
-      if (!isProductTagsOpen && !isProductModalOpen) return;
+      if (userRole !== "admin" && !isProductTagsOpen && !isProductModalOpen) return;
       try {
         const data = await getTags();
-        setAllTags(Array.isArray(data) ? data : []);
+        const tags = Array.isArray(data) ? data : [];
+        setAllTags(tags);
+        setBulkTagId((prev) => {
+          if (prev && tags.some((tag) => tag.id === prev)) return prev;
+          return tags[0]?.id ?? "";
+        });
       } catch {
         setAllTags([]);
+        setBulkTagId("");
       }
     };
     void loadAllTags();
-  }, [isProductTagsOpen, isProductModalOpen]);
+  }, [isProductTagsOpen, isProductModalOpen, userRole]);
 
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds(prev => {
@@ -3481,23 +3551,21 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      className={[
-                        "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full shadow-sm",
-                        isSelectedForCompare(p.id) ? "bg-black text-white" : "bg-white/90 text-gray-900"
-                      ].join(" ")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleCompareSelection(p.id);
-                      }}
-                    >
-                      {isSelectedForCompare(p.id) ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-                      ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 3H5a2 2 0 0 0-2 2v5"/><path d="M14 3h5a2 2 0 0 1 2 2v5"/><path d="M21 14v5a2 2 0 0 1-2 2h-5"/><path d="M3 14v5a2 2 0 0 0 2 2h5"/></svg>
-                      )}
-                    </button>
+                    {userRole === "admin" && (
+                      <label
+                        className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Select for bulk cyan tag"
+                        title="Select for bulk cyan tag"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelectedForBulkTag(p.id)}
+                          onChange={() => toggleBulkTagSelection(p.id)}
+                          className="h-4 w-4 accent-cyan-500"
+                        />
+                      </label>
+                    )}
 
                     {userRole === "admin" && (
                       <button
@@ -3530,46 +3598,62 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
-              Compare: {compareSelectedList.length}/4 selected
-            </div>
-            {compareSelectedList.length > 0 && (
-              <div className="text-[11px] font-bold text-gray-600 break-all">
-                {compareSelectedList.join(", ")}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              disabled={compareSelectedList.length < 2 || isComparing}
-              onClick={openCompare}
-              className="rounded-full bg-black px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
-            >
-              {isComparing ? "Comparing..." : "Compare"}
-            </button>
-            <button
-              type="button"
-              disabled={compareSelectedList.length === 0}
-              onClick={clearCompareSelection}
-              className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {compareError && (
-          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
-            {compareError}
-          </div>
-        )}
-
         {deleteProductError && (
           <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {deleteProductError}
+          </div>
+        )}
+        {userRole === "admin" && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+                Bulk Tag: {bulkTagSelectedList.length} selected
+              </div>
+              <select
+                value={bulkTagId}
+                onChange={(e) => {
+                  setBulkTagId(e.target.value);
+                  setBulkTagError("");
+                  setBulkTagMsg("");
+                }}
+                className="rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] font-bold text-gray-800"
+              >
+                <option value="">Select tag</option>
+                {allTags.map((tag) => (
+                  <option key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={bulkTagSelectedList.length === 0 || isBulkTagging || !bulkTagId}
+                onClick={handleBulkTagApply}
+                className="rounded-full bg-cyan-500 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+              >
+                {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
+              </button>
+              <button
+                type="button"
+                disabled={bulkTagSelectedList.length === 0}
+                onClick={clearBulkTagSelection}
+                className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        )}
+        {bulkTagError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {bulkTagError}
+          </div>
+        )}
+        {bulkTagMsg && (
+          <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {bulkTagMsg}
           </div>
         )}
         {deleteProductMsg && (
@@ -4369,7 +4453,7 @@ export default function DashboardPage() {
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Compare Products</h2>
                 <div className="mt-1 text-[11px] font-bold text-gray-600 break-all">
-                  {compareSelectedList.join(", ")}
+                  {(compareData?.ids ?? shortlistCompareSelectedList).join(", ")}
                 </div>
               </div>
               <button
