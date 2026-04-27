@@ -158,6 +158,7 @@ export default function DashboardPage() {
   const [bulkUploadError, setBulkUploadError] = useState("");
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
+  const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
@@ -1645,12 +1646,14 @@ export default function DashboardPage() {
     setBulkUploadMsg("");
     setBulkUploadError("");
     setBulkUploadFile(null);
+    setBulkUploadImagesZipFile(null);
     setIsBulkUploadModalOpen(true);
   };
 
   const handleBulkUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const file = bulkUploadFile;
+    const imagesZip = bulkUploadImagesZipFile;
     if (!file) {
       setBulkUploadError("Please select an .xlsx file to upload.");
       return;
@@ -1664,10 +1667,17 @@ export default function DashboardPage() {
       setBulkUploadError("Please upload an .xlsx file.");
       return;
     }
+    if (imagesZip) {
+      const zipName = imagesZip.name.toLowerCase();
+      if (!zipName.endsWith(".zip")) {
+        setBulkUploadError("Images ZIP must be a .zip file.");
+        return;
+      }
+    }
 
     setIsBulkUploadingProducts(true);
     try {
-      const result = await bulkUploadProducts(file);
+      const result = await bulkUploadProducts(file, imagesZip);
       setBulkUploadMsg(
         `Bulk upload completed. Rows: ${result.totalRows}, Created: ${result.createdCount}, Failed: ${result.failedCount}`
       );
@@ -5237,6 +5247,7 @@ export default function DashboardPage() {
                   setBulkUploadError("");
                   setBulkUploadMsg("");
                   setBulkUploadFile(null);
+                  setBulkUploadImagesZipFile(null);
                 }}
                 className="text-gray-400 hover:text-black"
               >
@@ -5269,6 +5280,30 @@ export default function DashboardPage() {
                 )}
               </div>
 
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Images ZIP (Optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".zip,application/zip,application/x-zip-compressed"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  onChange={(e) => {
+                    const selected = e.target.files?.[0] ?? null;
+                    setBulkUploadImagesZipFile(selected);
+                    setBulkUploadError("");
+                  }}
+                />
+                <p className="mt-2 text-[11px] font-bold text-gray-500">
+                  Optional: add a ZIP with files like `SKU-1.jpg`, `SKU-2.jpg`, `SKU-3.jpg`.
+                </p>
+                {bulkUploadImagesZipFile && (
+                  <div className="mt-1 text-[11px] font-bold text-gray-600">
+                    Selected: {bulkUploadImagesZipFile.name}
+                  </div>
+                )}
+              </div>
+
               {bulkUploadError && (
                 <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
                   {bulkUploadError}
@@ -5285,7 +5320,7 @@ export default function DashboardPage() {
                 disabled={isBulkUploadingProducts}
                 className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
               >
-                {isBulkUploadingProducts ? "Uploading..." : "Upload XLSX"}
+                {isBulkUploadingProducts ? "Uploading..." : "Upload"}
               </button>
             </form>
           </div>
