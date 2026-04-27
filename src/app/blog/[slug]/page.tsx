@@ -64,7 +64,7 @@ export default function BlogDetailsPage() {
           <button
             type="button"
             onClick={() => router.push("/blog")}
-            className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+            className="hidden rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
           >
             Back to Blog
           </button>

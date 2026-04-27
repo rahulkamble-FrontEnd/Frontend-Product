@@ -3555,14 +3555,14 @@ export default function DashboardPage() {
                       <label
                         className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
                         onClick={(e) => e.stopPropagation()}
-                        aria-label="Select for bulk cyan tag"
-                        title="Select for bulk cyan tag"
+                        aria-label="Select for bulk tag"
+                        title="Select for bulk tag"
                       >
                         <input
                           type="checkbox"
                           checked={isSelectedForBulkTag(p.id)}
                           onChange={() => toggleBulkTagSelection(p.id)}
-                          className="h-4 w-4 accent-cyan-500"
+                          className="h-4 w-4 accent-[#A9844F]"
                         />
                       </label>
                     )}
@@ -3631,7 +3631,7 @@ export default function DashboardPage() {
                 type="button"
                 disabled={bulkTagSelectedList.length === 0 || isBulkTagging || !bulkTagId}
                 onClick={handleBulkTagApply}
-                className="rounded-full bg-cyan-500 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+                className="rounded-full bg-[#A9844F] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#8A6A3A] disabled:opacity-50"
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
               </button>
