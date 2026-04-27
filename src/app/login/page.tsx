@@ -12,6 +12,8 @@ const THEME_LIGHT_GRADIENT = "linear-gradient(90deg, #F2EFE5 0%, #FFF0E3 100%)";
 export default function LoginPage() {
   const router = useRouter();
   const [view, setView] = useState<ViewMode>("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Login State
   const [email, setEmail] = useState("admin@test.com");
@@ -25,6 +27,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const normalizeEmailInput = (value: string) => value.replace(/\s+/g, "").trim();
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -32,11 +36,12 @@ export default function LoginPage() {
     setSuccess("");
 
     try {
-      await login({ email, password });
+      const normalizedEmail = normalizeEmailInput(email);
+      await login({ email: normalizedEmail, password });
       const user = await getMe();
       localStorage.setItem("userName", user.name);
       localStorage.setItem("userRole", user.role);
-      localStorage.setItem("userEmail", email);
+      localStorage.setItem("userEmail", normalizedEmail);
       localStorage.setItem("userPassword", password);
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -197,7 +202,7 @@ export default function LoginPage() {
                     className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                     placeholder="Email id"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(normalizeEmailInput(e.target.value))}
                   />
                 </div>
 
@@ -208,13 +213,33 @@ export default function LoginPage() {
                     </svg>
                   </div>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
-                    className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
+                    className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-12 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                     placeholder="Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 hover:text-gray-700"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-5.94" />
+                        <path d="M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.17 4.56" />
+                        <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
 
                 {error && <div className="text-center text-sm font-medium text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
@@ -262,7 +287,7 @@ export default function LoginPage() {
                       className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                       placeholder="Enter registered email"
                       value={resetEmail}
-                      onChange={(e) => setResetEmail(e.target.value)}
+                      onChange={(e) => setResetEmail(normalizeEmailInput(e.target.value))}
                     />
                   </div>
 
@@ -273,13 +298,33 @@ export default function LoginPage() {
                       </svg>
                     </div>
                     <input
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       required
-                      className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-4 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
+                      className="block w-full rounded-full border border-[#e5d9c5] bg-[#faf5ed] py-3.5 pl-12 pr-12 text-sm text-[#5d3b24] shadow-inner focus:outline-none focus:ring-2 focus:ring-[#c9a46a]"
                       placeholder="New password (8+ chars)"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 hover:text-gray-700"
+                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    >
+                      {showNewPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.77 21.77 0 0 1 5.06-5.94" />
+                          <path d="M9.9 4.24A10.9 10.9 0 0 1 12 4c7 0 11 8 11 8a21.8 21.8 0 0 1-3.17 4.56" />
+                          <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                          <line x1="1" y1="1" x2="23" y2="23" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
 
