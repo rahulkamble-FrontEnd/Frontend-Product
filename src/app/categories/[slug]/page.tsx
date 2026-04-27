@@ -68,9 +68,7 @@ export default function CategoryProductsPage() {
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
-  const [selectedSubcategories, setSelectedSubcategories] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
 
@@ -233,7 +231,7 @@ export default function CategoryProductsPage() {
       });
     }
 
-    if (selectedSubcategories.size > 0) {
+    if (selectedSubcategoryId) {
       next = next.filter((product) => {
         const productWithCategories = product as ProductListItem & {
           categories?: Array<{ categoryId?: string; id?: string }>;
@@ -241,7 +239,7 @@ export default function CategoryProductsPage() {
         const linkedCategoryIds = (productWithCategories.categories ?? [])
           .map((cat) => cat.categoryId || cat.id || "")
           .filter(Boolean);
-        return linkedCategoryIds.some((id) => selectedSubcategories.has(id));
+        return linkedCategoryIds.includes(selectedSubcategoryId);
       });
     }
 
@@ -256,7 +254,7 @@ export default function CategoryProductsPage() {
     products,
     selectedBrands,
     selectedThicknesses,
-    selectedSubcategories,
+    selectedSubcategoryId,
     sortBy,
     shouldShowBrand,
   ]);
@@ -322,36 +320,6 @@ export default function CategoryProductsPage() {
           </div>
           <div className="mt-1 text-xs font-bold text-gray-500">
             {category?.name ?? "Products"}
-          </div>
-
-          <div className="mt-6 border-t border-[#d9cab5] pt-5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
-              Sub-Category
-            </div>
-            <div className="mt-3 space-y-2">
-              {availableSubcategories.length === 0 ? (
-                <div className="text-xs text-gray-400">No sub-category options</div>
-              ) : (
-                availableSubcategories.map((subcat) => (
-                  <label
-                    key={subcat.id}
-                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedSubcategories.has(subcat.id)}
-                      onChange={() =>
-                        setSelectedSubcategories((prev) =>
-                          toggleSetValue(prev, subcat.id),
-                        )
-                      }
-                      className="h-3.5 w-3.5 rounded border-gray-300"
-                    />
-                    <span>{subcat.name}</span>
-                  </label>
-                ))
-              )}
-            </div>
           </div>
 
           {shouldShowBrand ? (
@@ -433,6 +401,46 @@ export default function CategoryProductsPage() {
               </select>
             </div>
           </div>
+
+          {availableSubcategories.length > 0 ? (
+            <div className="mb-4 border-b border-[#d9cab5] pb-3">
+              <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+                Sub-Category
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSubcategoryId("")}
+                  className={[
+                    "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
+                    selectedSubcategoryId
+                      ? "border-[#d9cab5] bg-white text-gray-600 hover:bg-[#efe7db]"
+                      : "border-[#b38a50] bg-[#b38a50] text-white",
+                  ].join(" ")}
+                >
+                  All
+                </button>
+                {availableSubcategories.map((subcat) => {
+                  const isActive = selectedSubcategoryId === subcat.id;
+                  return (
+                    <button
+                      key={subcat.id}
+                      type="button"
+                      onClick={() => setSelectedSubcategoryId(subcat.id)}
+                      className={[
+                        "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
+                        isActive
+                          ? "border-[#b38a50] bg-[#b38a50] text-white"
+                          : "border-[#d9cab5] bg-white text-gray-600 hover:bg-[#efe7db]",
+                      ].join(" ")}
+                    >
+                      {subcat.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">

@@ -7,19 +7,36 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export default function CommonFooter() {
   const companyLinks = [
-    "About Us",
-    "Careers",
+    "About us",
     "Blogs",
-    "Contact Us",
-    "Consult Us",
+    "Contact us",
+    "FAQs",
   ];
 
-  const serviceLinks = [
+  const categoryLinks = [
+    "Fabrics",
+    "Core Materials",
+    "Finishes",
+    "Handles",
+    "Wall Decorative",
+    "Counter Tops",
+    "Flooring & Tiles",
+    "Hardware",
+    "Ceiling",
+    "Lighting",
+    "Glass",
+    "Mirrors",
+  ];
+
+  const productLinks = [
+    "Bed Room Design",
     "Kitchen Design",
-    "Bedroom Interiors",
-    "Living Room",
-    "Office Interiors",
-    "Full Home Interiors",
+    "Living Room Design",
+    "Dining Room Design",
+    "Puja Room Design",
+    "Partition Design",
+    "Study Room Design",
+    "Office Room Design",
   ];
 
   const socialLinks = [
@@ -41,22 +58,21 @@ export default function CommonFooter() {
       }}
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
-        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_1.2fr]">
+        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_0.95fr_1.2fr]">
           <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
             </div>
             <p className="max-w-sm text-[14px] font-normal leading-5 tracking-[0%] text-white/90">
-              CustomFurnish is India&apos;s leading platform for interior materials
-              and customized home interiors. We combine design, quality materials,
-              and execution to deliver dream homes faster.
+              CustomFurnish.com delivers customized home interiors with expert
+              craftsmanship and seamless design solutions.
             </p>
-            <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-2">
               {socialLinks.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-[2px] bg-[#121212] text-white"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white"
                   aria-label={item.label}
                 >
                   {item.id === "IG" && (
@@ -106,7 +122,7 @@ export default function CommonFooter() {
             </div>
           </div>
 
-          <div>
+          <div className="md:justify-self-center">
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Company
             </div>
@@ -119,16 +135,27 @@ export default function CommonFooter() {
 
           <div>
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Services
+              Categories
             </div>
             <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {serviceLinks.map((link) => (
+              {categoryLinks.map((link) => (
                 <li key={link}>{link}</li>
               ))}
             </ul>
           </div>
 
-          <div className="border-white/25 md:border-l md:pl-8">
+          <div>
+            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
+              Products
+            </div>
+            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
+              {productLinks.map((link) => (
+                <li key={link}>{link}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="border-white/25 md:-ml-12 md:border-l md:pl-6">
             <p className="max-w-xs text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
               Subscribe to our newsletter for the latest design trends, offers,
               and updates!
