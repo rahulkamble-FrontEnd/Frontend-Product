@@ -1790,6 +1790,80 @@ export type CategoryMenuItem = {
   children: CategoryMenuItem[];
 };
 
+type RawCategoryMenuProduct = {
+  id?: string;
+  name?: string;
+  slug?: string;
+  sku?: string;
+  brand?: string | null;
+};
+
+type RawCategoryMenuItem = {
+  id?: string;
+  name?: string;
+  slug?: string;
+  type?: "material" | "furniture";
+  displayOrder?: number;
+  display_order?: number;
+  productCount?: number;
+  product_count?: number;
+  products?: RawCategoryMenuProduct[];
+  children?: RawCategoryMenuItem[];
+};
+
+function normalizeCategoryMenuProduct(raw: RawCategoryMenuProduct): CategoryMenuProduct {
+  return {
+    id: raw.id ?? "",
+    name: raw.name ?? "",
+    slug: raw.slug ?? "",
+    sku: raw.sku ?? "",
+    brand: raw.brand ?? null,
+  };
+}
+
+function normalizeCategoryMenuItem(raw: RawCategoryMenuItem): CategoryMenuItem {
+  const displayOrder =
+    typeof raw.displayOrder === "number"
+      ? raw.displayOrder
+      : typeof raw.display_order === "number"
+        ? raw.display_order
+        : 0;
+  const productCount =
+    typeof raw.productCount === "number"
+      ? raw.productCount
+      : typeof raw.product_count === "number"
+        ? raw.product_count
+        : 0;
+
+  return {
+    id: raw.id ?? "",
+    name: raw.name ?? "",
+    slug: raw.slug ?? "",
+    type: raw.type === "furniture" ? "furniture" : "material",
+    displayOrder,
+    productCount,
+    products: Array.isArray(raw.products)
+      ? raw.products.map((item) => normalizeCategoryMenuProduct(item))
+      : [],
+    children: Array.isArray(raw.children)
+      ? raw.children.map((item) => normalizeCategoryMenuItem(item))
+      : [],
+  };
+}
+
+function sortCategoryMenuItems(items: CategoryMenuItem[]): CategoryMenuItem[] {
+  return [...items]
+    .map((item) => ({
+      ...item,
+      children: sortCategoryMenuItems(item.children ?? []),
+    }))
+    .sort(
+      (a, b) =>
+        (a.displayOrder ?? 0) - (b.displayOrder ?? 0) ||
+        a.name.localeCompare(b.name),
+    );
+}
+
 export async function getCategoryMenu(params?: {
   type?: "material" | "furniture";
   productLimit?: number;
@@ -1815,7 +1889,14 @@ export async function getCategoryMenu(params?: {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch category menu");
   }
-  return response.json() as Promise<CategoryMenuItem[]>;
+  const raw = (await response.json()) as unknown;
+  if (!Array.isArray(raw)) {
+    return [] as CategoryMenuItem[];
+  }
+  const normalized = raw.map((item) =>
+    normalizeCategoryMenuItem(item as RawCategoryMenuItem),
+  );
+  return sortCategoryMenuItems(normalized);
 }
 
 export type CategoryDetails = {
