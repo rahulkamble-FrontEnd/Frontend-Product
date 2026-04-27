@@ -61,9 +61,9 @@ export default function CommonStoreHeader({
 
   return (
     <header className="relative z-[320] border-b border-[#d9cab5] bg-[#F8F0E4]">
-      <div className="mx-auto w-full max-w-[1680px] px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/dashboard" className="text-[34px] leading-none text-[#1f1f1f]">
+      <div className="mx-auto w-full max-w-[1680px] px-3 py-3 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-3 sm:gap-4">
+          <Link href="/dashboard" className="text-[26px] leading-none text-[#1f1f1f] sm:text-[34px]">
             <span className="font-serif">CustomFurnish</span>
           </Link>
           {showUserBar ? (
@@ -82,12 +82,12 @@ export default function CommonStoreHeader({
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-center gap-6 overflow-x-auto whitespace-nowrap px-4 py-2 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-start gap-4 overflow-x-auto whitespace-nowrap px-3 py-2 sm:justify-center sm:gap-6 sm:px-6 lg:px-8">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={category.slug ? `/categories/${category.slug}` : "#"}
-              className="text-[16px] font-semibold leading-6 tracking-normal text-white/95 hover:text-white"
+              className="text-[14px] font-semibold leading-6 tracking-normal text-white/95 hover:text-white sm:text-[16px]"
             >
               {formatLabel(category.name)}
             </Link>

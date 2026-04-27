@@ -185,7 +185,7 @@ export default function StoreHeaderUserBar({
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 sm:gap-4">
       {NOTIFICATION_ROLES.has(userRole) && (
         <div className="relative">
           <button
@@ -194,7 +194,7 @@ export default function StoreHeaderUserBar({
               e.stopPropagation();
               setIsNotificationsOpen((v) => !v);
             }}
-            className="relative"
+            className="relative p-0.5 sm:p-0"
             aria-label="Open notifications"
           >
             <svg
@@ -280,7 +280,7 @@ export default function StoreHeaderUserBar({
           e.stopPropagation();
           goToShortlist();
         }}
-        className="relative"
+        className="relative p-0.5 sm:p-0"
         aria-label="Open shortlist"
       >
         <svg
@@ -298,7 +298,7 @@ export default function StoreHeaderUserBar({
           <circle cx="19" cy="21" r="1" />
           <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
         </svg>
-        <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white">
+        <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white sm:-right-2 sm:-top-2">
           {userRole === "customer" ? shortlistCount : 0}
         </span>
       </button>
@@ -306,13 +306,13 @@ export default function StoreHeaderUserBar({
       {userName ? (
         <button
           onClick={handleLogout}
-          className="ml-0 sm:ml-1 flex flex-col items-center justify-center"
+          className="ml-0 flex flex-col items-center justify-center sm:ml-1"
           type="button"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-800 text-xs font-bold text-[#ffcb05]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-800 text-[11px] font-bold text-[#ffcb05] sm:h-8 sm:w-8 sm:text-xs">
             {userName.charAt(0)}
           </div>
-          <span className="mt-0.5 text-[10px] font-bold uppercase">{isLoggingOut ? "..." : "Logout"}</span>
+          <span className="mt-0.5 text-[9px] font-bold uppercase sm:text-[10px]">{isLoggingOut ? "..." : "Logout"}</span>
         </button>
       ) : null}
     </div>
