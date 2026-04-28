@@ -67,6 +67,7 @@ export default function CategoryProductsPage() {
   const [portfolioError, setPortfolioError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [sortBy, setSortBy] = useState<SortValue>("newest");
@@ -214,6 +215,16 @@ export default function CategoryProductsPage() {
     ).sort((a, b) => a.localeCompare(b));
   }, [products]);
 
+  const availableColors = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => (product.colorName ?? "").trim())
+          .filter(Boolean),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     let next = [...products];
 
@@ -228,6 +239,13 @@ export default function CategoryProductsPage() {
       next = next.filter((product) => {
         const thickness = (product.thickness ?? "").trim();
         return thickness ? selectedThicknesses.has(thickness) : false;
+      });
+    }
+
+    if (selectedColors.size > 0) {
+      next = next.filter((product) => {
+        const color = (product.colorName ?? "").trim();
+        return color ? selectedColors.has(color) : false;
       });
     }
 
@@ -253,6 +271,7 @@ export default function CategoryProductsPage() {
   }, [
     products,
     selectedBrands,
+    selectedColors,
     selectedThicknesses,
     selectedSubcategoryId,
     sortBy,
@@ -378,6 +397,34 @@ export default function CategoryProductsPage() {
               )}
             </div>
           </div>
+
+          <div className="mt-6 border-t border-[#d9cab5] pt-5">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+              Color
+            </div>
+            <div className="mt-3 space-y-2">
+              {availableColors.length === 0 ? (
+                <div className="text-xs text-gray-400">No color options</div>
+              ) : (
+                availableColors.map((color) => (
+                  <label
+                    key={color}
+                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedColors.has(color)}
+                      onChange={() =>
+                        setSelectedColors((prev) => toggleSetValue(prev, color))
+                      }
+                      className="h-3.5 w-3.5 rounded border-gray-300"
+                    />
+                    <span>{color}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
         </aside>
 
         <section className="bg-[#f4eee5] p-4 sm:p-5">
@@ -458,7 +505,7 @@ export default function CategoryProductsPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
                 {filteredProducts.map((product) => {
                   const imageUrls = productImageMap[product.id] ?? [];
                   const activeImageIndex =
@@ -475,7 +522,7 @@ export default function CategoryProductsPage() {
                         onClick={() => router.push(`/products/${product.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#e8dfd0]">
+                        <div className="relative aspect-square w-full overflow-hidden bg-[#e8dfd0] sm:aspect-[4/3]">
                           {imageUrls.length > 0 ? (
                             <>
                               <div
@@ -519,20 +566,20 @@ export default function CategoryProductsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="p-3">
-                          <div className="text-xs font-black uppercase tracking-wider text-gray-800">
+                        <div className="p-2.5 sm:p-3">
+                          <div className="line-clamp-1 text-[11px] font-black uppercase tracking-wider text-gray-800 sm:text-xs">
                             {formatProductName(product.name)}
                           </div>
-                          <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                          <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             {shouldShowBrand
                               ? `${product.brand ?? "-"} | ${product.finishType ?? "-"}`
                               : `${product.finishType ?? "-"}`
                             }
                           </div>
-                          <div className="mt-1 text-[10px] text-gray-500">
+                          <div className="mt-1 text-[9px] text-gray-500 sm:text-[10px]">
                             Thickness: {product.thickness || "-"}
                           </div>
-                          <div className="mt-3 rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white">
+                          <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
                             View Details
                           </div>
                         </div>
