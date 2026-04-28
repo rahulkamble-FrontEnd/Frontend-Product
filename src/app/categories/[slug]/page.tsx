@@ -452,7 +452,7 @@ export default function CategoryProductsPage() {
           {availableSubcategories.length > 0 ? (
             <div className="mb-4 border-b border-[#d9cab5] pb-3">
               <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
-                Sub-Category
+                Select Sub-Category
               </div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 <button
@@ -576,7 +576,7 @@ export default function CategoryProductsPage() {
                               : `${product.finishType ?? "-"}`
                             }
                           </div>
-                          <div className="mt-1 text-[9px] text-gray-500 sm:text-[10px]">
+                          <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             Thickness: {product.thickness || "-"}
                           </div>
                           <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">

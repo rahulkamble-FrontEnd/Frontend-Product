@@ -225,6 +225,7 @@ export default function DashboardPage() {
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">("");
   const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState("");
   const [filterQ, setFilterQ] = useState("");
   const [filterIncludeImages, setFilterIncludeImages] = useState(true);
   const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
@@ -1861,7 +1862,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadCats = async () => {
-      if (!isBindCategoriesOpen && !isProductModalOpen) return;
+      if (userRole === "customer") return;
       try {
         const menu = await getCategoryMenu({ includeChildren: true, productLimit: 1 });
         const top: Category[] = [];
@@ -1896,7 +1897,7 @@ export default function DashboardPage() {
       }
     };
     loadCats();
-  }, [isBindCategoriesOpen, isProductModalOpen]);
+  }, [isBindCategoriesOpen, isProductModalOpen, userRole]);
 
   useEffect(() => {
     const loadAllTags = async () => {
@@ -2106,6 +2107,12 @@ export default function DashboardPage() {
       behavior: "smooth",
     });
   };
+
+  const visibleSubcategories = allCategories.filter((category) => {
+    if (filterCategoryType && category.type !== filterCategoryType) return false;
+    if (selectedParentCategoryId && category.parentId !== selectedParentCategoryId) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
@@ -3190,7 +3197,7 @@ export default function DashboardPage() {
       <section className="bg-[#F8F0E4] py-12">
         <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CF</h3>
+          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CustomFurnish</h3>
           <p className="mt-2 text-sm text-[#8B6E46]">
             See how we transform spaces into beautiful homes.
           </p>
@@ -3466,91 +3473,156 @@ export default function DashboardPage() {
       {Boolean(userName) && userRole !== "customer" && (
         <section className={dashboardShellClass}>
           <div className="pb-10">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
-                disabled={isLoadingProducts || productsPage <= 1}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                onClick={() => setProductsPage((p) => p + 1)}
-                disabled={isLoadingProducts || products.length < productsLimit}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-              >
-                Next
-              </button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                  disabled={isLoadingProducts || productsPage <= 1}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => setProductsPage((p) => p + 1)}
+                  disabled={isLoadingProducts || products.length < productsLimit}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-8">
-            <input
-              value={filterQ}
-              onChange={(e) => setFilterQ(e.target.value)}
-              placeholder="Search name/sku/brand"
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-2"
-            />
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(
-                  e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
-                )
-              }
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-            </select>
-            <select
-              value={filterCategoryType}
-              onChange={(e) => setFilterCategoryType((e.target.value === "material" ? "material" : e.target.value === "furniture" ? "furniture" : ""))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">All Types</option>
-              <option value="material">Material</option>
-              <option value="furniture">Furniture</option>
-            </select>
-            <input
-              value={filterCategoryId}
-              onChange={(e) => setFilterCategoryId(e.target.value)}
-              placeholder="Category ID"
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            />
-            <select
-              value={productsLimit}
-              onChange={(e) => setProductsLimit(Number(e.target.value))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-3">
-              <label className="flex items-center gap-1">
-                <input type="checkbox" checked={filterIncludeImages} onChange={(e) => setFilterIncludeImages(e.target.checked)} />
-                Images
-              </label>
-              <label className="flex items-center gap-1">
-                <input type="checkbox" checked={filterIncludeCategories} onChange={(e) => setFilterIncludeCategories(e.target.checked)} />
-                Categories
-              </label>
-              <button
-                onClick={applyProductFilters}
-                disabled={isLoadingProducts}
-                className="ml-auto rounded-md border-2 border-black px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all disabled:opacity-50"
-              >
-                {isLoadingProducts ? "Loading..." : "Apply"}
-              </button>
-            </div>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
+              <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="text-xs font-black uppercase tracking-widest text-gray-500">Filters</div>
+                <div className="mt-4 space-y-3">
+                  <input
+                    value={filterQ}
+                    onChange={(e) => setFilterQ(e.target.value)}
+                    placeholder="Search name/sku/brand"
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+                  />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) =>
+                      setFilterStatus(
+                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
+                      )
+                    }
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                  <select
+                    value={filterCategoryType}
+                    onChange={(e) => setFilterCategoryType((e.target.value === "material" ? "material" : e.target.value === "furniture" ? "furniture" : ""))}
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value="material">Material</option>
+                    <option value="furniture">Furniture</option>
+                  </select>
+                  <select
+                    value={productsLimit}
+                    onChange={(e) => setProductsLimit(Number(e.target.value))}
+                    className="w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+                    <div className="mb-2 text-[10px] font-black uppercase tracking-wider text-gray-500">Category</div>
+                    <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedParentCategoryId("");
+                          setFilterCategoryId("");
+                        }}
+                        className={[
+                          "w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold transition",
+                          !selectedParentCategoryId ? "bg-black text-white" : "bg-white text-gray-700 hover:bg-gray-100",
+                        ].join(" ")}
+                      >
+                        All Categories
+                      </button>
+                      {topLevelCategories
+                        .filter((category) => (filterCategoryType ? category.type === filterCategoryType : true))
+                        .map((category) => (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedParentCategoryId(category.id);
+                              setFilterCategoryId("");
+                            }}
+                            className={[
+                              "w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold transition",
+                              selectedParentCategoryId === category.id ? "bg-black text-white" : "bg-white text-gray-700 hover:bg-gray-100",
+                            ].join(" ")}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={filterIncludeImages} onChange={(e) => setFilterIncludeImages(e.target.checked)} />
+                    Images
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={filterIncludeCategories} onChange={(e) => setFilterIncludeCategories(e.target.checked)} />
+                    Categories
+                  </label>
+
+                  <button
+                    onClick={applyProductFilters}
+                    disabled={isLoadingProducts}
+                    className="w-full rounded-md border-2 border-black px-3 py-2 text-[11px] font-black uppercase tracking-wider text-black shadow-sm transition-all hover:bg-black hover:text-white disabled:opacity-50"
+                  >
+                    {isLoadingProducts ? "Loading..." : "Apply"}
+                  </button>
+                </div>
+              </aside>
+
+              <div className="min-w-0">
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sub-Category</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFilterCategoryId("")}
+                      className={[
+                        "rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wider transition",
+                        !filterCategoryId ? "border-black bg-black text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                      ].join(" ")}
+                    >
+                      All
+                    </button>
+                    {visibleSubcategories.map((subCategory) => (
+                      <button
+                        key={subCategory.id}
+                        type="button"
+                        onClick={() => setFilterCategoryId(subCategory.id)}
+                        className={[
+                          "rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wider transition",
+                          filterCategoryId === subCategory.id ? "border-black bg-black text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                        ].join(" ")}
+                      >
+                        {subCategory.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              
 
         {productsError && (
           <div className="mt-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
@@ -3757,8 +3829,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-          <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+                <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+              </div>
+            </div>
           </div>
+        </div>
         </section>
       )}
 
