@@ -649,6 +649,14 @@ export default function ProductDetailsPage() {
               <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-5 shadow-sm">
                 <div className="mb-3 text-[24px] font-semibold tracking-tight text-[#3e3a34]">Technical Specifications</div>
                 <div className="grid grid-cols-2 gap-y-3 border-t border-[#dacdbb] pt-3 text-[12px]">
+                  {userRole === "customer" && (
+                    <>
+                      <div className="text-[#968e84]">IMS ID</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.imsId || "-"}</div>
+                      <div className="text-[#968e84]">Application</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.application || "-"}</div>
+                    </>
+                  )}
                   <div className="text-[#968e84]">Color</div>
                   <div className="font-semibold text-[#3f3a33]">{product.colorName || "-"}</div>
                   <div className="text-[#968e84]">Dimensions</div>
