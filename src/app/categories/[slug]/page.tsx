@@ -370,7 +370,7 @@ export default function CategoryProductsPage() {
                   <div className="text-xs text-gray-400">No brand options</div>
                 ) : (
                   availableBrands.map((brand) => (
-                    <label key={brand} className="flex cursor-pointer items-center gap-2.5 text-[28px] leading-none text-[#3d4f67]">
+                    <label key={brand} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
                       <input
                         type="checkbox"
                         checked={selectedBrands.has(brand)}
@@ -379,7 +379,7 @@ export default function CategoryProductsPage() {
                         }
                         className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                       />
-                      <span className="text-base uppercase tracking-wide">{brand}</span>
+                      <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{brand}</span>
                     </label>
                   ))
                 )}
@@ -398,7 +398,7 @@ export default function CategoryProductsPage() {
                 availableFinishTypes.map((finishType) => (
                   <label
                     key={finishType}
-                    className="flex cursor-pointer items-center gap-2.5 text-[28px] leading-none text-[#3d4f67]"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
                   >
                     <input
                       type="checkbox"
@@ -410,7 +410,7 @@ export default function CategoryProductsPage() {
                       }
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
-                    <span className="text-base uppercase tracking-wide">{finishType}</span>
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{finishType}</span>
                   </label>
                 ))
               )}
@@ -428,7 +428,7 @@ export default function CategoryProductsPage() {
                 availableThicknesses.map((thickness) => (
                   <label
                     key={thickness}
-                    className="flex cursor-pointer items-center gap-2.5 text-[28px] leading-none text-[#3d4f67]"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
                   >
                     <input
                       type="checkbox"
@@ -440,7 +440,7 @@ export default function CategoryProductsPage() {
                       }
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
-                    <span className="text-base uppercase tracking-wide">{thickness}</span>
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{thickness}</span>
                   </label>
                 ))
               )}
@@ -458,7 +458,7 @@ export default function CategoryProductsPage() {
                 availableColors.map((color) => (
                   <label
                     key={color}
-                    className="flex cursor-pointer items-center gap-2.5 text-[28px] leading-none text-[#3d4f67]"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
                   >
                     <input
                       type="checkbox"
@@ -468,7 +468,7 @@ export default function CategoryProductsPage() {
                       }
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
-                    <span className="text-base uppercase tracking-wide">{color}</span>
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{color}</span>
                   </label>
                 ))
               )}
