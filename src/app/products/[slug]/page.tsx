@@ -1042,11 +1042,8 @@ export default function ProductDetailsPage() {
                           )}
                         </div>
                         <div className="px-3 pb-3 pt-2">
-                          <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
+                          <div className="text-[18px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                             {truncateText(formatProductName(item.name), 16)}
-                          </div>
-                          <div className="mt-1 text-[12px] text-[#6d665d]">
-                            {item.description || "Classic Oak Natural"}
                           </div>
                           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[10px] uppercase text-[#8f877d]">
                             <div>
