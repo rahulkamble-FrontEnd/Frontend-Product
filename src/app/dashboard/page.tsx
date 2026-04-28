@@ -227,6 +227,7 @@ export default function DashboardPage() {
   const [filterQ, setFilterQ] = useState("");
   const [filterIncludeImages, setFilterIncludeImages] = useState(true);
   const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
+  const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(new Set());
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
@@ -235,6 +236,7 @@ export default function DashboardPage() {
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
     brands: string[];
     thicknesses: string[];
     colors: string[];
@@ -245,6 +247,7 @@ export default function DashboardPage() {
     categoryType: "",
     categoryId: "",
     q: "",
+    finishTypes: [],
     brands: [],
     thicknesses: [],
     colors: [],
@@ -725,6 +728,7 @@ export default function DashboardPage() {
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
     brands: string[];
     thicknesses: string[];
     colors: string[];
@@ -736,6 +740,7 @@ export default function DashboardPage() {
       f.categoryType || "",
       f.categoryId || "",
       f.q || "",
+      f.finishTypes.join(","),
       f.brands.join(","),
       f.thicknesses.join(","),
       f.colors.join(","),
@@ -749,6 +754,7 @@ export default function DashboardPage() {
       categoryType: filterCategoryType,
       categoryId: (filterCategoryId || selectedParentCategoryId).trim(),
       q: filterQ.trim(),
+      finishTypes: Array.from(filterFinishTypes).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       brands: Array.from(filterBrands).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       thicknesses: Array.from(filterThicknesses).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       colors: Array.from(filterColors).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
@@ -761,6 +767,7 @@ export default function DashboardPage() {
       filterCategoryId,
       selectedParentCategoryId,
       filterQ,
+      filterFinishTypes,
       filterBrands,
       filterThicknesses,
       filterColors,
@@ -791,7 +798,7 @@ export default function DashboardPage() {
       setAppliedFilters(next);
     }, 450);
     return () => window.clearTimeout(handle);
-  }, [filterQ, filterCategoryId, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
+  }, [filterQ, filterCategoryId, filterFinishTypes, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
 
   useEffect(() => {
     const next = buildAppliedFilters();
@@ -2242,6 +2249,18 @@ export default function DashboardPage() {
     [products],
   );
 
+  const availableFinishTypeFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.finishType ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
   const availableThicknessFilters = useMemo(
     () =>
       Array.from(
@@ -2269,6 +2288,10 @@ export default function DashboardPage() {
   const visibleDashboardProducts = useMemo(
     () =>
       products.filter((product) => {
+        if (appliedFilters.finishTypes.length > 0) {
+          const finishType = (product.finishType ?? "").trim();
+          if (!finishType || !appliedFilters.finishTypes.includes(finishType)) return false;
+        }
         if (appliedFilters.brands.length > 0) {
           const brand = (product.brand ?? "").trim();
           if (!brand || !appliedFilters.brands.includes(brand)) return false;
@@ -2283,7 +2306,7 @@ export default function DashboardPage() {
         }
         return true;
       }),
-    [products, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
+    [products, appliedFilters.finishTypes, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
   );
 
   const visibleDashboardProductIds = useMemo(
@@ -3754,6 +3777,27 @@ export default function DashboardPage() {
                             {category.name}
                           </button>
                         ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableFinishTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No finish options</div>
+                      ) : (
+                        availableFinishTypeFilters.map((finishType) => (
+                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterFinishTypes.has(finishType)}
+                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{finishType}</span>
+                          </label>
+                        ))
+                      )}
                     </div>
                   </div>
 
