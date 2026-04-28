@@ -67,6 +67,7 @@ export default function CategoryProductsPage() {
   const [portfolioError, setPortfolioError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [selectedFinishTypes, setSelectedFinishTypes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
@@ -215,6 +216,16 @@ export default function CategoryProductsPage() {
     ).sort((a, b) => a.localeCompare(b));
   }, [products]);
 
+  const availableFinishTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => (product.finishType ?? "").trim())
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
   const availableColors = useMemo(() => {
     return Array.from(
       new Set(
@@ -232,6 +243,13 @@ export default function CategoryProductsPage() {
       next = next.filter((product) => {
         const brand = (product.brand ?? "").trim();
         return brand ? selectedBrands.has(brand) : false;
+      });
+    }
+
+    if (selectedFinishTypes.size > 0) {
+      next = next.filter((product) => {
+        const finishType = (product.finishType ?? "").trim();
+        return finishType ? selectedFinishTypes.has(finishType) : false;
       });
     }
 
@@ -271,6 +289,7 @@ export default function CategoryProductsPage() {
   }, [
     products,
     selectedBrands,
+    selectedFinishTypes,
     selectedColors,
     selectedThicknesses,
     selectedSubcategoryId,
@@ -367,6 +386,36 @@ export default function CategoryProductsPage() {
               </div>
             </div>
           ) : null}
+
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+              Finish Type
+            </div>
+            <div className="mt-4 space-y-3">
+              {availableFinishTypes.length === 0 ? (
+                <div className="text-xs text-gray-400">No finish options</div>
+              ) : (
+                availableFinishTypes.map((finishType) => (
+                  <label
+                    key={finishType}
+                    className="flex cursor-pointer items-center gap-2.5 text-[28px] leading-none text-[#3d4f67]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFinishTypes.has(finishType)}
+                      onChange={() =>
+                        setSelectedFinishTypes((prev) =>
+                          toggleSetValue(prev, finishType),
+                        )
+                      }
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                    />
+                    <span className="text-base uppercase tracking-wide">{finishType}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
 
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
