@@ -2996,7 +2996,7 @@ export default function DashboardPage() {
         </div>
 
         {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl">
+          <div className="absolute left-0 right-0 top-full z-[260] hidden border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl md:block">
             <div className={`${dashboardShellClass} py-4`}>
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
@@ -3550,7 +3550,7 @@ export default function DashboardPage() {
       )}
 
       {userRole === "designer" && (
-        <section className={dashboardShellClass}>
+        <section className={`${dashboardShellClass} relative z-[30] bg-[#F8F0E4]`}>
           <div className="pb-10">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -3677,7 +3677,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
-              <aside className="rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
+              <aside className="relative z-10 rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
                 <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
                 <div className="mt-4 space-y-3">
@@ -3757,7 +3757,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Brand</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableBrandFilters.length === 0 ? (
@@ -3778,7 +3778,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableThicknessFilters.length === 0 ? (
@@ -3799,7 +3799,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Color</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableColorFilters.length === 0 ? (
@@ -3820,24 +3820,29 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                    <input
-                      type="checkbox"
-                      checked={filterIncludeImages}
-                      onChange={(e) => setFilterIncludeImages(e.target.checked)}
-                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                    />
-                    Images
-                  </label>
-                  <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                    <input
-                      type="checkbox"
-                      checked={filterIncludeCategories}
-                      onChange={(e) => setFilterIncludeCategories(e.target.checked)}
-                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                    />
-                    Categories
-                  </label>
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Include</div>
+                    <div className="mt-3 space-y-2">
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeImages}
+                          onChange={(e) => setFilterIncludeImages(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Images
+                      </label>
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeCategories}
+                          onChange={(e) => setFilterIncludeCategories(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Categories
+                      </label>
+                    </div>
+                  </div>
 
                   <button
                     onClick={applyProductFilters}
@@ -3849,7 +3854,7 @@ export default function DashboardPage() {
                 </div>
               </aside>
 
-              <div className="min-w-0">
+              <div className="relative z-10 min-w-0">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sub-Category</div>
                   <div className="mt-3 flex flex-wrap gap-2">
