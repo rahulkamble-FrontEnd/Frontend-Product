@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -22,7 +21,6 @@ function makeBlogImageUrl(blog: BlogItem) {
 }
 
 export default function BlogPage() {
-  const router = useRouter();
   const [blogs, setBlogs] = useState<BlogItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
   const [portfolioItems, setPortfolioItems] = useState<PortfolioResponse[]>([]);
@@ -32,14 +30,9 @@ export default function BlogPage() {
   const [error, setError] = useState("");
   const [trendingError, setTrendingError] = useState("");
   const [portfolioError, setPortfolioError] = useState("");
-  const [userRole, setUserRole] = useState("");
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
   const [failedTrendingImageIds, setFailedTrendingImageIds] = useState<Set<string>>(new Set());
   const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole") || "");
-  }, []);
 
   useEffect(() => {
     let active = true;

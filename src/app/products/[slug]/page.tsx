@@ -685,7 +685,7 @@ export default function ProductDetailsPage() {
                       onClick={handleCreateShortlist}
                       className="rounded-full bg-[#b58d52] px-10 py-3 text-[15px] font-bold text-white disabled:opacity-50"
                     >
-                      {isCreatingShortlist ? "Saving..." : "Short List Now"}
+                      {isCreatingShortlist ? "Saving..." : shortlistItem ? "Shortlisted" : "Short List Now"}
                     </button>
                   </div>
                   <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
@@ -974,19 +974,21 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
-                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-500">Product ID</span>
-                    <span className="font-bold text-gray-900 break-all">{product.id}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-gray-500">Slug</span>
-                    <span className="font-bold text-gray-900 break-all">{product.slug}</span>
+              {["admin", "designer", "blogadmin"].includes(userRole) && (
+                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-500">Product ID</span>
+                      <span className="font-bold text-gray-900 break-all">{product.id}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-500">Slug</span>
+                      <span className="font-bold text-gray-900 break-all">{product.slug}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
           <section className="mt-14">
@@ -1040,11 +1042,8 @@ export default function ProductDetailsPage() {
                           )}
                         </div>
                         <div className="px-3 pb-3 pt-2">
-                          <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
+                          <div className="text-[18px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                             {truncateText(formatProductName(item.name), 16)}
-                          </div>
-                          <div className="mt-1 text-[12px] text-[#6d665d]">
-                            {item.description || "Classic Oak Natural"}
                           </div>
                           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[10px] uppercase text-[#8f877d]">
                             <div>

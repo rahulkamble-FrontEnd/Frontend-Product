@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   logout,
@@ -22,7 +22,6 @@ import {
   getProductTags,
   deleteProduct,
   updateProductStatus,
-  getCategories,
   getCategoryMenu,
   getShortlist,
   requestShortlistSample,
@@ -221,18 +220,26 @@ export default function DashboardPage() {
   const [productsError, setProductsError] = useState("");
   const [latestProducts, setLatestProducts] = useState<ProductListItem[]>([]);
   const [isLoadingLatestProducts, setIsLoadingLatestProducts] = useState(false);
-  const [latestProductsError, setLatestProductsError] = useState("");
   const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">("");
   const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
   const [filterCategoryId, setFilterCategoryId] = useState("");
+  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState("");
   const [filterQ, setFilterQ] = useState("");
   const [filterIncludeImages, setFilterIncludeImages] = useState(true);
   const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
+  const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(new Set());
+  const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
+  const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
+  const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
+    brands: string[];
+    thicknesses: string[];
+    colors: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }>({
@@ -240,6 +247,10 @@ export default function DashboardPage() {
     categoryType: "",
     categoryId: "",
     q: "",
+    finishTypes: [],
+    brands: [],
+    thicknesses: [],
+    colors: [],
     includeImages: true,
     includeCategories: false
   });
@@ -518,6 +529,72 @@ export default function DashboardPage() {
     setBulkTagError("");
   };
 
+  const selectAllVisibleProducts = (ids: string[]) => {
+    setBulkTagMsg("");
+    setBulkTagError("");
+    setBulkTagSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const deselectVisibleProducts = (ids: string[]) => {
+    setBulkTagMsg("");
+    setBulkTagError("");
+    setBulkTagSelectedIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
+
+  const handleBulkDeleteSelected = async () => {
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
+    if (userRole !== "admin") {
+      setDeleteProductError("Only admin can delete products.");
+      return;
+    }
+    const selectedIds = Array.from(bulkTagSelectedIds).filter(Boolean);
+    if (selectedIds.length === 0) {
+      setDeleteProductError("Select at least one product to delete.");
+      return;
+    }
+    const ok = window.confirm(`Delete ${selectedIds.length} selected product(s)? This cannot be undone.`);
+    if (!ok) return;
+
+    setIsDeletingProduct(true);
+    try {
+      const results = await Promise.all(
+        selectedIds.map(async (id) => {
+          try {
+            await deleteProduct(id);
+            return { ok: true };
+          } catch {
+            return { ok: false };
+          }
+        }),
+      );
+      const deletedCount = results.filter((item) => item.ok).length;
+      const failedCount = results.length - deletedCount;
+      setDeleteProductMsg(`${deletedCount} product(s) deleted.${failedCount ? ` Failed: ${failedCount}.` : ""}`);
+      if (failedCount > 0) {
+        setDeleteProductError(`${failedCount} product(s) failed to delete.`);
+      }
+      if (deletedCount > 0) {
+        setBulkTagSelectedIds(new Set());
+      }
+      await loadProducts();
+    } catch (err: unknown) {
+      setDeleteProductError(err instanceof Error ? err.message : "Failed to bulk delete products.");
+    } finally {
+      setIsDeletingProduct(false);
+    }
+  };
+
   const handleBulkTagApply = async () => {
     setBulkTagMsg("");
     setBulkTagError("");
@@ -651,6 +728,10 @@ export default function DashboardPage() {
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
+    brands: string[];
+    thicknesses: string[];
+    colors: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }) =>
@@ -659,18 +740,41 @@ export default function DashboardPage() {
       f.categoryType || "",
       f.categoryId || "",
       f.q || "",
+      f.finishTypes.join(","),
+      f.brands.join(","),
+      f.thicknesses.join(","),
+      f.colors.join(","),
       f.includeImages ? "1" : "0",
       f.includeCategories ? "1" : "0",
     ].join("|");
 
-  const buildAppliedFilters = () => ({
-    status: filterStatus,
-    categoryType: filterCategoryType,
-    categoryId: filterCategoryId.trim(),
-    q: filterQ.trim(),
-    includeImages: filterIncludeImages,
-    includeCategories: filterIncludeCategories,
-  });
+  const buildAppliedFilters = useCallback(
+    () => ({
+      status: filterStatus,
+      categoryType: filterCategoryType,
+      categoryId: (filterCategoryId || selectedParentCategoryId).trim(),
+      q: filterQ.trim(),
+      finishTypes: Array.from(filterFinishTypes).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      brands: Array.from(filterBrands).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      thicknesses: Array.from(filterThicknesses).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      colors: Array.from(filterColors).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      includeImages: filterIncludeImages,
+      includeCategories: filterIncludeCategories,
+    }),
+    [
+      filterStatus,
+      filterCategoryType,
+      filterCategoryId,
+      selectedParentCategoryId,
+      filterQ,
+      filterFinishTypes,
+      filterBrands,
+      filterThicknesses,
+      filterColors,
+      filterIncludeImages,
+      filterIncludeCategories,
+    ]
+  );
 
   const applyProductFilters = () => {
     const next = buildAppliedFilters();
@@ -684,7 +788,7 @@ export default function DashboardPage() {
     if (filtersKey(next) === filtersKey(appliedFilters)) return;
     setProductsPage(1);
     setAppliedFilters(next);
-  }, [filterStatus, filterCategoryType, filterIncludeImages, filterIncludeCategories]);
+  }, [filterStatus, filterCategoryType, filterIncludeImages, filterIncludeCategories, appliedFilters, buildAppliedFilters]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -694,7 +798,14 @@ export default function DashboardPage() {
       setAppliedFilters(next);
     }, 450);
     return () => window.clearTimeout(handle);
-  }, [filterQ, filterCategoryId]);
+  }, [filterQ, filterCategoryId, filterFinishTypes, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
+
+  useEffect(() => {
+    const next = buildAppliedFilters();
+    if (filtersKey(next) === filtersKey(appliedFilters)) return;
+    setProductsPage(1);
+    setAppliedFilters(next);
+  }, [selectedParentCategoryId, appliedFilters, buildAppliedFilters]);
 
   const loadProducts = useCallback(async () => {
     setIsLoadingProducts(true);
@@ -707,6 +818,9 @@ export default function DashboardPage() {
         categoryType: appliedFilters.categoryType || undefined,
         categoryId: appliedFilters.categoryId?.trim() || undefined,
         q: appliedFilters.q?.trim() || undefined,
+        brand: undefined,
+        thickness: undefined,
+        colorName: undefined,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
@@ -725,7 +839,6 @@ export default function DashboardPage() {
 
   const loadLatestProducts = useCallback(async () => {
     setIsLoadingLatestProducts(true);
-    setLatestProductsError("");
     try {
       const res = await getProducts({
         page: 1,
@@ -740,9 +853,8 @@ export default function DashboardPage() {
         return bTime - aTime;
       });
       setLatestProducts(sortedByNewest.slice(0, 4));
-    } catch (err: unknown) {
+    } catch {
       setLatestProducts([]);
-      setLatestProductsError(err instanceof Error ? err.message : "Failed to load latest products.");
     } finally {
       setIsLoadingLatestProducts(false);
     }
@@ -1861,7 +1973,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadCats = async () => {
-      if (!isBindCategoriesOpen && !isProductModalOpen) return;
+      if (userRole === "customer") return;
       try {
         const menu = await getCategoryMenu({ includeChildren: true, productLimit: 1 });
         const top: Category[] = [];
@@ -1896,7 +2008,7 @@ export default function DashboardPage() {
       }
     };
     loadCats();
-  }, [isBindCategoriesOpen, isProductModalOpen]);
+  }, [isBindCategoriesOpen, isProductModalOpen, userRole]);
 
   useEffect(() => {
     const loadAllTags = async () => {
@@ -2106,6 +2218,105 @@ export default function DashboardPage() {
       behavior: "smooth",
     });
   };
+
+  const visibleSubcategories = allCategories.filter((category) => {
+    if (filterCategoryType && category.type !== filterCategoryType) return false;
+    if (selectedParentCategoryId && category.parentId !== selectedParentCategoryId) return false;
+    return true;
+  });
+
+  const toggleSetFilterValue = (
+    setter: (updater: (prev: Set<string>) => Set<string>) => void,
+    value: string,
+  ) => {
+    setter((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  };
+
+  const availableBrandFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.brand ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const availableFinishTypeFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.finishType ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const availableThicknessFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.thickness ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const availableColorFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.colorName ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
+  const visibleDashboardProducts = useMemo(
+    () =>
+      products.filter((product) => {
+        if (appliedFilters.finishTypes.length > 0) {
+          const finishType = (product.finishType ?? "").trim();
+          if (!finishType || !appliedFilters.finishTypes.includes(finishType)) return false;
+        }
+        if (appliedFilters.brands.length > 0) {
+          const brand = (product.brand ?? "").trim();
+          if (!brand || !appliedFilters.brands.includes(brand)) return false;
+        }
+        if (appliedFilters.thicknesses.length > 0) {
+          const thickness = (product.thickness ?? "").trim();
+          if (!thickness || !appliedFilters.thicknesses.includes(thickness)) return false;
+        }
+        if (appliedFilters.colors.length > 0) {
+          const color = (product.colorName ?? "").trim();
+          if (!color || !appliedFilters.colors.includes(color)) return false;
+        }
+        return true;
+      }),
+    [products, appliedFilters.finishTypes, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
+  );
+
+  const visibleDashboardProductIds = useMemo(
+    () => visibleDashboardProducts.map((product) => product.id).filter(Boolean),
+    [visibleDashboardProducts],
+  );
+
+  const allVisibleSelected =
+    visibleDashboardProductIds.length > 0 &&
+    visibleDashboardProductIds.every((id) => bulkTagSelectedIds.has(id));
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
@@ -2808,7 +3019,7 @@ export default function DashboardPage() {
         </div>
 
         {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl">
+          <div className="absolute left-0 right-0 top-full z-[260] hidden border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl md:block">
             <div className={`${dashboardShellClass} py-4`}>
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
@@ -3190,7 +3401,7 @@ export default function DashboardPage() {
       <section className="bg-[#F8F0E4] py-12">
         <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CF</h3>
+          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CustomFurnish</h3>
           <p className="mt-2 text-sm text-[#8B6E46]">
             See how we transform spaces into beautiful homes.
           </p>
@@ -3308,6 +3519,7 @@ export default function DashboardPage() {
                         src={imageUrl}
                         alt={blog.title || "Relevant article"}
                         fill
+                        loading={idx === 0 ? "eager" : "lazy"}
                         sizes="(max-width: 1024px) 50vw, 25vw"
                         className="object-cover"
                       />
@@ -3361,7 +3573,7 @@ export default function DashboardPage() {
       )}
 
       {userRole === "designer" && (
-        <section className={dashboardShellClass}>
+        <section className={`${dashboardShellClass} relative z-[30] bg-[#F8F0E4]`}>
           <div className="pb-10">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -3466,91 +3678,256 @@ export default function DashboardPage() {
       {Boolean(userName) && userRole !== "customer" && (
         <section className={dashboardShellClass}>
           <div className="pb-10">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
-                disabled={isLoadingProducts || productsPage <= 1}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                onClick={() => setProductsPage((p) => p + 1)}
-                disabled={isLoadingProducts || products.length < productsLimit}
-                className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-              >
-                Next
-              </button>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                  disabled={isLoadingProducts || productsPage <= 1}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                >
+                  Prev
+                </button>
+                <button
+                  onClick={() => setProductsPage((p) => p + 1)}
+                  disabled={isLoadingProducts || products.length < productsLimit}
+                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-8">
-            <input
-              value={filterQ}
-              onChange={(e) => setFilterQ(e.target.value)}
-              placeholder="Search name/sku/brand"
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-2"
-            />
-            <select
-              value={filterStatus}
-              onChange={(e) =>
-                setFilterStatus(
-                  e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
-                )
-              }
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-            </select>
-            <select
-              value={filterCategoryType}
-              onChange={(e) => setFilterCategoryType((e.target.value === "material" ? "material" : e.target.value === "furniture" ? "furniture" : ""))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">All Types</option>
-              <option value="material">Material</option>
-              <option value="furniture">Furniture</option>
-            </select>
-            <input
-              value={filterCategoryId}
-              onChange={(e) => setFilterCategoryId(e.target.value)}
-              placeholder="Category ID"
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            />
-            <select
-              value={productsLimit}
-              onChange={(e) => setProductsLimit(Number(e.target.value))}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm xl:col-span-3">
-              <label className="flex items-center gap-1">
-                <input type="checkbox" checked={filterIncludeImages} onChange={(e) => setFilterIncludeImages(e.target.checked)} />
-                Images
-              </label>
-              <label className="flex items-center gap-1">
-                <input type="checkbox" checked={filterIncludeCategories} onChange={(e) => setFilterIncludeCategories(e.target.checked)} />
-                Categories
-              </label>
-              <button
-                onClick={applyProductFilters}
-                disabled={isLoadingProducts}
-                className="ml-auto rounded-md border-2 border-black px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-black shadow-sm hover:bg-black hover:text-white transition-all disabled:opacity-50"
-              >
-                {isLoadingProducts ? "Loading..." : "Apply"}
-              </button>
-            </div>
-          </div>
-        </div>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
+              <aside className="relative z-10 rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
+                <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
+                <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
+                <div className="mt-4 space-y-3">
+                  <input
+                    value={filterQ}
+                    onChange={(e) => setFilterQ(e.target.value)}
+                    placeholder="Search name/sku/brand"
+                    className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
+                  />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) =>
+                      setFilterStatus(
+                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
+                      )
+                    }
+                    className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="draft">Draft</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                  <select
+                    value={filterCategoryType}
+                    onChange={(e) => setFilterCategoryType((e.target.value === "material" ? "material" : e.target.value === "furniture" ? "furniture" : ""))}
+                    className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value="material">Material</option>
+                    <option value="furniture">Furniture</option>
+                  </select>
+                  <select
+                    value={productsLimit}
+                    onChange={(e) => setProductsLimit(Number(e.target.value))}
+                    className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+
+                  <div className="rounded-xl border border-[#cbbca6] bg-[#f4eee5] p-3">
+                    <div className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Category</div>
+                    <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedParentCategoryId("");
+                          setFilterCategoryId("");
+                        }}
+                        className={[
+                          "w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold transition",
+                          !selectedParentCategoryId ? "bg-black text-white" : "bg-white text-gray-700 hover:bg-gray-100",
+                        ].join(" ")}
+                      >
+                        All Categories
+                      </button>
+                      {topLevelCategories
+                        .filter((category) => (filterCategoryType ? category.type === filterCategoryType : true))
+                        .map((category) => (
+                          <button
+                            key={category.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedParentCategoryId(category.id);
+                              setFilterCategoryId("");
+                            }}
+                            className={[
+                              "w-full rounded-lg px-2 py-1.5 text-left text-xs font-bold transition",
+                              selectedParentCategoryId === category.id ? "bg-black text-white" : "bg-white text-gray-700 hover:bg-gray-100",
+                            ].join(" ")}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableFinishTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No finish options</div>
+                      ) : (
+                        availableFinishTypeFilters.map((finishType) => (
+                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterFinishTypes.has(finishType)}
+                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{finishType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Brand</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableBrandFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No brand options</div>
+                      ) : (
+                        availableBrandFilters.map((brand) => (
+                          <label key={brand} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterBrands.has(brand)}
+                              onChange={() => toggleSetFilterValue(setFilterBrands, brand)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{brand}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableThicknessFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No thickness options</div>
+                      ) : (
+                        availableThicknessFilters.map((thickness) => (
+                          <label key={thickness} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterThicknesses.has(thickness)}
+                              onChange={() => toggleSetFilterValue(setFilterThicknesses, thickness)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{thickness}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Color</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableColorFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No color options</div>
+                      ) : (
+                        availableColorFilters.map((color) => (
+                          <label key={color} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterColors.has(color)}
+                              onChange={() => toggleSetFilterValue(setFilterColors, color)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{color}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Include</div>
+                    <div className="mt-3 space-y-2">
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeImages}
+                          onChange={(e) => setFilterIncludeImages(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Images
+                      </label>
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeCategories}
+                          onChange={(e) => setFilterIncludeCategories(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Categories
+                      </label>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={applyProductFilters}
+                    disabled={isLoadingProducts}
+                    className="w-full rounded-md border-2 border-black px-3 py-2 text-[11px] font-black uppercase tracking-wider text-black shadow-sm transition-all hover:bg-black hover:text-white disabled:opacity-50"
+                  >
+                    {isLoadingProducts ? "Loading..." : "Apply"}
+                  </button>
+                </div>
+              </aside>
+
+              <div className="relative z-10 min-w-0">
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sub-Category</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFilterCategoryId("")}
+                      className={[
+                        "rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wider transition",
+                        !filterCategoryId ? "border-black bg-black text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                      ].join(" ")}
+                    >
+                      All
+                    </button>
+                    {visibleSubcategories.map((subCategory) => (
+                      <button
+                        key={subCategory.id}
+                        type="button"
+                        onClick={() => setFilterCategoryId(subCategory.id)}
+                        className={[
+                          "rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wider transition",
+                          filterCategoryId === subCategory.id ? "border-black bg-black text-white" : "border-gray-200 bg-white text-gray-700 hover:border-gray-300",
+                        ].join(" ")}
+                      >
+                        {subCategory.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              
 
         {productsError && (
           <div className="mt-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
@@ -3570,10 +3947,10 @@ export default function DashboardPage() {
                 </div>
               </div>
             ))
-          ) : products.length === 0 ? (
+          ) : visibleDashboardProducts.length === 0 ? (
             <div className="col-span-full text-center text-sm text-gray-500 py-10">No products found.</div>
           ) : (
-            products.map((p) => {
+            visibleDashboardProducts.map((p) => {
               const imageUrl = inlineProductImageUrl(p);
               const hasImage = Boolean(imageUrl);
               const statusClass =
@@ -3603,7 +3980,7 @@ export default function DashboardPage() {
                       </div>
                     )}
 
-                    <div className="absolute left-3 top-3 flex items-center gap-2">
+                    <div className="absolute left-3 right-24 top-3 flex flex-wrap items-center gap-2 overflow-hidden">
                       <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
                         {p.status}
                       </span>
@@ -3616,7 +3993,7 @@ export default function DashboardPage() {
                             e.stopPropagation();
                             handleUpdateProductStatus(p.id, e.target.value);
                           }}
-                          className="rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800"
+                          className="max-w-[120px] rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800"
                         >
                           {Array.from(new Set([p.status, ...allowedStatuses])).filter(Boolean).map((s) => (
                             <option key={s} value={s}>
@@ -3627,7 +4004,7 @@ export default function DashboardPage() {
                       )}
                       <span
                         className={[
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
+                          "inline-flex max-w-[100px] items-center truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
                           hasImage ? "bg-black text-white" : "bg-white text-gray-700 border border-gray-200"
                         ].join(" ")}
                       >
@@ -3713,11 +4090,35 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                disabled={visibleDashboardProductIds.length === 0}
+                onClick={() => selectAllVisibleProducts(visibleDashboardProductIds)}
+                className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+              >
+                {allVisibleSelected ? "All Selected" : "Select All"}
+              </button>
+              <button
+                type="button"
+                disabled={bulkTagSelectedList.length === 0}
+                onClick={() => deselectVisibleProducts(visibleDashboardProductIds)}
+                className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+              >
+                Deselect
+              </button>
+              <button
+                type="button"
                 disabled={bulkTagSelectedList.length === 0 || isBulkTagging || !bulkTagId}
                 onClick={handleBulkTagApply}
                 className="rounded-full bg-[#A9844F] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#8A6A3A] disabled:opacity-50"
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
+              </button>
+              <button
+                type="button"
+                disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
+                onClick={handleBulkDeleteSelected}
+                className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
+              >
+                {isDeletingProduct ? "Deleting..." : "Delete Selected"}
               </button>
               <button
                 type="button"
@@ -3757,8 +4158,11 @@ export default function DashboardPage() {
           </div>
         )}
 
-          <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+                <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+              </div>
+            </div>
           </div>
+        </div>
         </section>
       )}
 
