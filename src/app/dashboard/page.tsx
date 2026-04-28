@@ -130,10 +130,14 @@ export default function DashboardPage() {
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProductData, setNewProductData] = useState({
+    imsId: "",
     name: "",
     sku: "",
     brand: "",
     description: "",
+    bookName: "",
+    pageNumber: "",
+    application: "",
     materialType: "",
     colorName: "",
     dimensions: "",
@@ -1565,10 +1569,14 @@ export default function DashboardPage() {
 
     try {
       const payload: CreateProductPayload = {
+        imsId: newProductData.imsId,
         name: newProductData.name,
         sku: newProductData.sku,
         brand: newProductData.brand,
         description: newProductData.description,
+        bookName: newProductData.bookName || undefined,
+        pageNumber: newProductData.pageNumber || undefined,
+        application: newProductData.application || undefined,
         materialType: newProductData.materialType,
         colorName: newProductData.colorName,
         dimensions: newProductData.dimensions,
@@ -1635,10 +1643,14 @@ export default function DashboardPage() {
       });
       await Promise.all([loadProducts(), loadLatestProducts()]);
       setNewProductData({
+        imsId: "",
         name: "",
         sku: "",
         brand: "",
         description: "",
+        bookName: "",
+        pageNumber: "",
+        application: "",
         materialType: "",
         colorName: "",
         dimensions: "",
@@ -4236,6 +4248,20 @@ export default function DashboardPage() {
                                     <div className="mt-2 text-sm text-gray-600">
                                       {shortlistProduct?.brand || "-"}{shortlistProduct?.sku ? ` • ${shortlistProduct.sku}` : ""}
                                     </div>
+                                    <div className="mt-2 grid grid-cols-1 gap-2 text-[11px] font-bold text-gray-600 sm:grid-cols-3">
+                                      <div className="rounded-lg bg-white px-2.5 py-2">
+                                        <span className="text-gray-400">IMS ID: </span>
+                                        <span className="text-gray-800">{shortlistProduct?.imsId || "-"}</span>
+                                      </div>
+                                      <div className="rounded-lg bg-white px-2.5 py-2">
+                                        <span className="text-gray-400">Book Name: </span>
+                                        <span className="text-gray-800">{shortlistProduct?.bookName || "-"}</span>
+                                      </div>
+                                      <div className="rounded-lg bg-white px-2.5 py-2">
+                                        <span className="text-gray-400">Page Number: </span>
+                                        <span className="text-gray-800">{shortlistProduct?.pageNumber || "-"}</span>
+                                      </div>
+                                    </div>
                                     <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
                                       <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
                                       <div className="mt-1">{item.customerNote || "-"}</div>
@@ -4868,6 +4894,20 @@ export default function DashboardPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="md:col-span-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">IMS ID</label>
+                  <input
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.imsId}
+                    onChange={(e) => setNewProductData({ ...newProductData, imsId: e.target.value })}
+                    placeholder="e.g. IMS-1001"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="md:col-span-2">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
@@ -4920,6 +4960,39 @@ export default function DashboardPage() {
                     value={newProductData.materialType}
                     onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
                     placeholder="e.g. Sheesham Wood"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Book Name</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.bookName}
+                    onChange={(e) => setNewProductData({ ...newProductData, bookName: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Page Number</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.pageNumber}
+                    onChange={(e) => setNewProductData({ ...newProductData, pageNumber: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Application</label>
+                  <input
+                    type="text"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newProductData.application}
+                    onChange={(e) => setNewProductData({ ...newProductData, application: e.target.value })}
+                    placeholder="Optional"
                   />
                 </div>
               </div>
@@ -5429,6 +5502,20 @@ export default function DashboardPage() {
                 <p className="mt-2 text-[11px] font-bold text-gray-500">
                   Upload Excel file in `.xlsx` format.
                 </p>
+                <p className="mt-1 text-[11px] font-bold text-gray-500">
+                  Required columns: <span className="font-black">imsId</span>, <span className="font-black">name</span>, <span className="font-black">sku</span>
+                </p>
+                <p className="mt-1 text-[11px] font-bold text-gray-500">
+                  Optional columns: brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, performanceRating, durabilityRating, priceCategory, maintenanceRating, bestUsedFor, pros, cons, status, categoryIds
+                </p>
+                <a
+                  href="/templates/products-bulk-upload-template-latest.xlsx"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex text-[11px] font-black uppercase tracking-wider text-[#0468a3] underline"
+                >
+                  Download Latest XLSX Template
+                </a>
                 {bulkUploadFile && (
                   <div className="mt-1 text-[11px] font-bold text-gray-600">
                     Selected: {bulkUploadFile.name}

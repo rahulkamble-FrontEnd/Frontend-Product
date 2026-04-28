@@ -34,10 +34,14 @@ function authHeaders(): Record<string, string> {
 }
 
 export type CreateProductPayload = {
+  imsId: string;
   name: string;
   sku: string;
   brand: string;
   description: string;
+  bookName?: string;
+  pageNumber?: string;
+  application?: string;
   materialType: string;
   colorName: string;
   dimensions: string;
@@ -81,8 +85,12 @@ export type ProductListItem = {
   name: string;
   slug: string;
   sku: string;
+  imsId?: string;
   brand?: string;
   description: string;
+  bookName?: string | null;
+  pageNumber?: string | null;
+  application?: string | null;
   materialType: string;
   finishType: string | null;
   colorName: string;
@@ -120,7 +128,11 @@ export type ProductCompareItem = {
   name: string;
   slug: string;
   sku: string;
+  imsId?: string;
   brand?: string;
+  bookName?: string | null;
+  pageNumber?: string | null;
+  application?: string | null;
   materialType: string;
   finishType: string | null;
   colorName: string;
