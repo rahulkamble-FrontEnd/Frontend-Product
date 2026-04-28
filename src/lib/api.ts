@@ -114,6 +114,12 @@ export type ProductListResponse = {
   total: number;
   page: number;
   limit: number;
+  filters?: {
+    finishes?: string[];
+    brands?: string[];
+    thicknesses?: string[];
+    colors?: string[];
+  };
 };
 
 export type ProductCompareCategory = {

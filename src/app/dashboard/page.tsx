@@ -811,9 +811,9 @@ export default function DashboardPage() {
         categoryType: appliedFilters.categoryType || undefined,
         categoryId: appliedFilters.categoryId?.trim() || undefined,
         q: appliedFilters.q?.trim() || undefined,
-        brand: appliedFilters.brands.length === 1 ? appliedFilters.brands[0] : undefined,
-        thickness: appliedFilters.thicknesses.length === 1 ? appliedFilters.thicknesses[0] : undefined,
-        colorName: appliedFilters.colors.length === 1 ? appliedFilters.colors[0] : undefined,
+        brand: undefined,
+        thickness: undefined,
+        colorName: undefined,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
