@@ -1,5 +1,9 @@
 // const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://47.128.67.255:3000/api/auth';
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://pmsapi.customfurnish.com/api/auth';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:3000/api/auth"
+    : "https://pmsapi.customfurnish.com/api/auth");
 
 /**
  * PRODUCTION READY API UTILITY
@@ -1612,6 +1616,208 @@ export async function deleteTrending(trendingId: string) {
   }
 
   return response.json() as Promise<DeleteTrendingResponse>;
+}
+
+export type DesignCfImageItem = {
+  id: string;
+  s3Key: string;
+  displayOrder: number;
+  imageUrl: string | null;
+};
+
+export type DesignCfEntry = {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  imageCount: number;
+  coverImageUrl: string | null;
+  images: DesignCfImageItem[];
+};
+
+type RawDesignCfImageItem = {
+  id?: string;
+  s3Key?: string;
+  s3_key?: string;
+  displayOrder?: number;
+  display_order?: number;
+  imageUrl?: string | null;
+  image_url?: string | null;
+  url?: string | null;
+};
+
+type RawDesignCfEntry = {
+  id?: string;
+  title?: string;
+  description?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
+  imageCount?: number;
+  image_count?: number;
+  coverImageUrl?: string | null;
+  cover_image_url?: string | null;
+  images?: RawDesignCfImageItem[];
+};
+
+function normalizeDesignCfImage(item: RawDesignCfImageItem): DesignCfImageItem {
+  return {
+    id: item.id ?? "",
+    s3Key: item.s3Key ?? item.s3_key ?? "",
+    displayOrder:
+      typeof item.displayOrder === "number"
+        ? item.displayOrder
+        : typeof item.display_order === "number"
+          ? item.display_order
+          : 1,
+    imageUrl: item.imageUrl ?? item.image_url ?? item.url ?? null,
+  };
+}
+
+function normalizeDesignCf(item: RawDesignCfEntry): DesignCfEntry {
+  const images = Array.isArray(item.images) ? item.images.map((image) => normalizeDesignCfImage(image)) : [];
+  return {
+    id: item.id ?? "",
+    title: item.title ?? "",
+    description: item.description ?? null,
+    createdAt: item.createdAt ?? item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updatedAt ?? item.updated_at ?? new Date().toISOString(),
+    imageCount:
+      typeof item.imageCount === "number"
+        ? item.imageCount
+        : typeof item.image_count === "number"
+          ? item.image_count
+          : images.length,
+    coverImageUrl: item.coverImageUrl ?? item.cover_image_url ?? images[0]?.imageUrl ?? null,
+    images,
+  };
+}
+
+export type CreateDesignCfPayload = {
+  title: string;
+  description?: string | null;
+};
+
+export type UpdateDesignCfPayload = {
+  title?: string;
+  description?: string | null;
+};
+
+export async function getDesignCfEntries() {
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf`, {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch Design CF entries");
+  }
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) return [] as DesignCfEntry[];
+  return data.map((item) => normalizeDesignCf(item as RawDesignCfEntry));
+}
+
+export async function getDesignCfEntryById(id: string) {
+  const cleanId = id.trim();
+  if (!cleanId) throw new Error("Design CF id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch Design CF entry");
+  }
+  return normalizeDesignCf((await response.json()) as RawDesignCfEntry);
+}
+
+export async function createDesignCf(payload: CreateDesignCfPayload, imageFiles: File[]) {
+  const title = payload?.title?.trim() || "";
+  if (!title) throw new Error("Title is required");
+
+  const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
+  if (files.length < 1 || files.length > 3) {
+    throw new Error("Please select minimum 1 and maximum 3 images.");
+  }
+
+  const formData = new FormData();
+  formData.append("title", title);
+  if (typeof payload?.description === "string" && payload.description.trim()) {
+    formData.append("description", payload.description.trim());
+  }
+  files.forEach((file) => formData.append("images", file));
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf`, {
+    method: "POST",
+    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    body: formData,
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to create Design CF entry");
+  }
+  return normalizeDesignCf((await response.json()) as RawDesignCfEntry);
+}
+
+export async function updateDesignCf(
+  id: string,
+  payload: UpdateDesignCfPayload,
+  imageFiles?: File[],
+) {
+  const cleanId = id.trim();
+  if (!cleanId) throw new Error("Design CF id is required");
+
+  const formData = new FormData();
+  if (typeof payload?.title === "string" && payload.title.trim()) {
+    formData.append("title", payload.title.trim());
+  }
+  if (typeof payload?.description === "string") {
+    formData.append("description", payload.description.trim());
+  }
+
+  const files = Array.isArray(imageFiles) ? imageFiles.filter((file) => file instanceof File) : [];
+  if (files.length > 0 && (files.length < 1 || files.length > 3)) {
+    throw new Error("When replacing images, please select between 1 and 3 images.");
+  }
+  files.forEach((file) => formData.append("images", file));
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+    method: "PUT",
+    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    body: formData,
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update Design CF entry");
+  }
+  return normalizeDesignCf((await response.json()) as RawDesignCfEntry);
+}
+
+export type DeleteDesignCfResponse = {
+  message: string;
+};
+
+export async function deleteDesignCf(id: string) {
+  const cleanId = id.trim();
+  if (!cleanId) throw new Error("Design CF id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete Design CF entry");
+  }
+  return response.json() as Promise<DeleteDesignCfResponse>;
 }
 
 export async function login(payload: { email: string; password: string }) {

@@ -16,6 +16,7 @@ import {
   getProducts,
   getProductsCompare,
   getTrendings,
+  getDesignCfEntries,
   getBlogs,
   getTags,
   getProductTags,
@@ -50,6 +51,7 @@ import {
   type NotificationItem,
   type CategoryMenuItem,
   type TrendingItem,
+  type DesignCfEntry,
   type BlogItem,
   type TagItem,
 } from "@/lib/api";
@@ -96,6 +98,9 @@ export default function DashboardPage() {
   const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
   const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
   const [trendingDesignsError, setTrendingDesignsError] = useState("");
+  const [designCfEntries, setDesignCfEntries] = useState<DesignCfEntry[]>([]);
+  const [isLoadingDesignCfEntries, setIsLoadingDesignCfEntries] = useState(false);
+  const [designCfEntriesError, setDesignCfEntriesError] = useState("");
   const [latestBlogs, setLatestBlogs] = useState<BlogItem[]>([]);
   const [isLoadingLatestBlogs, setIsLoadingLatestBlogs] = useState(false);
   const [latestBlogsError, setLatestBlogsError] = useState("");
@@ -428,9 +433,9 @@ export default function DashboardPage() {
     ...latestProducts.slice(0, 4),
     ...Array.from({ length: Math.max(0, 4 - latestProducts.length) }, () => null),
   ].slice(0, 4);
-  const showcaseDesignCards: Array<ProductListItem | null> = [
-    ...products.slice(0, 5),
-    ...Array.from({ length: Math.max(0, 5 - products.length) }, () => null),
+  const showcaseDesignCards: Array<DesignCfEntry | null> = [
+    ...designCfEntries.slice(0, 5),
+    ...Array.from({ length: Math.max(0, 5 - designCfEntries.length) }, () => null),
   ].slice(0, 5);
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
@@ -1814,6 +1819,35 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    const loadDesignCfEntries = async () => {
+      setIsLoadingDesignCfEntries(true);
+      setDesignCfEntriesError("");
+      try {
+        const data = await getDesignCfEntries();
+        if (isMounted) {
+          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 5) : []);
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setDesignCfEntries([]);
+          setDesignCfEntriesError(
+            err instanceof Error ? err.message : "Failed to load Design CF entries.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingDesignCfEntries(false);
+        }
+      }
+    };
+    loadDesignCfEntries();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const loadCats = async () => {
       if (!isBindCategoriesOpen && !isProductModalOpen) return;
       try {
@@ -2271,6 +2305,16 @@ export default function DashboardPage() {
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
                           Manage Tags
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCategoriesMenuOpen(false);
+                            router.push("/design-cf/manage");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Design CF
                         </button>
                         <button
                           type="button"
@@ -3139,25 +3183,53 @@ export default function DashboardPage() {
             See how we transform spaces into beautiful homes.
           </p>
           </div>
+          {designCfEntriesError && (
+            <div className="mx-auto mt-4 max-w-[1449px] rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+              {designCfEntriesError}
+            </div>
+          )}
           <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
-          {showcaseDesignCards.map((product, idx) => {
+          {isLoadingDesignCfEntries ? (
+            Array.from({ length: 5 }).map((_, idx) => (
+              <div
+                key={`design-cf-loading-${idx}`}
+                className="h-[320px] w-[248px] animate-pulse rounded-[28px] bg-[#d8ccbb]"
+              />
+            ))
+          ) : (
+          showcaseDesignCards.map((product, idx) => {
             const imageUrl = CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-            const label = toTitleCase(product?.materialType || "Kitchen");
+            const showcaseLabels = [
+              "Bed Room Design",
+              "Kitchen Design",
+              "Living Room Design",
+              "Dining Room Design",
+              "Puja Room Design",
+            ] as const;
+            const label = (product?.title || showcaseLabels[idx] || "Design").trim();
+            const cardImageUrl = product?.coverImageUrl || imageUrl;
 
             return (
               <article
                 key={product?.id ?? `cf-design-${idx}`}
-                className="h-[320px] w-[248px] overflow-hidden rounded-[28px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)]"
+                className={`h-[320px] w-[248px] overflow-hidden rounded-[28px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                  product?.id ? "cursor-pointer" : ""
+                }`}
+                onClick={() => {
+                  if (!product?.id) return;
+                  router.push(`/design-cf/${encodeURIComponent(product.id)}`);
+                }}
               >
                 <div className="relative h-[285px] w-full overflow-hidden rounded-t-[28px] bg-[#eadfcf]">
-                  <Image src={imageUrl} alt={label} fill sizes="248px" className="object-cover" />
+                  <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
                 </div>
                 <div className="flex h-[37px] items-center justify-center bg-[#AE8953]">
-                  <span className="text-[23px] font-medium leading-none text-white">{label}</span>
+                  <span className="text-[18px] font-medium leading-none text-white">{label}</span>
                 </div>
               </article>
             );
-          })}
+          })
+          )}
           </div>
         </div>
       </section>
