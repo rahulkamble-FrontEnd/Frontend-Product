@@ -2,7 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getCategories, createCategory, deleteCategory, updateCategory, getCategoryBySlug } from "@/lib/api";
+import {
+  getCategories,
+  createCategory,
+  deleteCategory,
+  updateCategory,
+  getCategoryBySlug,
+  getCategoryMenu,
+} from "@/lib/api";
 
 type Category = {
   id: string;
@@ -14,6 +21,7 @@ type Category = {
   createdAt: string;
   parent_id?: string;
   parent?: { id: string; name: string } | null;
+  parentId?: string;
 };
 
 type CategoryDetailsView = {
@@ -54,6 +62,7 @@ export default function CategoriesPage() {
   const topLevelCategories = categories.filter(
     (cat) => !cat.parent_id && !(cat.parent && cat.parent.id),
   );
+  const visibleCategories = topLevelCategories;
 
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
@@ -72,8 +81,22 @@ export default function CategoriesPage() {
     setError("");
     try {
       const filter = type === "material" || type === "furniture" ? type : undefined;
-      const data = await getCategories(filter);
-      setCategories(data);
+      const [data, menu] = await Promise.all([
+        getCategories(filter),
+        getCategoryMenu({ type: filter, includeChildren: true }),
+      ]);
+
+      const childIds = new Set<string>();
+      for (const root of menu) {
+        for (const child of root.children ?? []) {
+          if (child.id) {
+            childIds.add(child.id);
+          }
+        }
+      }
+
+      const topLevelOnly = data.filter((cat: Category) => !childIds.has(cat.id));
+      setCategories(topLevelOnly);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load categories.");
     } finally {
@@ -247,8 +270,8 @@ export default function CategoriesPage() {
                       <td colSpan={7} className="px-6 py-4"><div className="h-4 w-full rounded bg-gray-100" /></td>
                     </tr>
                   ))
-                ) : categories.length > 0 ? (
-                  categories.map((cat) => (
+                ) : visibleCategories.length > 0 ? (
+                  visibleCategories.map((cat) => (
                     <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
