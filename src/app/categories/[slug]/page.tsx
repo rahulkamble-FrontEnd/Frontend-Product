@@ -588,7 +588,7 @@ export default function CategoryProductsPage() {
                                       alt={`${product.name} ${index + 1}`}
                                       fill
                                       sizes="(max-width: 1200px) 50vw, 25vw"
-                                      className="object-cover"
+                                      className="object-contain object-center p-2"
                                     />
                                   </div>
                                 ))}
