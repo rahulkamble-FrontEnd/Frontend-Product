@@ -847,7 +847,7 @@ export type BulkUploadProductsResponse = {
   createdCount: number;
   failedCount: number;
   created: Array<{ row: number; id: string; sku: string; name: string }>;
-  errors: Array<{ row: number; message: string }>;
+  errors: Array<{ row: number; sku?: string; message: string }>;
 };
 
 export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
