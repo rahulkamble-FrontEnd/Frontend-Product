@@ -643,7 +643,12 @@ export default function ProductDetailsPage() {
                   </span>
                   {userRole !== "customer" && product.brand ? (
                     <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                      {product.brand}
+                     BRAND: {product.brand}
+                    </span>
+                  ) : null}
+                  {product.imsId ? (
+                    <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                      IMSID: {product.imsId}
                     </span>
                   ) : null}
                 </div>
