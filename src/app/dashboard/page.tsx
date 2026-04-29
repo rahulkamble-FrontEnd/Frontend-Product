@@ -2344,7 +2344,7 @@ export default function DashboardPage() {
     visibleDashboardProductIds.every((id) => bulkTagSelectedIds.has(id));
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
+    <div className="dashboard-mobile-typography min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
       {/* Top Header */}
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
@@ -6036,6 +6036,20 @@ export default function DashboardPage() {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        @media (max-width: 640px) {
+          .dashboard-mobile-typography :is(h1, h2) {
+            font-size: 1.4rem !important;
+            line-height: 1.25 !important;
+          }
+          .dashboard-mobile-typography :is(h3, h4) {
+            font-size: 1.15rem !important;
+            line-height: 1.3 !important;
+          }
+          .dashboard-mobile-typography :is(p, li, td, th, label) {
+            font-size: 0.82rem !important;
+            line-height: 1.35 !important;
+          }
         }
       `}</style>
     </div>
