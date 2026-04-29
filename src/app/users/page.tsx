@@ -151,7 +151,7 @@ export default function UsersPage() {
           <div className="flex items-center gap-3">
              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mr-2">Filter by Role:</span>
              <div className="flex gap-1 rounded-full bg-gray-100 p-1">
-                {['all', 'customer', 'designer'].map((role) => (
+                {['all', 'customer', 'designer', 'dataadmin'].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleFilterChange(role)}
@@ -335,6 +335,7 @@ export default function UsersPage() {
                   >
                     <option value="customer">Customer</option>
                     <option value="designer">Designer</option>
+                    <option value="dataadmin">Data Admin</option>
                   </select>
                 </div>
                 <div>

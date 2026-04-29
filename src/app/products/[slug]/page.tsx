@@ -982,7 +982,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {["admin", "designer", "blogadmin"].includes(userRole) && (
+              {["admin", "designer", "blogadmin", "dataadmin"].includes(userRole) && (
                 <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
                   <div className="space-y-2 text-sm">

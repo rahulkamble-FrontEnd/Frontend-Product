@@ -80,6 +80,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
+  const canManageProductData = userRole === "admin" || userRole === "dataadmin";
+  const canManageUsers = userRole === "admin";
+  const canViewBlogsNav = userRole !== "dataadmin";
+  const canManageCategoryMasters = userRole === "admin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
@@ -599,8 +603,8 @@ export default function DashboardPage() {
   const handleBulkTagApply = async () => {
     setBulkTagMsg("");
     setBulkTagError("");
-    if (userRole !== "admin") {
-      setBulkTagError("Only admin can bulk tag products.");
+    if (!canManageProductData) {
+      setBulkTagError("Only dataadmin and admin can bulk tag products.");
       return;
     }
     const selectedIds = Array.from(bulkTagSelectedIds);
@@ -1017,7 +1021,7 @@ export default function DashboardPage() {
   }, [userRole]);
 
   useEffect(() => {
-    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin"]);
+    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin", "dataadmin"]);
     if (!eligibleRoles.has(userRole)) {
       setNotifications([]);
       setNotificationsError("");
@@ -1662,9 +1666,9 @@ export default function DashboardPage() {
     setProductError("");
     setCreatedProductImages([]);
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsCreatingProduct(false);
-      setProductError("Only admin can create products.");
+      setProductError("Only admin or dataadmin can create products.");
       return;
     }
 
@@ -1802,9 +1806,9 @@ export default function DashboardPage() {
     setUploadError("");
     setUploadedImages([]);
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsUploadingImage(false);
-      setUploadError("Only admin can upload product images.");
+      setUploadError("Only admin or dataadmin can upload product images.");
       return;
     }
 
@@ -1837,8 +1841,8 @@ export default function DashboardPage() {
   };
 
   const triggerBulkUploadPicker = () => {
-    if (userRole !== "admin") {
-      setBulkUploadError("Only admin can bulk upload products.");
+    if (!canManageProductData) {
+      setBulkUploadError("Only admin or dataadmin can bulk upload products.");
       return;
     }
     setBulkUploadMsg("");
@@ -2033,7 +2037,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadAllTags = async () => {
-      if (userRole !== "admin" && !isProductTagsOpen && !isProductModalOpen) return;
+      if (!canManageProductData && !isProductTagsOpen && !isProductModalOpen) return;
       try {
         const data = await getTags();
         const tags = Array.isArray(data) ? data : [];
@@ -2107,9 +2111,9 @@ export default function DashboardPage() {
     setIsBindingCats(true);
     setBindMsg("");
     setBindError("");
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsBindingCats(false);
-      setBindError("Only admin can bind categories.");
+      setBindError("Only admin and dataadmin can bind categories.");
       return;
     }
     const pid = bindProductId.trim();
@@ -2143,9 +2147,9 @@ export default function DashboardPage() {
     setProductTagMsg("");
     setProductTagError("");
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsLinkingTag(false);
-      setProductTagError("Only admin can link tags.");
+      setProductTagError("Only admin or dataadmin can link tags.");
       return;
     }
 
@@ -2185,9 +2189,9 @@ export default function DashboardPage() {
     setProductTagMsg("");
     setProductTagError("");
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsUnlinkingTag(false);
-      setProductTagError("Only admin can delink tags.");
+      setProductTagError("Only admin or dataadmin can delink tags.");
       return;
     }
 
@@ -2353,6 +2357,7 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            {canViewBlogsNav && (
             <div className="hidden md:block">
               <button
                 type="button"
@@ -2368,6 +2373,7 @@ export default function DashboardPage() {
                 Blogs
               </button>
             </div>
+            )}
             {userRole === "blogadmin" && (
               <div className="relative hidden md:block">
                 <button
@@ -2453,8 +2459,9 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            {userRole === "admin" && (
+            {(userRole === "admin" || userRole === "dataadmin") && (
                 <>
+                  {canManageUsers && (
                   <div className="relative hidden md:block">
                     <button
                       type="button"
@@ -2499,6 +2506,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
+                  )}
 
                   <div className="relative hidden md:block">
                     <button
@@ -2520,57 +2528,61 @@ export default function DashboardPage() {
                         onClick={(e) => e.stopPropagation()}
                         className="absolute top-full right-0 z-[360] mt-10 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/categories");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Categories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/subcategories");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Subcategories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/tags");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Tags
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/design-cf/manage");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Design CF
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsCategoryModalOpen(true);
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Create Category
-                        </button>
+                        {canManageCategoryMasters && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/categories");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Categories
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/subcategories");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Subcategories
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/tags");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Tags
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/design-cf/manage");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Design CF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Create Category
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -2775,9 +2787,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {userRole === "admin" && (
+      {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className="grid grid-cols-3 gap-2">
+          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
+            {canManageUsers && (
             <div className="relative">
               <button
                 type="button"
@@ -2824,6 +2837,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="relative">
               <button
@@ -2847,47 +2861,51 @@ export default function DashboardPage() {
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/categories");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Categories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/subcategories");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Subcategories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/tags");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Tags
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsCategoryModalOpen(true);
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Create Category
-                  </button>
+                  {canManageCategoryMasters && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/categories");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Categories
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/subcategories");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Subcategories
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/tags");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Tags
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Create Category
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -4039,7 +4057,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    {userRole === "admin" && (
+                    {canManageProductData && (
                       <label
                         className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
                         onClick={(e) => e.stopPropagation()}
@@ -4091,7 +4109,7 @@ export default function DashboardPage() {
             {deleteProductError}
           </div>
         )}
-        {userRole === "admin" && (
+        {canManageProductData && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
@@ -4139,14 +4157,16 @@ export default function DashboardPage() {
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
               </button>
-              <button
-                type="button"
-                disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
-                onClick={handleBulkDeleteSelected}
-                className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
-              >
-                {isDeletingProduct ? "Deleting..." : "Delete Selected"}
-              </button>
+              {userRole === "admin" && (
+                <button
+                  type="button"
+                  disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
+                  onClick={handleBulkDeleteSelected}
+                  className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
+                >
+                  {isDeletingProduct ? "Deleting..." : "Delete Selected"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={bulkTagSelectedList.length === 0}
@@ -5121,6 +5141,7 @@ export default function DashboardPage() {
                 >
                   <option value="customer">Customer</option>
                   <option value="designer">Designer</option>
+                  <option value="dataadmin">Data Admin</option>
                 </select>
               </div>
 
@@ -5610,7 +5631,7 @@ export default function DashboardPage() {
 
       {isBindCategoriesOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-8 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Sub-Categories to Product</h2>
               <button
@@ -5627,7 +5648,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleBindCategories} className="space-y-4">
+            <form onSubmit={handleBindCategories} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
                 <input
@@ -5642,7 +5663,8 @@ export default function DashboardPage() {
 
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Sub-Categories</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="max-h-[45vh] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {allCategories.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
                       <input
@@ -5659,6 +5681,7 @@ export default function DashboardPage() {
                   {allCategories.length === 0 && (
                     <div className="text-xs text-gray-500">No sub-categories available.</div>
                   )}
+                  </div>
                 </div>
               </div>
 
