@@ -3973,7 +3973,13 @@ export default function DashboardPage() {
                 >
                   <div className="relative aspect-[4/3] w-full bg-gray-100">
                     {hasImage ? (
-                      <Image src={imageUrl as string} alt={p.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                      <Image
+                        src={imageUrl as string}
+                        alt={p.name}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 33vw"
+                        className="object-contain object-center p-2"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
                         No Image
