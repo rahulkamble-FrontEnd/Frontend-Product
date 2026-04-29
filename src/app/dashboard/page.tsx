@@ -3210,26 +3210,26 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="py-12 lg:py-14"
+        className="py-10 lg:py-14"
         style={{
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+              <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
                 Trending Designs
               </h3>
-              <p className="mt-3 text-sm text-white/90">
+              <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
                 Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
               type="button"
               onClick={() => router.push("/trending/manage")}
-              className="text-[14px] font-medium text-white"
+              className="text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Designs
             </button>
@@ -3246,7 +3246,7 @@ export default function DashboardPage() {
               Loading trending designs...
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-4">
               {trendingCards.map((trending, idx) => {
                   const imageUrl = trending
                     ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
@@ -3257,9 +3257,9 @@ export default function DashboardPage() {
                   return (
                     <article
                       key={trending?.id ?? `trending-placeholder-${idx}`}
-                      className="h-[430px] w-full max-w-[360px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm"
+                      className="h-[270px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:h-[430px] sm:w-full sm:max-w-[360px] sm:rounded-2xl sm:p-2.5"
                     >
-                      <div className="relative h-[312px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                      <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-[#eadfcf] sm:h-[312px] sm:rounded-[14px]">
                         {imageUrl ? (
                           <Image
                             src={imageUrl}
@@ -3275,10 +3275,10 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <div className="mt-2">
-                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
                           {tag}
                         </span>
-                        <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-[#977543]">
+                        <div className="mt-1 line-clamp-2 text-[16px] font-semibold leading-[22px] tracking-normal text-[#977543] sm:text-[26px] sm:leading-[40px]">
                           {title}
                         </div>
                       </div>
@@ -3290,11 +3290,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className={`${dashboardShellClass} bg-[#F8F0E4] py-10 lg:py-12`}>
-        <h3 className="text-center text-[36px] font-bold leading-[40px] text-[#977543]">
+      <section className={`${dashboardShellClass} bg-[#F8F0E4] py-8 lg:py-12`}>
+        <h3 className="text-center text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
           Why Choose CustomFurnish?
         </h3>
-        <div className="mx-auto mt-8 grid max-w-[1320px] grid-cols-1 gap-y-7 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-14">
+        <div className="mx-auto mt-6 flex max-w-[1320px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:grid sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:overflow-visible lg:grid-cols-3 lg:gap-x-14">
           {[
             {
               title: "Wide Product Range",
@@ -3329,30 +3329,30 @@ export default function DashboardPage() {
           ].map((feature, index) => (
             <article
               key={`${feature.title}-${index}`}
-              className="flex min-h-[96px] items-center gap-5"
+              className="flex min-h-[128px] w-[235px] flex-shrink-0 items-center gap-3 rounded-xl border border-[#e5d4b6] bg-[#fffaf3] p-3 shadow-sm sm:min-h-[96px] sm:w-auto sm:gap-5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
             >
-              <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-[#AC8852] text-white">
+              <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full bg-[#AC8852] text-white sm:h-[68px] sm:w-[68px]">
                 {feature.icon === "wave" ? (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <path d="M3 7c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                     <path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                     <path d="M3 17c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                   </svg>
                 ) : feature.icon === "spark" ? (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <circle cx="12" cy="12" r="2.2" />
                     <path d="M12 3.5v3M12 17.5v3M20.5 12h-3M6.5 12h-3M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1M17.8 17.8l-2.1-2.1M8.3 8.3 6.2 6.2" />
                   </svg>
                 ) : (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <path d="M6 6v12h12" />
                     <path d="M10 6v8h8" />
                   </svg>
                 )}
               </div>
-              <div className="flex h-[96px] w-[303px] flex-col justify-center">
-                <h4 className="text-[26px] font-semibold leading-[34px] text-[#977543]">{feature.title}</h4>
-                <p className="mt-1 text-[13px] leading-[18px] text-[#977543]">{feature.subtitle}</p>
+              <div className="flex min-h-[90px] w-full flex-col justify-center sm:h-[96px] sm:w-[303px]">
+                <h4 className="text-[18px] font-semibold leading-[24px] text-[#977543] sm:text-[26px] sm:leading-[34px]">{feature.title}</h4>
+                <p className="mt-1 text-[11px] leading-[16px] text-[#977543] sm:text-[13px] sm:leading-[18px]">{feature.subtitle}</p>
               </div>
             </article>
           ))}
@@ -3360,26 +3360,26 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="py-12 lg:py-14"
+        className="py-10 lg:py-14"
         style={{
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+              <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
                 Latest Products
               </h3>
-              <p className="mt-3 text-sm text-white/90">
+              <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
                 Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
               type="button"
               onClick={() => router.push("/products")}
-              className="text-[14px] font-medium text-white"
+              className="text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Products
             </button>
@@ -3390,7 +3390,7 @@ export default function DashboardPage() {
               Loading latest products...
             </div>
           ) : (
-            <div className="grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:justify-items-center sm:gap-3 sm:overflow-visible lg:grid-cols-4 lg:gap-4">
               {latestProductCards.map((product, idx) => {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
@@ -3414,18 +3414,18 @@ export default function DashboardPage() {
                         router.push(`/products/${product.slug}`);
                       }
                     }}
-                    className={`min-h-[410px] w-full max-w-[340px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm ${
+                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[410px] sm:w-full sm:max-w-[340px] sm:rounded-2xl sm:p-2.5 ${
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-white">
+                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[296px] sm:rounded-[14px]">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
-                    <div className="mt-2 rounded-[14px] bg-[#e8dfd0] px-3 py-2">
-                      <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                    <div className="mt-2 rounded-[10px] bg-[#e8dfd0] px-2.5 py-2 sm:rounded-[14px] sm:px-3">
+                      <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
                         {label}
                       </span>
-                      <div className="mt-1 text-[24px] font-semibold leading-[30px] tracking-normal text-black">
+                      <div className="mt-1 text-[15px] font-semibold leading-[20px] tracking-normal text-black sm:text-[24px] sm:leading-[30px]">
                         {displayTitle}
                       </div>
                     </div>
@@ -3437,11 +3437,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F0E4] py-12">
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+      <section className="bg-[#F8F0E4] py-10 sm:py-12">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CustomFurnish</h3>
-          <p className="mt-2 text-sm text-[#8B6E46]">
+          <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">Designs done by CustomFurnish</h3>
+          <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
             See how we transform spaces into beautiful homes.
           </p>
           </div>
@@ -3450,12 +3450,12 @@ export default function DashboardPage() {
               {designCfEntriesError}
             </div>
           )}
-          <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
+          <div className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible lg:flex-nowrap">
           {isLoadingDesignCfEntries ? (
             Array.from({ length: 5 }).map((_, idx) => (
               <div
                 key={`design-cf-loading-${idx}`}
-                className="h-[320px] w-[248px] animate-pulse rounded-[28px] bg-[#d8ccbb]"
+                className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
               />
             ))
           ) : (
@@ -3474,7 +3474,7 @@ export default function DashboardPage() {
             return (
               <article
                 key={product?.id ?? `cf-design-${idx}`}
-                className={`h-[320px] w-[248px] overflow-hidden rounded-[28px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                className={`h-[230px] w-[170px] flex-shrink-0 overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px] ${
                   product?.id ? "cursor-pointer" : ""
                 }`}
                 onClick={() => {
@@ -3482,11 +3482,11 @@ export default function DashboardPage() {
                   router.push(`/design-cf/${encodeURIComponent(product.id)}`);
                 }}
               >
-                <div className="relative h-[285px] w-full overflow-hidden rounded-t-[28px] bg-[#eadfcf]">
+                <div className="relative h-[198px] w-full overflow-hidden rounded-t-[20px] bg-[#eadfcf] sm:h-[285px] sm:rounded-t-[28px]">
                   <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
                 </div>
-                <div className="flex h-[37px] items-center justify-center bg-[#AE8953]">
-                  <span className="text-[18px] font-medium leading-none text-white">{label}</span>
+                <div className="flex h-[32px] items-center justify-center bg-[#AE8953] sm:h-[37px]">
+                  <span className="text-[12px] font-medium leading-none text-white sm:text-[18px]">{label}</span>
                 </div>
               </article>
             );
@@ -3496,10 +3496,10 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F0E4] pb-16">
+      <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
         <div className={`${dashboardShellClass} px-4 sm:px-0`}>
           <div className="flex items-center justify-between">
-            <h3 className="ml-[60px] text-[36px] font-bold leading-[40px] text-[#977543]">
+            <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
             <div className="mr-[80px] hidden items-center gap-2 md:flex">
@@ -3524,12 +3524,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap justify-center gap-5">
+          <div className="mt-6 flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-12 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible">
             {isLoadingLatestBlogs ? (
               Array.from({ length: 4 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[332px] w-full max-w-[280px] animate-pulse rounded-[18px] bg-[#d8ccbb]"
+                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-full sm:max-w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
@@ -3545,7 +3545,7 @@ export default function DashboardPage() {
                 return (
                   <article
                     key={blog.id || `relevant-article-${idx}`}
-                    className={`w-full max-w-[280px] overflow-hidden rounded-[18px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                    className={`w-[180px] flex-shrink-0 overflow-hidden rounded-[14px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:w-full sm:max-w-[280px] sm:rounded-[18px] ${
                       blogSlug ? "cursor-pointer" : ""
                     }`}
                     onClick={() => {
@@ -3553,7 +3553,7 @@ export default function DashboardPage() {
                       router.push(`/blog/${encodeURIComponent(blogSlug)}`);
                     }}
                   >
-                    <div className="relative h-[270px] w-full">
+                    <div className="relative h-[170px] w-full sm:h-[270px]">
                       <Image
                         src={imageUrl}
                         alt={blog.title || "Relevant article"}
@@ -3563,10 +3563,10 @@ export default function DashboardPage() {
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex items-center justify-center bg-[#AE8953] px-3 py-2.5">
-                      <span className="text-center text-[18px] font-medium leading-tight text-white">{displayTitle}</span>
+                    <div className="flex items-center justify-center bg-[#AE8953] px-2 py-2 sm:px-3 sm:py-2.5">
+                      <span className="text-center text-[12px] font-medium leading-tight text-white sm:text-[18px]">{displayTitle}</span>
                     </div>
-                    <div className="flex items-center justify-center bg-[#262626] py-2.5">
+                    <div className="flex items-center justify-center bg-[#262626] py-2 sm:py-2.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -3574,10 +3574,10 @@ export default function DashboardPage() {
                           if (!blogSlug) return;
                           router.push(`/blog/${encodeURIComponent(blogSlug)}`);
                         }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#AE8953] px-5 py-1 text-[11px] font-medium text-white"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-[#AE8953] px-3 py-1 text-[10px] font-medium text-white sm:gap-2 sm:px-5 sm:text-[11px]"
                       >
                         Read Now
-                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M5 12h14" />
                           <path d="m13 6 6 6-6 6" />
                         </svg>
