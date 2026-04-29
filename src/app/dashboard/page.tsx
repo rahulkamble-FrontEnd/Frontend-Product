@@ -141,10 +141,10 @@ export default function DashboardPage() {
     colorName: "",
     dimensions: "",
     status: "draft",
-    performanceRating: 4,
-    durabilityRating: 3.5,
-    priceCategory: 2,
-    maintenanceRating: 4,
+    performanceRating: 4 as number | "",
+    durabilityRating: 3.5 as number | "",
+    priceCategory: 2 as number | "",
+    maintenanceRating: 4 as number | "",
     prosText: "",
     consText: ""
   });
@@ -1686,18 +1686,22 @@ export default function DashboardPage() {
         name: newProductData.name,
         sku: newProductData.sku,
         brand: newProductData.brand,
-        description: newProductData.description,
+        description: newProductData.description.trim() || undefined,
         bookName: newProductData.bookName || undefined,
         pageNumber: newProductData.pageNumber || undefined,
         application: newProductData.application || undefined,
-        materialType: newProductData.materialType,
-        colorName: newProductData.colorName,
-        dimensions: newProductData.dimensions,
+        materialType: newProductData.materialType.trim() || undefined,
+        colorName: newProductData.colorName.trim() || undefined,
+        dimensions: newProductData.dimensions.trim() || undefined,
         status: newProductData.status,
-        performanceRating: Number(newProductData.performanceRating),
-        durabilityRating: Number(newProductData.durabilityRating),
-        priceCategory: Number(newProductData.priceCategory),
-        maintenanceRating: Number(newProductData.maintenanceRating),
+        performanceRating:
+          newProductData.performanceRating === "" ? undefined : Number(newProductData.performanceRating),
+        durabilityRating:
+          newProductData.durabilityRating === "" ? undefined : Number(newProductData.durabilityRating),
+        priceCategory:
+          newProductData.priceCategory === "" ? undefined : Number(newProductData.priceCategory),
+        maintenanceRating:
+          newProductData.maintenanceRating === "" ? undefined : Number(newProductData.maintenanceRating),
         pros: splitList(newProductData.prosText),
         cons: splitList(newProductData.consText)
       };
@@ -5217,7 +5221,7 @@ export default function DashboardPage() {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl md:p-8">
             <div className="mb-6 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
@@ -5257,7 +5261,7 @@ export default function DashboardPage() {
                   </button>
 
                   {isCreateCategoriesDropdownOpen && (
-                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                    <div className="relative z-[650] mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
                       {allCategories.length === 0 ? (
                         <div className="px-2 py-2 text-xs text-gray-500">No sub-categories available.</div>
                       ) : (
@@ -5297,7 +5301,7 @@ export default function DashboardPage() {
                   </button>
 
                   {isCreateTagsDropdownOpen && (
-                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                    <div className="relative z-[650] mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
                       {allTags.length === 0 ? (
                         <div className="px-2 py-2 text-xs text-gray-500">No tags available.</div>
                       ) : (
@@ -5361,7 +5365,6 @@ export default function DashboardPage() {
                     >
                       <option value="draft">Draft</option>
                       <option value="published">Published</option>
-                      <option value="archived">Archived</option>
                     </select>
                   </div>
                 </div>
@@ -5382,7 +5385,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.materialType}
                     onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
@@ -5429,7 +5431,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.colorName}
                     onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
@@ -5440,7 +5441,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.dimensions}
                     onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
@@ -5452,7 +5452,6 @@ export default function DashboardPage() {
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
                 <textarea
-                  required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
                   value={newProductData.description}
                   onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
@@ -5503,10 +5502,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.performanceRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, performanceRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5514,10 +5515,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.durabilityRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, durabilityRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5525,10 +5528,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="1"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.priceCategory}
-                    onChange={(e) => setNewProductData({ ...newProductData, priceCategory: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5536,10 +5541,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.maintenanceRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, maintenanceRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
               </div>
