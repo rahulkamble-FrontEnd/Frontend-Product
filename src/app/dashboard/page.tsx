@@ -227,6 +227,7 @@ export default function DashboardPage() {
   const [filterQ, setFilterQ] = useState("");
   const [filterIncludeImages, setFilterIncludeImages] = useState(true);
   const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
+  const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(new Set());
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
@@ -235,6 +236,7 @@ export default function DashboardPage() {
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
     brands: string[];
     thicknesses: string[];
     colors: string[];
@@ -245,6 +247,7 @@ export default function DashboardPage() {
     categoryType: "",
     categoryId: "",
     q: "",
+    finishTypes: [],
     brands: [],
     thicknesses: [],
     colors: [],
@@ -725,6 +728,7 @@ export default function DashboardPage() {
     categoryType?: "" | "material" | "furniture";
     categoryId?: string;
     q?: string;
+    finishTypes: string[];
     brands: string[];
     thicknesses: string[];
     colors: string[];
@@ -736,6 +740,7 @@ export default function DashboardPage() {
       f.categoryType || "",
       f.categoryId || "",
       f.q || "",
+      f.finishTypes.join(","),
       f.brands.join(","),
       f.thicknesses.join(","),
       f.colors.join(","),
@@ -749,6 +754,7 @@ export default function DashboardPage() {
       categoryType: filterCategoryType,
       categoryId: (filterCategoryId || selectedParentCategoryId).trim(),
       q: filterQ.trim(),
+      finishTypes: Array.from(filterFinishTypes).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       brands: Array.from(filterBrands).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       thicknesses: Array.from(filterThicknesses).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
       colors: Array.from(filterColors).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
@@ -761,6 +767,7 @@ export default function DashboardPage() {
       filterCategoryId,
       selectedParentCategoryId,
       filterQ,
+      filterFinishTypes,
       filterBrands,
       filterThicknesses,
       filterColors,
@@ -791,7 +798,7 @@ export default function DashboardPage() {
       setAppliedFilters(next);
     }, 450);
     return () => window.clearTimeout(handle);
-  }, [filterQ, filterCategoryId, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
+  }, [filterQ, filterCategoryId, filterFinishTypes, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
 
   useEffect(() => {
     const next = buildAppliedFilters();
@@ -811,9 +818,9 @@ export default function DashboardPage() {
         categoryType: appliedFilters.categoryType || undefined,
         categoryId: appliedFilters.categoryId?.trim() || undefined,
         q: appliedFilters.q?.trim() || undefined,
-        brand: appliedFilters.brands.length === 1 ? appliedFilters.brands[0] : undefined,
-        thickness: appliedFilters.thicknesses.length === 1 ? appliedFilters.thicknesses[0] : undefined,
-        colorName: appliedFilters.colors.length === 1 ? appliedFilters.colors[0] : undefined,
+        brand: undefined,
+        thickness: undefined,
+        colorName: undefined,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
@@ -2242,6 +2249,18 @@ export default function DashboardPage() {
     [products],
   );
 
+  const availableFinishTypeFilters = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          products
+            .map((product) => (product.finishType ?? "").trim())
+            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [products],
+  );
+
   const availableThicknessFilters = useMemo(
     () =>
       Array.from(
@@ -2269,6 +2288,10 @@ export default function DashboardPage() {
   const visibleDashboardProducts = useMemo(
     () =>
       products.filter((product) => {
+        if (appliedFilters.finishTypes.length > 0) {
+          const finishType = (product.finishType ?? "").trim();
+          if (!finishType || !appliedFilters.finishTypes.includes(finishType)) return false;
+        }
         if (appliedFilters.brands.length > 0) {
           const brand = (product.brand ?? "").trim();
           if (!brand || !appliedFilters.brands.includes(brand)) return false;
@@ -2283,7 +2306,7 @@ export default function DashboardPage() {
         }
         return true;
       }),
-    [products, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
+    [products, appliedFilters.finishTypes, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
   );
 
   const visibleDashboardProductIds = useMemo(
@@ -2996,7 +3019,7 @@ export default function DashboardPage() {
         </div>
 
         {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl">
+          <div className="absolute left-0 right-0 top-full z-[260] hidden border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl md:block">
             <div className={`${dashboardShellClass} py-4`}>
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
@@ -3550,7 +3573,7 @@ export default function DashboardPage() {
       )}
 
       {userRole === "designer" && (
-        <section className={dashboardShellClass}>
+        <section className={`${dashboardShellClass} relative z-[30] bg-[#F8F0E4]`}>
           <div className="pb-10">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
@@ -3677,7 +3700,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
-              <aside className="rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
+              <aside className="relative z-10 rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
                 <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
                 <div className="mt-4 space-y-3">
@@ -3757,7 +3780,28 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableFinishTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No finish options</div>
+                      ) : (
+                        availableFinishTypeFilters.map((finishType) => (
+                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterFinishTypes.has(finishType)}
+                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{finishType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Brand</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableBrandFilters.length === 0 ? (
@@ -3778,7 +3822,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableThicknessFilters.length === 0 ? (
@@ -3799,7 +3843,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="border-t border-[#cbbca6] pt-4">
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Color</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableColorFilters.length === 0 ? (
@@ -3820,24 +3864,29 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                    <input
-                      type="checkbox"
-                      checked={filterIncludeImages}
-                      onChange={(e) => setFilterIncludeImages(e.target.checked)}
-                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                    />
-                    Images
-                  </label>
-                  <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                    <input
-                      type="checkbox"
-                      checked={filterIncludeCategories}
-                      onChange={(e) => setFilterIncludeCategories(e.target.checked)}
-                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                    />
-                    Categories
-                  </label>
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Include</div>
+                    <div className="mt-3 space-y-2">
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeImages}
+                          onChange={(e) => setFilterIncludeImages(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Images
+                      </label>
+                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
+                        <input
+                          type="checkbox"
+                          checked={filterIncludeCategories}
+                          onChange={(e) => setFilterIncludeCategories(e.target.checked)}
+                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                        />
+                        Categories
+                      </label>
+                    </div>
+                  </div>
 
                   <button
                     onClick={applyProductFilters}
@@ -3849,7 +3898,7 @@ export default function DashboardPage() {
                 </div>
               </aside>
 
-              <div className="min-w-0">
+              <div className="relative z-10 min-w-0">
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Sub-Category</div>
                   <div className="mt-3 flex flex-wrap gap-2">
