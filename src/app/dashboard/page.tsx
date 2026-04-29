@@ -236,6 +236,7 @@ export default function DashboardPage() {
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
+  const [isMobileProductFiltersOpen, setIsMobileProductFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
     categoryType?: "" | "material" | "furniture";
@@ -2344,7 +2345,7 @@ export default function DashboardPage() {
     visibleDashboardProductIds.every((id) => bulkTagSelectedIds.has(id));
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
+    <div className="dashboard-mobile-typography min-h-screen overflow-x-hidden bg-[#F8F0E4] font-sans text-gray-900">
       {/* Top Header */}
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
@@ -3015,7 +3016,7 @@ export default function DashboardPage() {
         onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
-          className={`${dashboardShellClass} flex items-center justify-center gap-8 py-2.5 text-[16px] font-semibold leading-6 overflow-x-auto whitespace-nowrap scrollbar-hide`}
+          className={`${dashboardShellClass} flex items-center justify-center gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:gap-8 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
             const hasFlyout =
@@ -3151,26 +3152,26 @@ export default function DashboardPage() {
       </section>
 
       <section className={`${dashboardShellClass} pt-10 pb-7`}>
-        <div className="mb-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="text-left text-[30px] font-bold leading-[38px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
+        <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8 sm:gap-4">
+          <h3 className="min-w-0 text-left text-[22px] font-bold leading-[28px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Shop Interior Materials by Category
           </h3>
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#9f7a47] text-white"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white sm:h-10 sm:w-10"
               aria-label="Scroll category tiles left"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <button
               type="button"
               onClick={() => scrollCategoryTiles("right")}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#9f7a47] text-white"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white sm:h-10 sm:w-10"
               aria-label="Scroll category tiles right"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
         </div>
@@ -3210,26 +3211,26 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="py-12 lg:py-14"
+        className="py-10 lg:py-14"
         style={{
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+              <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
                 Trending Designs
               </h3>
-              <p className="mt-3 text-sm text-white/90">
+              <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
                 Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
               type="button"
               onClick={() => router.push("/trending/manage")}
-              className="text-[14px] font-medium text-white"
+              className="text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Designs
             </button>
@@ -3246,7 +3247,7 @@ export default function DashboardPage() {
               Loading trending designs...
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-4">
               {trendingCards.map((trending, idx) => {
                   const imageUrl = trending
                     ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
@@ -3257,9 +3258,9 @@ export default function DashboardPage() {
                   return (
                     <article
                       key={trending?.id ?? `trending-placeholder-${idx}`}
-                      className="h-[430px] w-full max-w-[360px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm"
+                      className="h-[270px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:h-[430px] sm:w-full sm:max-w-[360px] sm:rounded-2xl sm:p-2.5"
                     >
-                      <div className="relative h-[312px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                      <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-[#eadfcf] sm:h-[312px] sm:rounded-[14px]">
                         {imageUrl ? (
                           <Image
                             src={imageUrl}
@@ -3275,10 +3276,10 @@ export default function DashboardPage() {
                         )}
                       </div>
                       <div className="mt-2">
-                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
                           {tag}
                         </span>
-                        <div className="mt-1 line-clamp-2 text-[26px] font-semibold leading-[40px] tracking-normal text-[#977543]">
+                        <div className="mt-1 line-clamp-2 text-[16px] font-semibold leading-[22px] tracking-normal text-[#977543] sm:text-[26px] sm:leading-[40px]">
                           {title}
                         </div>
                       </div>
@@ -3290,11 +3291,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className={`${dashboardShellClass} bg-[#F8F0E4] py-10 lg:py-12`}>
-        <h3 className="text-center text-[36px] font-bold leading-[40px] text-[#977543]">
+      <section className={`${dashboardShellClass} bg-[#F8F0E4] py-8 lg:py-12`}>
+        <h3 className="text-center text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
           Why Choose CustomFurnish?
         </h3>
-        <div className="mx-auto mt-8 grid max-w-[1320px] grid-cols-1 gap-y-7 sm:grid-cols-2 sm:gap-x-10 lg:grid-cols-3 lg:gap-x-14">
+        <div className="mx-auto mt-6 flex max-w-[1320px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:grid sm:grid-cols-2 sm:gap-x-10 sm:gap-y-7 sm:overflow-visible lg:grid-cols-3 lg:gap-x-14">
           {[
             {
               title: "Wide Product Range",
@@ -3329,30 +3330,30 @@ export default function DashboardPage() {
           ].map((feature, index) => (
             <article
               key={`${feature.title}-${index}`}
-              className="flex min-h-[96px] items-center gap-5"
+              className="flex min-h-[128px] w-[235px] flex-shrink-0 items-center gap-3 rounded-xl border border-[#e5d4b6] bg-[#fffaf3] p-3 shadow-sm sm:min-h-[96px] sm:w-auto sm:gap-5 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none"
             >
-              <div className="flex h-[68px] w-[68px] shrink-0 items-center justify-center rounded-full bg-[#AC8852] text-white">
+              <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-full bg-[#AC8852] text-white sm:h-[68px] sm:w-[68px]">
                 {feature.icon === "wave" ? (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <path d="M3 7c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                     <path d="M3 12c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                     <path d="M3 17c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2" />
                   </svg>
                 ) : feature.icon === "spark" ? (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <circle cx="12" cy="12" r="2.2" />
                     <path d="M12 3.5v3M12 17.5v3M20.5 12h-3M6.5 12h-3M17.8 6.2l-2.1 2.1M8.3 15.7l-2.1 2.1M17.8 17.8l-2.1-2.1M8.3 8.3 6.2 6.2" />
                   </svg>
                 ) : (
-                  <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
+                  <svg viewBox="0 0 24 24" className="h-6 w-6 sm:h-8 sm:w-8" fill="none" stroke="currentColor" strokeWidth="1.9">
                     <path d="M6 6v12h12" />
                     <path d="M10 6v8h8" />
                   </svg>
                 )}
               </div>
-              <div className="flex h-[96px] w-[303px] flex-col justify-center">
-                <h4 className="text-[26px] font-semibold leading-[34px] text-[#977543]">{feature.title}</h4>
-                <p className="mt-1 text-[13px] leading-[18px] text-[#977543]">{feature.subtitle}</p>
+              <div className="flex min-h-[90px] w-full flex-col justify-center sm:h-[96px] sm:w-[303px]">
+                <h4 className="text-[18px] font-semibold leading-[24px] text-[#977543] sm:text-[26px] sm:leading-[34px]">{feature.title}</h4>
+                <p className="mt-1 text-[11px] leading-[16px] text-[#977543] sm:text-[13px] sm:leading-[18px]">{feature.subtitle}</p>
               </div>
             </article>
           ))}
@@ -3360,26 +3361,26 @@ export default function DashboardPage() {
       </section>
 
       <section
-        className="py-12 lg:py-14"
+        className="py-10 lg:py-14"
         style={{
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-[36px] font-bold leading-[40px] tracking-normal text-white">
+              <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
                 Latest Products
               </h3>
-              <p className="mt-3 text-sm text-white/90">
+              <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
                 Get inspired by the latest styles loved by modern homeowners.
               </p>
             </div>
             <button
               type="button"
               onClick={() => router.push("/products")}
-              className="text-[14px] font-medium text-white"
+              className="text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Products
             </button>
@@ -3390,7 +3391,7 @@ export default function DashboardPage() {
               Loading latest products...
             </div>
           ) : (
-            <div className="grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:justify-items-center sm:gap-3 sm:overflow-visible lg:grid-cols-4 lg:gap-4">
               {latestProductCards.map((product, idx) => {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
@@ -3414,18 +3415,18 @@ export default function DashboardPage() {
                         router.push(`/products/${product.slug}`);
                       }
                     }}
-                    className={`min-h-[410px] w-full max-w-[340px] overflow-hidden rounded-2xl border border-white bg-white p-2.5 shadow-sm ${
+                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[410px] sm:w-full sm:max-w-[340px] sm:rounded-2xl sm:p-2.5 ${
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-white">
+                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[296px] sm:rounded-[14px]">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
-                    <div className="mt-2 rounded-[14px] bg-[#e8dfd0] px-3 py-2">
-                      <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
+                    <div className="mt-2 rounded-[10px] bg-[#e8dfd0] px-2.5 py-2 sm:rounded-[14px] sm:px-3">
+                      <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
                         {label}
                       </span>
-                      <div className="mt-1 text-[24px] font-semibold leading-[30px] tracking-normal text-black">
+                      <div className="mt-1 text-[15px] font-semibold leading-[20px] tracking-normal text-black sm:text-[24px] sm:leading-[30px]">
                         {displayTitle}
                       </div>
                     </div>
@@ -3437,11 +3438,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F0E4] py-12">
-        <div className="mx-auto w-full max-w-[1600px] px-10 sm:px-12 lg:px-16 2xl:px-20">
+      <section className="bg-[#F8F0E4] py-10 sm:py-12">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[36px] font-bold leading-[40px] text-[#977543]">Designs done by CustomFurnish</h3>
-          <p className="mt-2 text-sm text-[#8B6E46]">
+          <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">Designs done by CustomFurnish</h3>
+          <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
             See how we transform spaces into beautiful homes.
           </p>
           </div>
@@ -3450,12 +3451,12 @@ export default function DashboardPage() {
               {designCfEntriesError}
             </div>
           )}
-          <div className="mx-auto mt-8 flex w-full max-w-[1449px] flex-wrap justify-center gap-5 lg:flex-nowrap">
+          <div className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible lg:flex-nowrap">
           {isLoadingDesignCfEntries ? (
             Array.from({ length: 5 }).map((_, idx) => (
               <div
                 key={`design-cf-loading-${idx}`}
-                className="h-[320px] w-[248px] animate-pulse rounded-[28px] bg-[#d8ccbb]"
+                className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
               />
             ))
           ) : (
@@ -3474,7 +3475,7 @@ export default function DashboardPage() {
             return (
               <article
                 key={product?.id ?? `cf-design-${idx}`}
-                className={`h-[320px] w-[248px] overflow-hidden rounded-[28px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                className={`h-[230px] w-[170px] flex-shrink-0 overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px] ${
                   product?.id ? "cursor-pointer" : ""
                 }`}
                 onClick={() => {
@@ -3482,11 +3483,11 @@ export default function DashboardPage() {
                   router.push(`/design-cf/${encodeURIComponent(product.id)}`);
                 }}
               >
-                <div className="relative h-[285px] w-full overflow-hidden rounded-t-[28px] bg-[#eadfcf]">
+                <div className="relative h-[198px] w-full overflow-hidden rounded-t-[20px] bg-[#eadfcf] sm:h-[285px] sm:rounded-t-[28px]">
                   <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
                 </div>
-                <div className="flex h-[37px] items-center justify-center bg-[#AE8953]">
-                  <span className="text-[18px] font-medium leading-none text-white">{label}</span>
+                <div className="flex h-[32px] items-center justify-center bg-[#AE8953] sm:h-[37px]">
+                  <span className="text-[12px] font-medium leading-none text-white sm:text-[18px]">{label}</span>
                 </div>
               </article>
             );
@@ -3496,10 +3497,10 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F0E4] pb-16">
+      <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
         <div className={`${dashboardShellClass} px-4 sm:px-0`}>
           <div className="flex items-center justify-between">
-            <h3 className="ml-[60px] text-[36px] font-bold leading-[40px] text-[#977543]">
+            <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
             <div className="mr-[80px] hidden items-center gap-2 md:flex">
@@ -3524,12 +3525,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap justify-center gap-5">
+          <div className="mt-6 flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-12 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible">
             {isLoadingLatestBlogs ? (
               Array.from({ length: 4 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[332px] w-full max-w-[280px] animate-pulse rounded-[18px] bg-[#d8ccbb]"
+                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-full sm:max-w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
@@ -3545,7 +3546,7 @@ export default function DashboardPage() {
                 return (
                   <article
                     key={blog.id || `relevant-article-${idx}`}
-                    className={`w-full max-w-[280px] overflow-hidden rounded-[18px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ${
+                    className={`w-[180px] flex-shrink-0 overflow-hidden rounded-[14px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:w-full sm:max-w-[280px] sm:rounded-[18px] ${
                       blogSlug ? "cursor-pointer" : ""
                     }`}
                     onClick={() => {
@@ -3553,7 +3554,7 @@ export default function DashboardPage() {
                       router.push(`/blog/${encodeURIComponent(blogSlug)}`);
                     }}
                   >
-                    <div className="relative h-[270px] w-full">
+                    <div className="relative h-[170px] w-full sm:h-[270px]">
                       <Image
                         src={imageUrl}
                         alt={blog.title || "Relevant article"}
@@ -3563,10 +3564,10 @@ export default function DashboardPage() {
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex items-center justify-center bg-[#AE8953] px-3 py-2.5">
-                      <span className="text-center text-[18px] font-medium leading-tight text-white">{displayTitle}</span>
+                    <div className="flex items-center justify-center bg-[#AE8953] px-2 py-2 sm:px-3 sm:py-2.5">
+                      <span className="text-center text-[12px] font-medium leading-tight text-white sm:text-[18px]">{displayTitle}</span>
                     </div>
-                    <div className="flex items-center justify-center bg-[#262626] py-2.5">
+                    <div className="flex items-center justify-center bg-[#262626] py-2 sm:py-2.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -3574,10 +3575,10 @@ export default function DashboardPage() {
                           if (!blogSlug) return;
                           router.push(`/blog/${encodeURIComponent(blogSlug)}`);
                         }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#AE8953] px-5 py-1 text-[11px] font-medium text-white"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-[#AE8953] px-3 py-1 text-[10px] font-medium text-white sm:gap-2 sm:px-5 sm:text-[11px]"
                       >
                         Read Now
-                        <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M5 12h14" />
                           <path d="m13 6 6 6-6 6" />
                         </svg>
@@ -3595,15 +3596,15 @@ export default function DashboardPage() {
         <>
           {/* Product Section Intro */}
           <section className={dashboardShellClass}>
-            <div className="py-8">
-             <div className="flex items-center gap-2 mb-2">
-                <span className="flex items-center gap-1 rounded-full bg-white border border-gray-200 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-500 shadow-sm">
+            <div className="py-5 sm:py-8">
+             <div className="mb-2 flex items-center gap-2">
+                <span className="flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1 text-[9px] font-black uppercase tracking-wider text-gray-500 shadow-sm sm:px-3.5 sm:text-[10px]">
                     <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
                     Newly Launched
                     <div className="h-1 w-1 rounded-full bg-[#ffcb05]" />
                 </span>
              </div>
-             <h3 className="text-3xl lg:text-4xl font-black uppercase italic tracking-tighter">
+             <h3 className="text-[34px] font-black uppercase italic leading-none tracking-tighter text-[#0f172a] sm:text-3xl lg:text-4xl">
                 Karigari Laminates
              </h3>
             </div>
@@ -3718,28 +3719,59 @@ export default function DashboardPage() {
         <section className={dashboardShellClass}>
           <div className="pb-10">
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xl font-black uppercase tracking-tight text-black">All Products</h4>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+              <h4 className="text-[22px] font-black uppercase leading-none tracking-tight text-black sm:text-xl">All Products</h4>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileProductFiltersOpen(true)}
+                  className="rounded-md border border-[#8b6b45] bg-[#f2e8d9] px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm lg:hidden"
+                >
+                  Filters
+                </button>
+                <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
                   disabled={isLoadingProducts || productsPage <= 1}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
                 >
                   Prev
                 </button>
                 <button
                   onClick={() => setProductsPage((p) => p + 1)}
                   disabled={isLoadingProducts || products.length < productsLimit}
-                  className="rounded-md border border-gray-300 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
+                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
                 >
                   Next
                 </button>
+                </div>
               </div>
             </div>
 
+            {isMobileProductFiltersOpen && (
+              <div
+                className="fixed inset-0 z-[680] bg-black/40 lg:hidden"
+                onClick={() => setIsMobileProductFiltersOpen(false)}
+              />
+            )}
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-[250px_minmax(0,1fr)]">
-              <aside className="relative z-10 rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm">
+              <aside
+                className={[
+                  "rounded-2xl border border-[#d5c7b1] bg-[#e7ded1] p-5 shadow-sm",
+                  "fixed inset-x-3 bottom-3 top-16 z-[700] overflow-y-auto lg:relative lg:inset-auto lg:z-10 lg:block lg:overflow-visible",
+                  isMobileProductFiltersOpen ? "block" : "hidden lg:block",
+                ].join(" ")}
+              >
+                <div className="mb-3 flex items-center justify-between lg:hidden">
+                  <div className="text-sm font-black uppercase tracking-wider text-[#3d4f67]">Filters</div>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileProductFiltersOpen(false)}
+                    className="rounded-full border border-[#cbbca6] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e]"
+                  >
+                    Close
+                  </button>
+                </div>
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
                 <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
                 <div className="mt-4 space-y-3">
@@ -3928,7 +3960,10 @@ export default function DashboardPage() {
                   </div>
 
                   <button
-                    onClick={applyProductFilters}
+                    onClick={() => {
+                      applyProductFilters();
+                      setIsMobileProductFiltersOpen(false);
+                    }}
                     disabled={isLoadingProducts}
                     className="w-full rounded-md border-2 border-black px-3 py-2 text-[11px] font-black uppercase tracking-wider text-black shadow-sm transition-all hover:bg-black hover:text-white disabled:opacity-50"
                   >
@@ -3974,7 +4009,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3 2xl:grid-cols-4">
           {isLoadingProducts ? (
             Array.from({ length: 6 }).map((_, idx) => (
               <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm">
@@ -4008,9 +4043,9 @@ export default function DashboardPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") router.push(`/products/${p.slug}`);
                   }}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm cursor-pointer"
+                  className="overflow-hidden rounded-xl border border-[#d6c8b1] bg-[#e8dfd0] shadow-sm cursor-pointer sm:rounded-2xl sm:border-gray-100"
                 >
-                  <div className="relative aspect-[4/3] w-full bg-white">
+                  <div className="relative aspect-[3/4] w-full bg-white sm:aspect-[4/3]">
                     {hasImage ? (
                       <Image
                         src={imageUrl as string}
@@ -4025,7 +4060,7 @@ export default function DashboardPage() {
                       </div>
                     )}
 
-                    <div className="absolute left-3 right-24 top-3 flex flex-wrap items-center gap-2 overflow-hidden">
+                    <div className="absolute left-2 right-2 top-2 hidden flex-wrap items-center gap-2 overflow-hidden sm:left-3 sm:right-24 sm:top-3 sm:flex">
                       <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
                         {p.status}
                       </span>
@@ -4059,7 +4094,7 @@ export default function DashboardPage() {
 
                     {canManageProductData && (
                       <label
-                        className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
+                        className="absolute right-2 top-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm sm:right-3 sm:top-3 sm:h-9 sm:w-9"
                         onClick={(e) => e.stopPropagation()}
                         aria-label="Select for bulk tag"
                         title="Select for bulk tag"
@@ -4077,7 +4112,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         disabled={isDeletingProduct}
-                        className="absolute right-14 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50"
+                        className="absolute right-11 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50 sm:right-14 sm:top-3 sm:flex sm:h-9 sm:w-9"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteProduct(p.id);
@@ -4089,14 +4124,30 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="bg-[#e8dfd0] p-4">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{p.materialType}</div>
-                    <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
-                    <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
-                      <span>SKU: {p.sku}</span>
-                      {userRole !== "customer" ? <span>{p.brand}</span> : null}
+                  <div className="bg-[#e8dfd0] p-2.5 sm:p-4">
+                    <div className="text-[22px] font-black leading-none tracking-tight text-[#1f2a3d] sm:text-[10px] sm:uppercase sm:tracking-widest sm:text-gray-400">
+                      {p.sku || p.name}
                     </div>
-                    <div className="mt-2 text-[11px] font-bold text-gray-500">{p.id}</div>
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-1 sm:text-base sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
+                      {p.materialType || p.name}
+                    </div>
+                    <div className="mt-1 text-[11px] font-bold text-[#5a6780] sm:mt-2 sm:flex sm:items-center sm:justify-between sm:text-[11px] sm:text-gray-600">
+                      {userRole !== "customer" ? <span className="hidden sm:inline">{p.brand}</span> : null}
+                      <span>ID: {p.id?.slice(0, 8) || "-"}</span>
+                    </div>
+                    <div className="mt-1 text-[11px] font-black uppercase tracking-wide text-[#5a6780] sm:mt-2 sm:text-[11px] sm:font-bold sm:normal-case sm:tracking-normal sm:text-gray-500">
+                      THICKNESS: {p.thickness || "-"}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/products/${p.slug}`);
+                      }}
+                      className="mt-2 w-full rounded-full bg-[#b78b4a] py-1.5 text-[10px] font-black uppercase tracking-widest text-white sm:hidden"
+                    >
+                      View Details
+                    </button>
                   </div>
                 </div>
               );
@@ -4110,8 +4161,8 @@ export default function DashboardPage() {
           </div>
         )}
         {canManageProductData && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-            <div className="flex items-center gap-2">
+          <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:p-4">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
               <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
                 Bulk Tag: {bulkTagSelectedList.length} selected
               </div>
@@ -4122,7 +4173,7 @@ export default function DashboardPage() {
                   setBulkTagError("");
                   setBulkTagMsg("");
                 }}
-                className="rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] font-bold text-gray-800"
+                className="w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] font-bold text-gray-800 sm:w-auto"
               >
                 <option value="">Select tag</option>
                 {allTags.map((tag) => (
@@ -4132,12 +4183,12 @@ export default function DashboardPage() {
                 ))}
               </select>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <button
                 type="button"
                 disabled={visibleDashboardProductIds.length === 0}
                 onClick={() => selectAllVisibleProducts(visibleDashboardProductIds)}
-                className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                className="rounded-full border border-gray-200 bg-white px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50 sm:px-4 sm:text-[11px]"
               >
                 {allVisibleSelected ? "All Selected" : "Select All"}
               </button>
@@ -4145,7 +4196,7 @@ export default function DashboardPage() {
                 type="button"
                 disabled={bulkTagSelectedList.length === 0}
                 onClick={() => deselectVisibleProducts(visibleDashboardProductIds)}
-                className="rounded-full border border-gray-200 bg-white px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                className="rounded-full border border-gray-200 bg-white px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50 sm:px-4 sm:text-[11px]"
               >
                 Deselect
               </button>
@@ -4153,7 +4204,7 @@ export default function DashboardPage() {
                 type="button"
                 disabled={bulkTagSelectedList.length === 0 || isBulkTagging || !bulkTagId}
                 onClick={handleBulkTagApply}
-                className="rounded-full bg-[#A9844F] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#8A6A3A] disabled:opacity-50"
+                className="col-span-2 rounded-full bg-[#A9844F] px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#8A6A3A] disabled:opacity-50 sm:col-auto sm:text-[11px]"
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
               </button>
@@ -4162,7 +4213,7 @@ export default function DashboardPage() {
                   type="button"
                   disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
                   onClick={handleBulkDeleteSelected}
-                  className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
+                  className="col-span-2 rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50 sm:col-auto sm:text-[11px]"
                 >
                   {isDeletingProduct ? "Deleting..." : "Delete Selected"}
                 </button>
@@ -4171,7 +4222,7 @@ export default function DashboardPage() {
                 type="button"
                 disabled={bulkTagSelectedList.length === 0}
                 onClick={clearBulkTagSelection}
-                className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                className="col-span-2 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50 sm:col-auto sm:text-[11px]"
               >
                 Clear Selection
               </button>
@@ -6036,6 +6087,20 @@ export default function DashboardPage() {
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
+        }
+        @media (max-width: 640px) {
+          .dashboard-mobile-typography :is(h1, h2) {
+            font-size: 1.4rem !important;
+            line-height: 1.25 !important;
+          }
+          .dashboard-mobile-typography :is(h3, h4) {
+            font-size: 1.15rem !important;
+            line-height: 1.3 !important;
+          }
+          .dashboard-mobile-typography :is(p, li, td, th, label) {
+            font-size: 0.82rem !important;
+            line-height: 1.35 !important;
+          }
         }
       `}</style>
     </div>
