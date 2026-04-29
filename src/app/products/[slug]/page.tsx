@@ -576,6 +576,7 @@ export default function ProductDetailsPage() {
                     src={selectedImageUrl}
                     alt={product.name}
                     fill
+                    loading="eager"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover"
                   />
