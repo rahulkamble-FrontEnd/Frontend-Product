@@ -3396,10 +3396,10 @@ export default function DashboardPage() {
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-white">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 rounded-[14px] bg-[#e8dfd0] px-3 py-2">
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                         {label}
                       </span>
@@ -3955,12 +3955,12 @@ export default function DashboardPage() {
         <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {isLoadingProducts ? (
             Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="aspect-[4/3] w-full bg-gray-100" />
-                <div className="p-4 space-y-2">
-                  <div className="h-4 w-3/4 bg-gray-100 rounded" />
-                  <div className="h-3 w-1/2 bg-gray-100 rounded" />
-                  <div className="h-3 w-2/3 bg-gray-100 rounded" />
+              <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm">
+                <div className="aspect-[4/3] w-full bg-white" />
+                <div className="bg-[#e8dfd0] p-4 space-y-2">
+                  <div className="h-4 w-3/4 bg-[#e8dfd0] rounded" />
+                  <div className="h-3 w-1/2 bg-[#e8dfd0] rounded" />
+                  <div className="h-3 w-2/3 bg-[#e8dfd0] rounded" />
                 </div>
               </div>
             ))
@@ -3986,9 +3986,9 @@ export default function DashboardPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") router.push(`/products/${p.slug}`);
                   }}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm cursor-pointer"
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm cursor-pointer"
                 >
-                  <div className="relative aspect-[4/3] w-full bg-gray-100">
+                  <div className="relative aspect-[4/3] w-full bg-white">
                     {hasImage ? (
                       <Image
                         src={imageUrl as string}
@@ -4067,7 +4067,7 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="p-4">
+                  <div className="bg-[#e8dfd0] p-4">
                     <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{p.materialType}</div>
                     <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
                     <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
@@ -4257,11 +4257,11 @@ export default function DashboardPage() {
                 {isLoadingShortlist ? (
                   Array.from({ length: 3 }).map((_, idx) => (
                     <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                      <div className="aspect-[4/3] w-full bg-gray-100" />
-                      <div className="space-y-2 p-4">
-                        <div className="h-4 w-2/3 rounded bg-gray-100" />
-                        <div className="h-3 w-1/2 rounded bg-gray-100" />
-                        <div className="h-3 w-3/4 rounded bg-gray-100" />
+                      <div className="aspect-[4/3] w-full bg-white" />
+                      <div className="space-y-2 bg-[#e8dfd0] p-4">
+                        <div className="h-4 w-2/3 rounded bg-[#e8dfd0]" />
+                        <div className="h-3 w-1/2 rounded bg-[#e8dfd0]" />
+                        <div className="h-3 w-3/4 rounded bg-[#e8dfd0]" />
                       </div>
                     </div>
                   ))
@@ -4301,7 +4301,7 @@ export default function DashboardPage() {
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
-                        <div className="relative aspect-[4/3] w-full bg-gray-100">
+                        <div className="relative aspect-[4/3] w-full bg-white">
                           {imageUrl ? (
                             <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
                           ) : (
@@ -4350,7 +4350,7 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        <div className="space-y-3 p-4">
+                        <div className="space-y-3 bg-[#e8dfd0] p-4">
                           <div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}

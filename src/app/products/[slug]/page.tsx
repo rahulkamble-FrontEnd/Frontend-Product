@@ -1034,7 +1034,7 @@ export default function ProductDetailsPage() {
                         onClick={() => router.push(`/products/${item.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
+                        <div className="relative aspect-[4/3] w-full bg-[#ffffff]">
                           {imageUrl ? (
                             <Image
                               src={imageUrl}
@@ -1049,7 +1049,7 @@ export default function ProductDetailsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="px-3 pb-3 pt-2">
+                        <div className="px-3 pb-3 pt-2 bg-[#e8dfd0]">
                           <div className="text-[16px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                             {truncateText(formatProductName(item.name), 24)}
                           </div>
