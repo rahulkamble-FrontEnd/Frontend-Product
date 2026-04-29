@@ -578,7 +578,7 @@ export default function ProductDetailsPage() {
                     fill
                     loading="eager"
                     sizes="(max-width: 1024px) 100vw, 50vw"
-                    className="object-cover"
+                    className="object-contain object-center p-3"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
@@ -599,7 +599,13 @@ export default function ProductDetailsPage() {
                         selectedImageUrl === img.url ? "border-black" : "border-gray-200"
                       ].join(" ")}
                     >
-                      <Image src={img.url} alt={product.name} fill sizes="25vw" className="object-cover" />
+                      <Image
+                        src={img.url}
+                        alt={product.name}
+                        fill
+                        sizes="25vw"
+                        className="object-contain object-center p-1.5"
+                      />
                       {userRole === "admin" && (
                         <span
                           onClick={(e) => {
@@ -637,7 +643,12 @@ export default function ProductDetailsPage() {
                   </span>
                   {userRole !== "customer" && product.brand ? (
                     <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
-                      {product.brand}
+                     BRAND: {product.brand}
+                    </span>
+                  ) : null}
+                  {product.imsId ? (
+                    <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                      IMSID: {product.imsId}
                     </span>
                   ) : null}
                 </div>
@@ -1030,7 +1041,7 @@ export default function ProductDetailsPage() {
                               alt={item.name}
                               fill
                               sizes="(max-width: 1024px) 50vw, 25vw"
-                              className="object-cover"
+                              className="object-contain object-center p-2"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">

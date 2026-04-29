@@ -164,6 +164,7 @@ export default function DashboardPage() {
   const [isBulkUploadingProducts, setIsBulkUploadingProducts] = useState(false);
   const [bulkUploadMsg, setBulkUploadMsg] = useState("");
   const [bulkUploadError, setBulkUploadError] = useState("");
+  const [bulkUploadFailedSkus, setBulkUploadFailedSkus] = useState<string[]>([]);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
@@ -1838,6 +1839,7 @@ export default function DashboardPage() {
     }
     setBulkUploadMsg("");
     setBulkUploadError("");
+    setBulkUploadFailedSkus([]);
     setBulkUploadFile(null);
     setBulkUploadImagesZipFile(null);
     setIsBulkUploadModalOpen(true);
@@ -1871,12 +1873,27 @@ export default function DashboardPage() {
     setIsBulkUploadingProducts(true);
     try {
       const result = await bulkUploadProducts(file, imagesZip);
-      setBulkUploadMsg(
-        `Bulk upload completed. Rows: ${result.totalRows}, Created: ${result.createdCount}, Failed: ${result.failedCount}`
-      );
       if (result.failedCount > 0) {
+        const failedSkus =
+          Array.from(
+            new Set(
+              result.errors
+                ?.map((e) => e.sku)
+                .filter((sku): sku is string => Boolean(sku)) ?? [],
+            ),
+          ) ?? [];
+
+        setBulkUploadFailedSkus(failedSkus);
+        setBulkUploadMsg(
+          `Bulk upload failed (all-or-nothing). Rows: ${result.totalRows}, Failed: ${result.failedCount}. None were created.`
+        );
         const firstError = result.errors?.[0]?.message || "Some rows failed.";
         setBulkUploadError(`Some rows failed: ${firstError}`);
+      } else {
+        setBulkUploadFailedSkus([]);
+        setBulkUploadMsg(
+          `Bulk upload completed. Rows: ${result.totalRows}, Created: ${result.createdCount}`
+        );
       }
       await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
@@ -3973,7 +3990,13 @@ export default function DashboardPage() {
                 >
                   <div className="relative aspect-[4/3] w-full bg-gray-100">
                     {hasImage ? (
-                      <Image src={imageUrl as string} alt={p.name} fill sizes="(max-width: 1024px) 50vw, 33vw" className="object-cover" />
+                      <Image
+                        src={imageUrl as string}
+                        alt={p.name}
+                        fill
+                        sizes="(max-width: 1024px) 50vw, 33vw"
+                        className="object-contain object-center p-2"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
                         No Image
@@ -5909,9 +5932,6 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[11px] font-bold text-gray-500">
                   Required columns: <span className="font-black">imsId</span>, <span className="font-black">name</span>, <span className="font-black">sku</span>
                 </p>
-                <p className="mt-1 text-[11px] font-bold text-gray-500">
-                  Optional columns: brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, performanceRating, durabilityRating, priceCategory, maintenanceRating, bestUsedFor, pros, cons, status, categoryIds
-                </p>
                 <a
                   href="/templates/products-bulk-upload-template-latest.xlsx"
                   target="_blank"
@@ -5954,6 +5974,11 @@ export default function DashboardPage() {
               {bulkUploadError && (
                 <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
                   {bulkUploadError}
+                </div>
+              )}
+              {bulkUploadFailedSkus.length > 0 && (
+                <div className="text-xs font-bold text-gray-900 bg-yellow-50 p-3 rounded-lg text-center">
+                  Not uploaded SKUs: {bulkUploadFailedSkus.join(", ")}
                 </div>
               )}
               {bulkUploadMsg && (
