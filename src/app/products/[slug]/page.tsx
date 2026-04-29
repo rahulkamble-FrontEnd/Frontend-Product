@@ -982,7 +982,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {["admin", "designer", "blogadmin"].includes(userRole) && (
+              {["admin", "designer", "blogadmin", "dataadmin"].includes(userRole) && (
                 <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                   <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
                   <div className="space-y-2 text-sm">
@@ -1034,7 +1034,7 @@ export default function ProductDetailsPage() {
                         onClick={() => router.push(`/products/${item.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
+                        <div className="relative aspect-[4/3] w-full bg-[#ffffff]">
                           {imageUrl ? (
                             <Image
                               src={imageUrl}
@@ -1049,7 +1049,7 @@ export default function ProductDetailsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="px-3 pb-3 pt-2">
+                        <div className="px-3 pb-3 pt-2 bg-[#e8dfd0]">
                           <div className="text-[16px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
                             {truncateText(formatProductName(item.name), 24)}
                           </div>

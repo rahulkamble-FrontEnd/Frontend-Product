@@ -80,6 +80,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
+  const canManageProductData = userRole === "admin" || userRole === "dataadmin";
+  const canManageUsers = userRole === "admin";
+  const canViewBlogsNav = userRole !== "dataadmin";
+  const canManageCategoryMasters = userRole === "admin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
@@ -141,10 +145,10 @@ export default function DashboardPage() {
     colorName: "",
     dimensions: "",
     status: "draft",
-    performanceRating: 4,
-    durabilityRating: 3.5,
-    priceCategory: 2,
-    maintenanceRating: 4,
+    performanceRating: 4 as number | "",
+    durabilityRating: 3.5 as number | "",
+    priceCategory: 2 as number | "",
+    maintenanceRating: 4 as number | "",
     prosText: "",
     consText: ""
   });
@@ -599,8 +603,8 @@ export default function DashboardPage() {
   const handleBulkTagApply = async () => {
     setBulkTagMsg("");
     setBulkTagError("");
-    if (userRole !== "admin") {
-      setBulkTagError("Only admin can bulk tag products.");
+    if (!canManageProductData) {
+      setBulkTagError("Only dataadmin and admin can bulk tag products.");
       return;
     }
     const selectedIds = Array.from(bulkTagSelectedIds);
@@ -1017,7 +1021,7 @@ export default function DashboardPage() {
   }, [userRole]);
 
   useEffect(() => {
-    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin"]);
+    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin", "dataadmin"]);
     if (!eligibleRoles.has(userRole)) {
       setNotifications([]);
       setNotificationsError("");
@@ -1662,9 +1666,9 @@ export default function DashboardPage() {
     setProductError("");
     setCreatedProductImages([]);
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsCreatingProduct(false);
-      setProductError("Only admin can create products.");
+      setProductError("Only admin or dataadmin can create products.");
       return;
     }
 
@@ -1686,18 +1690,22 @@ export default function DashboardPage() {
         name: newProductData.name,
         sku: newProductData.sku,
         brand: newProductData.brand,
-        description: newProductData.description,
+        description: newProductData.description.trim() || undefined,
         bookName: newProductData.bookName || undefined,
         pageNumber: newProductData.pageNumber || undefined,
         application: newProductData.application || undefined,
-        materialType: newProductData.materialType,
-        colorName: newProductData.colorName,
-        dimensions: newProductData.dimensions,
+        materialType: newProductData.materialType.trim() || undefined,
+        colorName: newProductData.colorName.trim() || undefined,
+        dimensions: newProductData.dimensions.trim() || undefined,
         status: newProductData.status,
-        performanceRating: Number(newProductData.performanceRating),
-        durabilityRating: Number(newProductData.durabilityRating),
-        priceCategory: Number(newProductData.priceCategory),
-        maintenanceRating: Number(newProductData.maintenanceRating),
+        performanceRating:
+          newProductData.performanceRating === "" ? undefined : Number(newProductData.performanceRating),
+        durabilityRating:
+          newProductData.durabilityRating === "" ? undefined : Number(newProductData.durabilityRating),
+        priceCategory:
+          newProductData.priceCategory === "" ? undefined : Number(newProductData.priceCategory),
+        maintenanceRating:
+          newProductData.maintenanceRating === "" ? undefined : Number(newProductData.maintenanceRating),
         pros: splitList(newProductData.prosText),
         cons: splitList(newProductData.consText)
       };
@@ -1798,9 +1806,9 @@ export default function DashboardPage() {
     setUploadError("");
     setUploadedImages([]);
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsUploadingImage(false);
-      setUploadError("Only admin can upload product images.");
+      setUploadError("Only admin or dataadmin can upload product images.");
       return;
     }
 
@@ -1833,8 +1841,8 @@ export default function DashboardPage() {
   };
 
   const triggerBulkUploadPicker = () => {
-    if (userRole !== "admin") {
-      setBulkUploadError("Only admin can bulk upload products.");
+    if (!canManageProductData) {
+      setBulkUploadError("Only admin or dataadmin can bulk upload products.");
       return;
     }
     setBulkUploadMsg("");
@@ -2029,7 +2037,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadAllTags = async () => {
-      if (userRole !== "admin" && !isProductTagsOpen && !isProductModalOpen) return;
+      if (!canManageProductData && !isProductTagsOpen && !isProductModalOpen) return;
       try {
         const data = await getTags();
         const tags = Array.isArray(data) ? data : [];
@@ -2103,9 +2111,9 @@ export default function DashboardPage() {
     setIsBindingCats(true);
     setBindMsg("");
     setBindError("");
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsBindingCats(false);
-      setBindError("Only admin can bind categories.");
+      setBindError("Only admin and dataadmin can bind categories.");
       return;
     }
     const pid = bindProductId.trim();
@@ -2139,9 +2147,9 @@ export default function DashboardPage() {
     setProductTagMsg("");
     setProductTagError("");
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsLinkingTag(false);
-      setProductTagError("Only admin can link tags.");
+      setProductTagError("Only admin or dataadmin can link tags.");
       return;
     }
 
@@ -2181,9 +2189,9 @@ export default function DashboardPage() {
     setProductTagMsg("");
     setProductTagError("");
 
-    if (userRole !== "admin") {
+    if (!canManageProductData) {
       setIsUnlinkingTag(false);
-      setProductTagError("Only admin can delink tags.");
+      setProductTagError("Only admin or dataadmin can delink tags.");
       return;
     }
 
@@ -2349,6 +2357,7 @@ export default function DashboardPage() {
 
           {/* Actions */}
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            {canViewBlogsNav && (
             <div className="hidden md:block">
               <button
                 type="button"
@@ -2364,6 +2373,7 @@ export default function DashboardPage() {
                 Blogs
               </button>
             </div>
+            )}
             {userRole === "blogadmin" && (
               <div className="relative hidden md:block">
                 <button
@@ -2449,8 +2459,9 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            {userRole === "admin" && (
+            {(userRole === "admin" || userRole === "dataadmin") && (
                 <>
+                  {canManageUsers && (
                   <div className="relative hidden md:block">
                     <button
                       type="button"
@@ -2495,6 +2506,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
+                  )}
 
                   <div className="relative hidden md:block">
                     <button
@@ -2516,57 +2528,61 @@ export default function DashboardPage() {
                         onClick={(e) => e.stopPropagation()}
                         className="absolute top-full right-0 z-[360] mt-10 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                       >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/categories");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Categories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/subcategories");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Subcategories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/tags");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Tags
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            router.push("/design-cf/manage");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Manage Design CF
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsCategoryModalOpen(true);
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Create Category
-                        </button>
+                        {canManageCategoryMasters && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/categories");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Categories
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/subcategories");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Subcategories
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/tags");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Tags
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                router.push("/design-cf/manage");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Manage Design CF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Create Category
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -2771,9 +2787,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {userRole === "admin" && (
+      {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className="grid grid-cols-3 gap-2">
+          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
+            {canManageUsers && (
             <div className="relative">
               <button
                 type="button"
@@ -2820,6 +2837,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="relative">
               <button
@@ -2843,47 +2861,51 @@ export default function DashboardPage() {
                   onClick={(e) => e.stopPropagation()}
                   className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/categories");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Categories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/subcategories");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Subcategories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      router.push("/tags");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Tags
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsCategoryModalOpen(true);
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Create Category
-                  </button>
+                  {canManageCategoryMasters && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/categories");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Categories
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/subcategories");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Subcategories
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          router.push("/tags");
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Manage Tags
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                      >
+                        Create Category
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -3396,10 +3418,10 @@ export default function DashboardPage() {
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-[#eadfcf]">
+                    <div className="relative h-[296px] w-full overflow-hidden rounded-[14px] bg-white">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 rounded-[14px] bg-[#e8dfd0] px-3 py-2">
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#977543]">
                         {label}
                       </span>
@@ -3955,12 +3977,12 @@ export default function DashboardPage() {
         <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {isLoadingProducts ? (
             Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <div className="aspect-[4/3] w-full bg-gray-100" />
-                <div className="p-4 space-y-2">
-                  <div className="h-4 w-3/4 bg-gray-100 rounded" />
-                  <div className="h-3 w-1/2 bg-gray-100 rounded" />
-                  <div className="h-3 w-2/3 bg-gray-100 rounded" />
+              <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm">
+                <div className="aspect-[4/3] w-full bg-white" />
+                <div className="bg-[#e8dfd0] p-4 space-y-2">
+                  <div className="h-4 w-3/4 bg-[#e8dfd0] rounded" />
+                  <div className="h-3 w-1/2 bg-[#e8dfd0] rounded" />
+                  <div className="h-3 w-2/3 bg-[#e8dfd0] rounded" />
                 </div>
               </div>
             ))
@@ -3986,9 +4008,9 @@ export default function DashboardPage() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") router.push(`/products/${p.slug}`);
                   }}
-                  className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm cursor-pointer"
+                  className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm cursor-pointer"
                 >
-                  <div className="relative aspect-[4/3] w-full bg-gray-100">
+                  <div className="relative aspect-[4/3] w-full bg-white">
                     {hasImage ? (
                       <Image
                         src={imageUrl as string}
@@ -4035,7 +4057,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
 
-                    {userRole === "admin" && (
+                    {canManageProductData && (
                       <label
                         className="absolute right-3 top-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
                         onClick={(e) => e.stopPropagation()}
@@ -4067,7 +4089,7 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="p-4">
+                  <div className="bg-[#e8dfd0] p-4">
                     <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{p.materialType}</div>
                     <div className="mt-1 font-black text-gray-900 leading-snug line-clamp-2">{p.name}</div>
                     <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
@@ -4087,7 +4109,7 @@ export default function DashboardPage() {
             {deleteProductError}
           </div>
         )}
-        {userRole === "admin" && (
+        {canManageProductData && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
             <div className="flex items-center gap-2">
               <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
@@ -4135,14 +4157,16 @@ export default function DashboardPage() {
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
               </button>
-              <button
-                type="button"
-                disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
-                onClick={handleBulkDeleteSelected}
-                className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
-              >
-                {isDeletingProduct ? "Deleting..." : "Delete Selected"}
-              </button>
+              {userRole === "admin" && (
+                <button
+                  type="button"
+                  disabled={bulkTagSelectedList.length === 0 || isDeletingProduct}
+                  onClick={handleBulkDeleteSelected}
+                  className="rounded-full bg-[#7a1f1f] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#5f1717] disabled:opacity-50"
+                >
+                  {isDeletingProduct ? "Deleting..." : "Delete Selected"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={bulkTagSelectedList.length === 0}
@@ -4257,11 +4281,11 @@ export default function DashboardPage() {
                 {isLoadingShortlist ? (
                   Array.from({ length: 3 }).map((_, idx) => (
                     <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                      <div className="aspect-[4/3] w-full bg-gray-100" />
-                      <div className="space-y-2 p-4">
-                        <div className="h-4 w-2/3 rounded bg-gray-100" />
-                        <div className="h-3 w-1/2 rounded bg-gray-100" />
-                        <div className="h-3 w-3/4 rounded bg-gray-100" />
+                      <div className="aspect-[4/3] w-full bg-white" />
+                      <div className="space-y-2 bg-[#e8dfd0] p-4">
+                        <div className="h-4 w-2/3 rounded bg-[#e8dfd0]" />
+                        <div className="h-3 w-1/2 rounded bg-[#e8dfd0]" />
+                        <div className="h-3 w-3/4 rounded bg-[#e8dfd0]" />
                       </div>
                     </div>
                   ))
@@ -4301,7 +4325,7 @@ export default function DashboardPage() {
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
-                        <div className="relative aspect-[4/3] w-full bg-gray-100">
+                        <div className="relative aspect-[4/3] w-full bg-white">
                           {imageUrl ? (
                             <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
                           ) : (
@@ -4350,7 +4374,7 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        <div className="space-y-3 p-4">
+                        <div className="space-y-3 bg-[#e8dfd0] p-4">
                           <div>
                             <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
@@ -5117,6 +5141,7 @@ export default function DashboardPage() {
                 >
                   <option value="customer">Customer</option>
                   <option value="designer">Designer</option>
+                  <option value="dataadmin">Data Admin</option>
                 </select>
               </div>
 
@@ -5217,7 +5242,7 @@ export default function DashboardPage() {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl md:p-8">
             <div className="mb-6 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">Create New Product</h2>
@@ -5257,7 +5282,7 @@ export default function DashboardPage() {
                   </button>
 
                   {isCreateCategoriesDropdownOpen && (
-                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                    <div className="relative z-[650] mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
                       {allCategories.length === 0 ? (
                         <div className="px-2 py-2 text-xs text-gray-500">No sub-categories available.</div>
                       ) : (
@@ -5297,7 +5322,7 @@ export default function DashboardPage() {
                   </button>
 
                   {isCreateTagsDropdownOpen && (
-                    <div className="mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
+                    <div className="relative z-[650] mt-2 max-h-56 overflow-auto rounded-lg border border-gray-200 bg-white p-2">
                       {allTags.length === 0 ? (
                         <div className="px-2 py-2 text-xs text-gray-500">No tags available.</div>
                       ) : (
@@ -5361,7 +5386,6 @@ export default function DashboardPage() {
                     >
                       <option value="draft">Draft</option>
                       <option value="published">Published</option>
-                      <option value="archived">Archived</option>
                     </select>
                   </div>
                 </div>
@@ -5382,7 +5406,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.materialType}
                     onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
@@ -5429,7 +5452,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.colorName}
                     onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
@@ -5440,7 +5462,6 @@ export default function DashboardPage() {
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
                   <input
                     type="text"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.dimensions}
                     onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
@@ -5452,7 +5473,6 @@ export default function DashboardPage() {
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
                 <textarea
-                  required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
                   value={newProductData.description}
                   onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
@@ -5503,10 +5523,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.performanceRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, performanceRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5514,10 +5536,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.durabilityRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, durabilityRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5525,10 +5549,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="1"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.priceCategory}
-                    onChange={(e) => setNewProductData({ ...newProductData, priceCategory: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
                 <div>
@@ -5536,10 +5562,12 @@ export default function DashboardPage() {
                   <input
                     type="number"
                     step="0.5"
-                    required
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                     value={newProductData.maintenanceRating}
-                    onChange={(e) => setNewProductData({ ...newProductData, maintenanceRating: Number(e.target.value) })}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
+                    }}
                   />
                 </div>
               </div>
@@ -5603,7 +5631,7 @@ export default function DashboardPage() {
 
       {isBindCategoriesOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-8 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Sub-Categories to Product</h2>
               <button
@@ -5620,7 +5648,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleBindCategories} className="space-y-4">
+            <form onSubmit={handleBindCategories} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
                 <input
@@ -5635,7 +5663,8 @@ export default function DashboardPage() {
 
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Sub-Categories</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="max-h-[45vh] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {allCategories.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
                       <input
@@ -5652,6 +5681,7 @@ export default function DashboardPage() {
                   {allCategories.length === 0 && (
                     <div className="text-xs text-gray-500">No sub-categories available.</div>
                   )}
+                  </div>
                 </div>
               </div>
 

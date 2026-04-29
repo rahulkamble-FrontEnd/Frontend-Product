@@ -571,7 +571,7 @@ export default function CategoryProductsPage() {
                         onClick={() => router.push(`/products/${product.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-square w-full overflow-hidden bg-[#e8dfd0] sm:aspect-[4/3]">
+                        <div className="relative aspect-square w-full overflow-hidden bg-[#ffffff] sm:aspect-[4/3]">
                           {imageUrls.length > 0 ? (
                             <>
                               <div
@@ -615,7 +615,7 @@ export default function CategoryProductsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="p-2.5 sm:p-3">
+                        <div className="p-2.5 sm:p-3 bg-[#e8dfd0]">
                           <div className="line-clamp-1 text-[11px] font-black uppercase tracking-wider text-gray-800 sm:text-xs">
                             {formatProductName(product.name)}
                           </div>
