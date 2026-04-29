@@ -52,11 +52,7 @@ function pickListProductImageUrl(product: ProductListItem) {
 function formatProductName(value: string | null | undefined) {
   const text = (value ?? "").trim();
   if (!text) return "";
-  return text
-    .toLowerCase()
-    .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+  return text.toUpperCase();
 }
 
 function formatCategoryName(value: string | null | undefined) {
@@ -72,7 +68,7 @@ function formatCategoryName(value: string | null | undefined) {
 function truncateText(value: string, maxChars: number) {
   const text = value.trim();
   if (text.length <= maxChars) return text;
-  return `${text.slice(0, maxChars)}...`;
+  return `${text.slice(0, maxChars)}..`;
 }
 
 export default function ProductDetailsPage() {
@@ -1043,7 +1039,7 @@ export default function ProductDetailsPage() {
                         </div>
                         <div className="px-3 pb-3 pt-2">
                           <div className="text-[26px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
-                            {truncateText(formatProductName(item.name), 16)}
+                            {truncateText(formatProductName(item.name), 24)}
                           </div>
                           <div className="mt-1 text-[12px] text-[#6d665d]">
                             {item.description || "Classic Oak Natural"}
