@@ -114,6 +114,12 @@ export type ProductListResponse = {
   total: number;
   page: number;
   limit: number;
+  filters?: {
+    finishes?: string[];
+    brands?: string[];
+    thicknesses?: string[];
+    colors?: string[];
+  };
 };
 
 export type ProductCompareCategory = {
@@ -343,6 +349,9 @@ export async function getProducts(params?: {
   categoryId?: string;
   categoryType?: "material" | "furniture";
   q?: string;
+  brand?: string;
+  thickness?: string;
+  colorName?: string;
   includeImages?: boolean;
   includeCategories?: boolean;
 }) {
@@ -353,6 +362,9 @@ export async function getProducts(params?: {
   if (params?.categoryId) url.searchParams.set('categoryId', params.categoryId);
   if (params?.categoryType) url.searchParams.set('categoryType', params.categoryType);
   if (params?.q) url.searchParams.set('q', params.q);
+  if (params?.brand) url.searchParams.set('brand', params.brand);
+  if (params?.thickness) url.searchParams.set('thickness', params.thickness);
+  if (params?.colorName) url.searchParams.set('colorName', params.colorName);
   if (typeof params?.includeImages === 'boolean') url.searchParams.set('includeImages', String(params.includeImages));
   if (typeof params?.includeCategories === 'boolean') url.searchParams.set('includeCategories', String(params.includeCategories));
 

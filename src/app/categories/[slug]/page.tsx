@@ -67,6 +67,7 @@ export default function CategoryProductsPage() {
   const [portfolioError, setPortfolioError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
+  const [selectedFinishTypes, setSelectedFinishTypes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
@@ -200,7 +201,7 @@ export default function CategoryProductsPage() {
       new Set(
         products
           .map((product) => (product.brand ?? "").trim())
-          .filter(Boolean),
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
       ),
     ).sort((a, b) => a.localeCompare(b));
   }, [products]);
@@ -210,7 +211,17 @@ export default function CategoryProductsPage() {
       new Set(
         products
           .map((product) => (product.thickness ?? "").trim())
-          .filter(Boolean),
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const availableFinishTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        products
+          .map((product) => (product.finishType ?? "").trim())
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
       ),
     ).sort((a, b) => a.localeCompare(b));
   }, [products]);
@@ -220,7 +231,7 @@ export default function CategoryProductsPage() {
       new Set(
         products
           .map((product) => (product.colorName ?? "").trim())
-          .filter(Boolean),
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
       ),
     ).sort((a, b) => a.localeCompare(b));
   }, [products]);
@@ -232,6 +243,13 @@ export default function CategoryProductsPage() {
       next = next.filter((product) => {
         const brand = (product.brand ?? "").trim();
         return brand ? selectedBrands.has(brand) : false;
+      });
+    }
+
+    if (selectedFinishTypes.size > 0) {
+      next = next.filter((product) => {
+        const finishType = (product.finishType ?? "").trim();
+        return finishType ? selectedFinishTypes.has(finishType) : false;
       });
     }
 
@@ -271,6 +289,7 @@ export default function CategoryProductsPage() {
   }, [
     products,
     selectedBrands,
+    selectedFinishTypes,
     selectedColors,
     selectedThicknesses,
     selectedSubcategoryId,
@@ -333,34 +352,34 @@ export default function CategoryProductsPage() {
       />
 
       <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-[#d9cab5] bg-[#efe7db] p-4 sm:p-5 lg:border-b-0 lg:border-r">
-          <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+        <aside className="border-b border-[#d5c7b1] bg-[#e7ded1] p-5 sm:p-6 lg:border-b-0 lg:border-r">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">
             Filter
           </div>
-          <div className="mt-1 text-xs font-bold text-gray-500">
-            {category?.name ?? "Products"}
+          <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">
+            Finishes
           </div>
 
           {shouldShowBrand ? (
-            <div className="mt-6 border-t border-[#d9cab5] pt-5">
-              <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+            <div className="mt-6 border-t border-[#cbbca6] pt-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Brand
               </div>
-              <div className="mt-3 space-y-2">
+              <div className="mt-4 space-y-3">
                 {availableBrands.length === 0 ? (
                   <div className="text-xs text-gray-400">No brand options</div>
                 ) : (
                   availableBrands.map((brand) => (
-                    <label key={brand} className="flex cursor-pointer items-center gap-2 text-xs text-gray-700">
+                    <label key={brand} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
                       <input
                         type="checkbox"
                         checked={selectedBrands.has(brand)}
                         onChange={() =>
                           setSelectedBrands((prev) => toggleSetValue(prev, brand))
                         }
-                        className="h-3.5 w-3.5 rounded border-gray-300"
+                        className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                       />
-                      <span>{brand}</span>
+                      <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{brand}</span>
                     </label>
                   ))
                 )}
@@ -368,18 +387,48 @@ export default function CategoryProductsPage() {
             </div>
           ) : null}
 
-          <div className="mt-6 border-t border-[#d9cab5] pt-5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+              Finish Type
+            </div>
+            <div className="mt-4 space-y-3">
+              {availableFinishTypes.length === 0 ? (
+                <div className="text-xs text-gray-400">No finish options</div>
+              ) : (
+                availableFinishTypes.map((finishType) => (
+                  <label
+                    key={finishType}
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedFinishTypes.has(finishType)}
+                      onChange={() =>
+                        setSelectedFinishTypes((prev) =>
+                          toggleSetValue(prev, finishType),
+                        )
+                      }
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                    />
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{finishType}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Thickness
             </div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-4 space-y-3">
               {availableThicknesses.length === 0 ? (
                 <div className="text-xs text-gray-400">No thickness options</div>
               ) : (
                 availableThicknesses.map((thickness) => (
                   <label
                     key={thickness}
-                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
                   >
                     <input
                       type="checkbox"
@@ -389,27 +438,27 @@ export default function CategoryProductsPage() {
                           toggleSetValue(prev, thickness),
                         )
                       }
-                      className="h-3.5 w-3.5 rounded border-gray-300"
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
-                    <span>{thickness}</span>
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{thickness}</span>
                   </label>
                 ))
               )}
             </div>
           </div>
 
-          <div className="mt-6 border-t border-[#d9cab5] pt-5">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Color
             </div>
-            <div className="mt-3 space-y-2">
+            <div className="mt-4 space-y-3">
               {availableColors.length === 0 ? (
                 <div className="text-xs text-gray-400">No color options</div>
               ) : (
                 availableColors.map((color) => (
                   <label
                     key={color}
-                    className="flex cursor-pointer items-center gap-2 text-xs text-gray-700"
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
                   >
                     <input
                       type="checkbox"
@@ -417,9 +466,9 @@ export default function CategoryProductsPage() {
                       onChange={() =>
                         setSelectedColors((prev) => toggleSetValue(prev, color))
                       }
-                      className="h-3.5 w-3.5 rounded border-gray-300"
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
-                    <span>{color}</span>
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{color}</span>
                   </label>
                 ))
               )}
@@ -452,7 +501,7 @@ export default function CategoryProductsPage() {
           {availableSubcategories.length > 0 ? (
             <div className="mb-4 border-b border-[#d9cab5] pb-3">
               <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#8b6b45]">
-                Sub-Category
+                Select Sub-Category
               </div>
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 <button
@@ -576,7 +625,7 @@ export default function CategoryProductsPage() {
                               : `${product.finishType ?? "-"}`
                             }
                           </div>
-                          <div className="mt-1 text-[9px] text-gray-500 sm:text-[10px]">
+                          <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             Thickness: {product.thickness || "-"}
                           </div>
                           <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
