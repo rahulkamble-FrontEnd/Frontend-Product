@@ -514,7 +514,7 @@ export default function ProductDetailsPage() {
         shortlistRefreshKey={shortlistHeaderRefreshKey}
       />
 
-      <main className="mx-auto max-w-[1680px] px-4 py-8 lg:px-8">
+      <main className="mx-auto max-w-[1680px] px-4 py-5 sm:py-8 lg:px-8">
         {error && (
           <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {error}
@@ -568,7 +568,7 @@ export default function ProductDetailsPage() {
           </div>
         ) : (
           <>
-          <div className="grid gap-8 lg:grid-cols-2">
+          <div className="grid gap-5 sm:gap-8 lg:grid-cols-2">
             <div>
               <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 shadow-sm">
                 {selectedImageUrl ? (
@@ -626,37 +626,37 @@ export default function ProductDetailsPage() {
               )}
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               <div>
                 <div className="inline-flex rounded-full bg-[#b58d52] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
                   {product.materialType || "Product"}
                 </div>
-                <h1 className="mt-2 text-[36px] font-bold leading-[40px] tracking-normal text-[#AE8953]">
+                <h1 className="mt-2 text-[22px] font-bold leading-[28px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
                   {formatProductName(product.name)}
                 </h1>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
                     {product.status}
                   </span>
-                  <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
                     SKU: {product.sku}
                   </span>
                   {userRole !== "customer" && product.brand ? (
-                    <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
                      BRAND: {product.brand}
                     </span>
                   ) : null}
                   {product.imsId ? (
-                    <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
                       IMSID: {product.imsId}
                     </span>
                   ) : null}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-5 shadow-sm">
-                <div className="mb-3 text-[24px] font-semibold tracking-tight text-[#3e3a34]">Technical Specifications</div>
-                <div className="grid grid-cols-2 gap-y-3 border-t border-[#dacdbb] pt-3 text-[12px]">
+              <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
+                <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">Technical Specifications</div>
+                <div className="grid grid-cols-2 gap-y-2.5 border-t border-[#dacdbb] pt-3 text-[11px] sm:gap-y-3 sm:text-[12px]">
                   {userRole === "customer" && (
                     <>
                       <div className="text-[#968e84]">IMS ID</div>
@@ -983,16 +983,16 @@ export default function ProductDetailsPage() {
               )}
 
               {["admin", "designer", "blogadmin", "dataadmin"].includes(userRole) && (
-                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
-                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">IDs</div>
-                  <div className="space-y-2 text-sm">
+                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-4 shadow-sm sm:p-5">
+                  <div className="mb-2.5 text-[9px] font-black uppercase tracking-widest text-gray-400 sm:mb-3 sm:text-[10px]">IDs</div>
+                  <div className="space-y-2 text-[12px] sm:text-sm">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-gray-500">Product ID</span>
-                      <span className="font-bold text-gray-900 break-all">{product.id}</span>
+                      <span className="font-bold text-gray-900 break-all text-right">{product.id}</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-gray-500">Slug</span>
-                      <span className="font-bold text-gray-900 break-all">{product.slug}</span>
+                      <span className="font-bold text-gray-900 break-all text-right">{product.slug}</span>
                     </div>
                   </div>
                 </div>
@@ -1001,9 +1001,19 @@ export default function ProductDetailsPage() {
           </div>
           <section className="mt-14">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[36px] font-bold leading-[40px] tracking-normal text-[#AE8953]">
+              <h2 className="text-[24px] font-bold leading-[30px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
                 View Similar
               </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  const categorySlug = product?.categories?.[0]?.slug?.trim();
+                  router.push(categorySlug ? `/categories/${categorySlug}` : "/categories");
+                }}
+                className="rounded-full border border-[#c9b293] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#8b6b45] shadow-sm hover:bg-[#f6eee2] sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-wider"
+              >
+                View More
+              </button>
             </div>
 
             {similarError && (
@@ -1021,20 +1031,20 @@ export default function ProductDetailsPage() {
                 No similar products found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {similarProducts.map((item) => {
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+                {similarProducts.slice(0, 4).map((item) => {
                   const imageUrl = pickListProductImageUrl(item);
                   return (
                     <article
                       key={item.id}
-                      className="overflow-hidden rounded-2xl border border-[#d6c8b6] bg-white shadow-sm"
+                      className="overflow-hidden rounded-xl border border-[#d6c8b6] bg-white shadow-sm sm:rounded-2xl"
                     >
                       <button
                         type="button"
                         onClick={() => router.push(`/products/${item.slug}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full bg-[#ffffff]">
+                        <div className="relative aspect-square w-full bg-[#ffffff] sm:aspect-[4/3]">
                           {imageUrl ? (
                             <Image
                               src={imageUrl}
@@ -1049,14 +1059,14 @@ export default function ProductDetailsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="px-3 pb-3 pt-2 bg-[#e8dfd0]">
-                          <div className="text-[16px] font-semibold leading-tight tracking-tight text-[#2f2a24]">
+                        <div className="bg-[#e8dfd0] px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
+                          <div className="text-[12px] font-semibold leading-tight tracking-tight text-[#2f2a24] sm:text-[16px]">
                             {truncateText(formatProductName(item.name), 24)}
                           </div>
                           {/* <div className="mt-1 text-[12px] text-[#6d665d]">
                             {item.description || "Classic Oak Natural"}
                           </div> */}
-                          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[10px] uppercase text-[#8f877d]">
+                          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[9px] uppercase text-[#8f877d] sm:mt-3 sm:text-[10px]">
                             <div>
                               <div className="font-semibold">Thickness</div>
                               <div className="font-bold text-[#4b443c]">{item.thickness || "-"}</div>
@@ -1066,7 +1076,7 @@ export default function ProductDetailsPage() {
                               <div className="font-bold text-[#4b443c]">{item.finishType || "-"}</div>
                             </div>
                           </div>
-                          <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
+                          <div className="mt-2 rounded-full bg-[#b58d52] py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide text-white sm:mt-3 sm:text-[10px] sm:tracking-wider">
                             View Details
                           </div>
                         </div>
