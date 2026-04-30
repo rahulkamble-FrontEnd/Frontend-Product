@@ -69,6 +69,9 @@ export type ProductCategory = {
   categoryId: string;
   name: string;
   slug: string;
+  parentId?: string | null;
+  parentSlug?: string | null;
+  parentName?: string | null;
   type: "material" | "furniture";
   displayOrder: number;
   isActive: boolean;
@@ -1078,7 +1081,7 @@ export type CreateBlogPayload = {
   slug: string;
   body: string;
   status: BlogStatus;
-  categoryTag?: string | null;
+  categoryId?: string | null;
   featuredImageS3Key?: string | null;
 };
 
@@ -1092,7 +1095,11 @@ export type BlogItem = {
   slug: string;
   body: string;
   status: string;
-  categoryTag: string | null;
+  categoryId: string | null;
+  category?: {
+    id: string;
+    name: string;
+  } | null;
   featuredImageS3Key: string | null;
   featuredImageUrl: string | null;
   author?: BlogAuthor | null;
@@ -1107,8 +1114,12 @@ type RawBlogResponse = {
   slug?: string;
   body?: string;
   status?: string;
-  categoryTag?: string | null;
-  category_tag?: string | null;
+  categoryId?: string | null;
+  category_id?: string | null;
+  category?: {
+    id?: string;
+    name?: string;
+  } | null;
   featuredImageS3Key?: string | null;
   featured_image_s3_key?: string | null;
   featuredImageUrl?: string | null;
@@ -1129,7 +1140,14 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
     slug: raw.slug ?? "",
     body: raw.body ?? "",
     status: raw.status ?? "draft",
-    categoryTag: raw.categoryTag ?? raw.category_tag ?? null,
+    categoryId: raw.categoryId ?? raw.category_id ?? raw.category?.id ?? null,
+    category:
+      raw.category && typeof raw.category === "object"
+        ? {
+            id: raw.category.id ?? "",
+            name: raw.category.name ?? "",
+          }
+        : null,
     featuredImageS3Key: raw.featuredImageS3Key ?? raw.featured_image_s3_key ?? null,
     featuredImageUrl: raw.featuredImageUrl ?? raw.featured_image_url ?? null,
     author: raw.author ?? null,
@@ -1198,7 +1216,7 @@ export type UpdateBlogPayload = {
   title: string;
   slug: string;
   body: string;
-  categoryTag?: string | null;
+  categoryId?: string | null;
   featuredImageS3Key?: string | null;
   status: BlogStatus;
 };
@@ -1211,7 +1229,7 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     title: payload.title.trim(),
     slug: payload.slug.trim(),
     body: payload.body.trim(),
-    categoryTag: payload.categoryTag?.trim() || null,
+    categoryId: payload.categoryId?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
     status: payload.status,
   };
@@ -1224,7 +1242,7 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
       slug: cleanPayload.slug,
       body: cleanPayload.body,
       status: cleanPayload.status,
-      ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+      ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
       ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
     }),
     credentials: "include",
@@ -1281,7 +1299,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
     slug: payload.slug.trim(),
     body: payload.body.trim(),
     status: payload.status,
-    categoryTag: payload.categoryTag?.trim() || null,
+    categoryId: payload.categoryId?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
   };
 
@@ -1296,7 +1314,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           formData.append("slug", cleanPayload.slug);
           formData.append("body", cleanPayload.body);
           formData.append("status", cleanPayload.status);
-          if (cleanPayload.categoryTag) formData.append("categoryTag", cleanPayload.categoryTag);
+          if (cleanPayload.categoryId) formData.append("categoryId", cleanPayload.categoryId);
           if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
           formData.append("featuredImage", featuredImageFile);
           return formData;
@@ -1311,7 +1329,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           slug: cleanPayload.slug,
           body: cleanPayload.body,
           status: cleanPayload.status,
-          ...(cleanPayload.categoryTag ? { categoryTag: cleanPayload.categoryTag } : {}),
+          ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
           ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
         }),
         credentials: "include",
@@ -1323,6 +1341,29 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
 
   const data = (await response.json()) as RawBlogResponse;
   return normalizeBlog(data);
+}
+
+export async function getRelevantBlogs(slug: string, limit = 3) {
+  const cleanSlug = slug.trim();
+  if (!cleanSlug) throw new Error("Blog slug is required");
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 3;
+
+  const url = new URL(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}/relevant`);
+  url.searchParams.set("limit", String(safeLimit));
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch relevant blogs");
+  }
+
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) return [] as BlogItem[];
+  return data.map((item) => normalizeBlog(item as RawBlogResponse));
 }
 
 export type PortfolioImageInput = {

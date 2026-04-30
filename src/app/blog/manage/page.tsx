@@ -2,13 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteBlog, getBlogs, publishBlog, updateBlog, type BlogItem, type BlogStatus } from "@/lib/api";
+import { deleteBlog, getBlogs, getCategories, publishBlog, updateBlog, type BlogItem, type BlogStatus } from "@/lib/api";
+
+type CategoryOption = {
+  id: string;
+  name: string;
+};
 
 type BlogEditForm = {
   title: string;
   slug: string;
   body: string;
-  categoryTag: string;
+  categoryId: string;
   featuredImageS3Key: string;
   status: BlogStatus;
 };
@@ -34,11 +39,12 @@ export default function ManageBlogsPage() {
   const [publishingBlogId, setPublishingBlogId] = useState<string | null>(null);
   const [deletingBlogId, setDeletingBlogId] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [form, setForm] = useState<BlogEditForm>({
     title: "",
     slug: "",
     body: "",
-    categoryTag: "",
+    categoryId: "",
     featuredImageS3Key: "",
     status: "draft",
   });
@@ -84,6 +90,29 @@ export default function ManageBlogsPage() {
   }, [userRole]);
 
   useEffect(() => {
+    let active = true;
+    const loadCategories = async () => {
+      try {
+        const data = (await getCategories()) as Array<{ id?: string; name?: string }>;
+        if (!active) return;
+        const normalized = Array.isArray(data)
+          ? data
+              .map((item) => ({ id: item.id ?? "", name: item.name ?? "" }))
+              .filter((item) => item.id && item.name)
+          : [];
+        setCategories(normalized);
+      } catch {
+        if (active) setCategories([]);
+      }
+    };
+
+    loadCategories();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (slugEdited) return;
     setForm((prev) => ({ ...prev, slug: slugify(prev.title) }));
   }, [form.title, slugEdited]);
@@ -105,7 +134,7 @@ export default function ManageBlogsPage() {
       title: blog.title || "",
       slug: blog.slug || "",
       body: blog.body || "",
-      categoryTag: blog.categoryTag || "",
+      categoryId: blog.categoryId || "",
       featuredImageS3Key: blog.featuredImageS3Key || "",
       status: blog.status === "published" || blog.status === "archived" ? blog.status : "draft",
     });
@@ -132,7 +161,7 @@ export default function ManageBlogsPage() {
         title: form.title,
         slug: form.slug,
         body: form.body,
-        categoryTag: form.categoryTag || null,
+        categoryId: form.categoryId || null,
         featuredImageS3Key: form.featuredImageS3Key || null,
         status: form.status,
       });
@@ -340,13 +369,19 @@ export default function ManageBlogsPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Category Tag</label>
-                  <input
-                    type="text"
-                    value={form.categoryTag}
-                    onChange={(e) => setForm((prev) => ({ ...prev, categoryTag: e.target.value }))}
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Category</label>
+                  <select
+                    value={form.categoryId}
+                    onChange={(e) => setForm((prev) => ({ ...prev, categoryId: e.target.value }))}
                     className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
-                  />
+                  >
+                    <option value="">Select category</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Image S3 Key</label>

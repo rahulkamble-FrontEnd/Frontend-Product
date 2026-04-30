@@ -4125,7 +4125,7 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="bg-[#e8dfd0] p-2.5 sm:p-4">
-                    <div className="text-[22px] font-black leading-none tracking-tight text-[#1f2a3d] sm:text-[10px] sm:uppercase sm:tracking-widest sm:text-gray-400">
+                    <div className="text-[14px] font-black leading-tight tracking-tight text-[#1f2a3d] sm:text-[10px] sm:uppercase sm:tracking-widest sm:text-gray-400">
                       {p.sku || p.name}
                     </div>
                     <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-1 sm:text-base sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
