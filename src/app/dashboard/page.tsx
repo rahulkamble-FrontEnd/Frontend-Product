@@ -3016,7 +3016,7 @@ export default function DashboardPage() {
         onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
-          className={`${dashboardShellClass} flex items-center justify-center gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:gap-8 sm:text-[16px] sm:leading-6`}
+          className={`${dashboardShellClass} flex items-center justify-center gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:gap-5 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
             const hasFlyout =

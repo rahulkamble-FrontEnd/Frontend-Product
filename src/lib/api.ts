@@ -714,6 +714,31 @@ export async function getProductBySlug(slug: string) {
   return response.json() as Promise<ProductDetailsResponse>;
 }
 
+export async function getSimilarProductsByTags(productId: string, limit = 24) {
+  const pid = productId.trim();
+  if (!pid) throw new Error("Product id is required");
+
+  const url = new URL(
+    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/similar`,
+  );
+  if (Number.isFinite(limit) && limit > 0) {
+    url.searchParams.set("limit", String(Math.floor(limit)));
+  }
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch similar products");
+  }
+  const data: unknown = await response.json();
+  return Array.isArray(data) ? (data as ProductListItem[]) : [];
+}
+
 export type DeleteProductResponse = {
   message: string;
 };
