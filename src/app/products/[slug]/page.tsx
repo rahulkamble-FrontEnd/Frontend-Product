@@ -10,7 +10,7 @@ import {
   deleteProductImage,
   getProductBySlug,
   getPortfolios,
-  getProducts,
+  getSimilarProductsByTags,
   updateProduct,
   type PortfolioResponse,
   type ProductDetailsResponse,
@@ -141,6 +141,7 @@ export default function ProductDetailsPage() {
   const [similarProducts, setSimilarProducts] = useState<ProductListItem[]>([]);
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [similarError, setSimilarError] = useState("");
+  const [visibleSimilarCount, setVisibleSimilarCount] = useState(4);
   const [relevantArticles, setRelevantArticles] = useState<PortfolioResponse[]>([]);
   const [isLoadingRelevantArticles, setIsLoadingRelevantArticles] = useState(false);
   const [relevantArticlesError, setRelevantArticlesError] = useState("");
@@ -253,15 +254,8 @@ export default function ProductDetailsPage() {
     if (!product?.id) return;
 
     const loadSimilarProducts = async () => {
-      const categoryIds = Array.from(
-        new Set(
-          (product.categories ?? [])
-            .map((category) => category.categoryId || category.id)
-            .filter((value): value is string => Boolean(value)),
-        ),
-      );
-
-      if (categoryIds.length === 0) {
+      const productId = product.id.trim();
+      if (!productId) {
         setSimilarProducts([]);
         setSimilarError("");
         return;
@@ -270,45 +264,8 @@ export default function ProductDetailsPage() {
       setIsLoadingSimilar(true);
       setSimilarError("");
       try {
-        const getByCategoryId = async (categoryId: string) => {
-          const firstPage = await getProducts({
-            categoryId,
-            status: "active",
-            includeImages: true,
-            page: 1,
-            limit: 100,
-          });
-
-          let items = [...(Array.isArray(firstPage.items) ? firstPage.items : [])];
-          const total = Number(firstPage.total ?? items.length);
-          const limit = Number(firstPage.limit ?? 100);
-
-          if (total > items.length && limit > 0) {
-            const totalPages = Math.ceil(total / limit);
-            for (let page = 2; page <= totalPages; page++) {
-              const nextPage = await getProducts({
-                categoryId,
-                status: "active",
-                includeImages: true,
-                page,
-                limit,
-              });
-              items = items.concat(
-                Array.isArray(nextPage.items) ? nextPage.items : [],
-              );
-            }
-          }
-          return items;
-        };
-
-        const grouped = await Promise.all(
-          categoryIds.map((categoryId) => getByCategoryId(categoryId)),
-        );
-        const merged = grouped.flat();
-        const deduped = Array.from(
-          new Map(merged.map((item) => [item.id, item])).values(),
-        ).filter((item) => item.id !== product.id);
-        setSimilarProducts(deduped);
+        const similar = await getSimilarProductsByTags(productId, 24);
+        setSimilarProducts(Array.isArray(similar) ? similar : []);
       } catch (err: unknown) {
         setSimilarProducts([]);
         setSimilarError(
@@ -321,6 +278,10 @@ export default function ProductDetailsPage() {
 
     loadSimilarProducts();
   }, [product]);
+
+  useEffect(() => {
+    setVisibleSimilarCount(4);
+  }, [product?.id]);
 
   useEffect(() => {
     if (!product?.id) return;
@@ -1007,12 +968,13 @@ export default function ProductDetailsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const categorySlug = product?.categories?.[0]?.slug?.trim();
-                  router.push(categorySlug ? `/categories/${categorySlug}` : "/categories");
+                  setVisibleSimilarCount((prev) =>
+                    prev >= similarProducts.length ? 4 : prev + 4,
+                  );
                 }}
                 className="rounded-full border border-[#c9b293] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#8b6b45] shadow-sm hover:bg-[#f6eee2] sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-wider"
               >
-                View More
+                {visibleSimilarCount >= similarProducts.length ? "Show Less" : "View More"}
               </button>
             </div>
 
@@ -1032,7 +994,7 @@ export default function ProductDetailsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-                {similarProducts.slice(0, 4).map((item) => {
+                {similarProducts.slice(0, visibleSimilarCount).map((item) => {
                   const imageUrl = pickListProductImageUrl(item);
                   return (
                     <article
