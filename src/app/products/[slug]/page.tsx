@@ -551,6 +551,7 @@ export default function ProductDetailsPage() {
                     src={selectedImageUrl}
                     alt={product.name}
                     fill
+                    priority
                     loading="eager"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-contain object-center p-3"
@@ -976,7 +977,7 @@ export default function ProductDetailsPage() {
           </div>
           <section className="mt-14">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[24px] font-bold leading-[30px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
+              <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
                 View Similar
               </h2>
               <button
@@ -1008,7 +1009,7 @@ export default function ProductDetailsPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-                {similarProducts.slice(0, visibleSimilarCount).map((item) => {
+                {similarProducts.slice(0, visibleSimilarCount).map((item, index) => {
                   const imageUrl = pickListProductImageUrl(item);
                   return (
                     <article
@@ -1026,6 +1027,7 @@ export default function ProductDetailsPage() {
                               src={imageUrl}
                               alt={item.name}
                               fill
+                              loading={index === 0 ? "eager" : "lazy"}
                               sizes="(max-width: 1024px) 50vw, 25vw"
                               className="object-contain object-center p-2"
                             />
@@ -1036,7 +1038,7 @@ export default function ProductDetailsPage() {
                           )}
                         </div>
                         <div className="bg-[#e8dfd0] px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
-                          <div className="text-[12px] font-semibold leading-tight tracking-tight text-[#2f2a24] sm:text-[16px]">
+                          <div className="text-[11px] font-semibold leading-tight tracking-tight text-[#2f2a24] sm:text-[16px]">
                             {truncateText(formatProductName(item.name), 24)}
                           </div>
                           {/* <div className="mt-1 text-[12px] text-[#6d665d]">
@@ -1065,7 +1067,7 @@ export default function ProductDetailsPage() {
           </section>
           <section className="mt-10">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-[28px] font-bold leading-[34px] tracking-normal text-[#AE8953]">
+              <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[28px] sm:leading-[34px]">
                 Relevant Articles
               </h2>
             </div>
@@ -1085,7 +1087,7 @@ export default function ProductDetailsPage() {
                 No relevant articles found.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
                 {relevantArticles.slice(0, 8).map((item) => {
                   const articleImageUrl = getBlogImageUrl(item);
                   const articlePreview = (item.body ?? "")
@@ -1095,22 +1097,23 @@ export default function ProductDetailsPage() {
                   return (
                     <article
                       key={item.id}
-                      className="overflow-hidden rounded-2xl border border-[#d6c8b6] bg-white shadow-sm"
+                      className="overflow-hidden rounded-2xl border border-[#d9cab5] bg-[#efe8dc] shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
                     >
                       <button
                         type="button"
                         onClick={() => router.push(`/blog/${encodeURIComponent(item.slug)}`)}
                         className="block w-full text-left"
                       >
-                        <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
+                        <div className="p-2 pb-0">
+                          <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
                           {articleImageUrl ? (
                             <Image
                               src={articleImageUrl}
                               alt={item.title}
                               fill
                               unoptimized
-                              sizes="(max-width: 1024px) 50vw, 25vw"
-                              className="object-cover"
+                              sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                              className="object-cover object-center"
                             />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
@@ -1118,14 +1121,15 @@ export default function ProductDetailsPage() {
                             </div>
                           )}
                         </div>
-                        <div className="px-3 pb-3 pt-2">
-                          <div className="line-clamp-1 text-base font-black uppercase tracking-wide text-[#2f2a24]">
+                        </div>
+                        <div className="bg-[#e8dfd0] p-2.5 sm:p-3">
+                          <div className="line-clamp-1 text-[11px] font-black uppercase tracking-wider text-gray-800 sm:text-xs">
                             {item.title}
                           </div>
-                          <div className="mt-1 line-clamp-2 text-[12px] text-[#6d665d]">
+                          <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             {articlePreview || "Blog article"}
                           </div>
-                          <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
+                          <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
                             Read Now
                           </div>
                         </div>
