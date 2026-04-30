@@ -2053,7 +2053,7 @@ export default function DashboardPage() {
       }
     };
     void loadAllTags();
-  }, [isProductTagsOpen, isProductModalOpen, userRole]);
+  }, [canManageProductData, isProductTagsOpen, isProductModalOpen]);
 
   const toggleCategory = (id: string) => {
     setSelectedCategoryIds(prev => {
