@@ -73,6 +73,7 @@ export default function CategoryProductsPage() {
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -338,6 +339,12 @@ export default function CategoryProductsPage() {
 
   if (!userName) return null;
 
+  const activeFilterCount =
+    selectedBrands.size +
+    selectedFinishTypes.size +
+    selectedColors.size +
+    selectedThicknesses.size;
+
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
       <CommonStoreHeader
@@ -352,7 +359,31 @@ export default function CategoryProductsPage() {
       />
 
       <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="border-b border-[#d5c7b1] bg-[#e7ded1] p-5 sm:p-6 lg:border-b-0 lg:border-r">
+        {isMobileFiltersOpen && (
+          <div
+            className="fixed inset-0 z-[680] bg-black/40 lg:hidden"
+            onClick={() => setIsMobileFiltersOpen(false)}
+          />
+        )}
+        <aside
+          className={[
+            "border-b border-[#d5c7b1] bg-[#e7ded1] p-5 sm:p-6 lg:border-b-0 lg:border-r",
+            "fixed inset-x-3 bottom-3 top-16 z-[700] overflow-y-auto rounded-2xl shadow-xl lg:static lg:inset-auto lg:z-auto lg:overflow-visible lg:rounded-none lg:shadow-none",
+            isMobileFiltersOpen ? "block" : "hidden lg:block",
+          ].join(" ")}
+        >
+          <div className="mb-4 flex items-center justify-between lg:hidden">
+            <div className="text-sm font-black uppercase tracking-wider text-[#3d4f67]">
+              Filters
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileFiltersOpen(false)}
+              className="rounded-full border border-[#cbbca6] bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e]"
+            >
+              Close
+            </button>
+          </div>
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">
             Filter
           </div>
@@ -476,25 +507,34 @@ export default function CategoryProductsPage() {
           </div>
         </aside>
 
-        <section className="bg-[#f4eee5] p-4 sm:p-5">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <div className="text-sm font-black uppercase tracking-wider text-[#8b6b45] sm:text-base">
+        <section className="bg-[#f4eee5] p-3.5 sm:p-5">
+          <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="text-[13px] font-black uppercase tracking-wide text-[#8b6b45] sm:text-base">
               {category?.name ?? "Category"} Products
             </div>
 
-            <div className="flex w-full items-center gap-2 sm:w-auto">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                Sort By
-              </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortValue)}
-                className="w-full rounded-md border border-[#d9cab5] bg-white px-2 py-1.5 text-xs font-semibold text-gray-700 sm:w-auto"
+            <div className="flex w-full items-center gap-1.5 sm:w-auto sm:gap-2">
+              <button
+                type="button"
+                onClick={() => setIsMobileFiltersOpen(true)}
+                className="rounded-md border border-[#8b6b45] bg-[#f2e8d9] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-wide text-[#4d2c1e] shadow-sm lg:hidden"
               >
-                <option value="newest">Newest</option>
-                <option value="name_asc">Name (A-Z)</option>
-                <option value="name_desc">Name (Z-A)</option>
-              </select>
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
+              </button>
+              <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+                <label className="text-[9px] font-black uppercase tracking-[0.14em] text-gray-500">
+                  Sort
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortValue)}
+                  className="h-8 w-[122px] rounded-md border border-[#d9cab5] bg-white px-2 text-[10px] font-semibold text-gray-700 sm:h-9 sm:w-auto sm:px-2.5 sm:text-xs"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="name_asc">Name (A-Z)</option>
+                  <option value="name_desc">Name (Z-A)</option>
+                </select>
+              </div>
             </div>
           </div>
 
