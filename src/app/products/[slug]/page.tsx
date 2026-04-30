@@ -5,14 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CommonStoreHeader from "@/components/common-store-header";
 import {
+  getBlogs,
   createShortlist,
   deleteProductCategory,
   deleteProductImage,
   getProductBySlug,
-  getPortfolios,
   getSimilarProductsByTags,
   updateProduct,
-  type PortfolioResponse,
+  type BlogItem,
   type ProductDetailsResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
@@ -21,8 +21,19 @@ import {
   type UpdateProductResponse,
 } from "@/lib/api";
 
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+}
+
+function getBlogImageUrl(blog: BlogItem) {
+  const directUrl = (blog.featuredImageUrl ?? "").trim();
+  if (directUrl) return directUrl;
+  const key = (blog.featuredImageS3Key ?? "").trim();
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
 }
 
 function pickBestImageUrl(images: ProductImageUploadResponse[] | null | undefined) {
@@ -142,7 +153,7 @@ export default function ProductDetailsPage() {
   const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
   const [similarError, setSimilarError] = useState("");
   const [visibleSimilarCount, setVisibleSimilarCount] = useState(4);
-  const [relevantArticles, setRelevantArticles] = useState<PortfolioResponse[]>([]);
+  const [relevantArticles, setRelevantArticles] = useState<BlogItem[]>([]);
   const [isLoadingRelevantArticles, setIsLoadingRelevantArticles] = useState(false);
   const [relevantArticlesError, setRelevantArticlesError] = useState("");
 
@@ -287,15 +298,19 @@ export default function ProductDetailsPage() {
     if (!product?.id) return;
 
     const loadRelevantArticles = async () => {
-      const categorySlugs = Array.from(
+      const categoryIds = Array.from(
         new Set(
-          (product.categories ?? [])
-            .map((category) => category.slug?.trim())
-            .filter((value): value is string => Boolean(value)),
+          (product.categories ?? []).flatMap((category) => {
+            const directId = (category.categoryId ?? category.id ?? "").trim();
+            const parentId = (category.parentId ?? "").trim();
+            return [directId, parentId].filter(
+              (value): value is string => Boolean(value),
+            );
+          }),
         ),
       );
 
-      if (categorySlugs.length === 0) {
+      if (categoryIds.length === 0) {
         setRelevantArticles([]);
         setRelevantArticlesError("");
         return;
@@ -304,14 +319,13 @@ export default function ProductDetailsPage() {
       setIsLoadingRelevantArticles(true);
       setRelevantArticlesError("");
       try {
-        const grouped = await Promise.all(
-          categorySlugs.map((categorySlug) =>
-            getPortfolios({ category: categorySlug }),
-          ),
-        );
-        const merged = grouped.flat();
+        const blogs = await getBlogs({ publishedOnly: true });
+        const merged = blogs.filter((blog) => {
+          const blogCategoryId = (blog.categoryId ?? "").trim();
+          return blogCategoryId && categoryIds.includes(blogCategoryId);
+        });
         const deduped = Array.from(
-          new Map(merged.map((item) => [item.portfolio.id, item])).values(),
+          new Map(merged.map((item) => [item.id, item])).values(),
         );
         setRelevantArticles(deduped);
       } catch (err: unknown) {
@@ -1073,24 +1087,28 @@ export default function ProductDetailsPage() {
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {relevantArticles.slice(0, 8).map((item) => {
-                  const articleImageUrl =
-                    item.images.find((image) => image.url)?.url ?? null;
+                  const articleImageUrl = getBlogImageUrl(item);
+                  const articlePreview = (item.body ?? "")
+                    .replace(/<[^>]*>/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
                   return (
                     <article
-                      key={item.portfolio.id}
+                      key={item.id}
                       className="overflow-hidden rounded-2xl border border-[#d6c8b6] bg-white shadow-sm"
                     >
                       <button
                         type="button"
-                        onClick={() => router.push("/blog")}
+                        onClick={() => router.push(`/blog/${encodeURIComponent(item.slug)}`)}
                         className="block w-full text-left"
                       >
                         <div className="relative aspect-[4/3] w-full bg-[#ece2d3]">
                           {articleImageUrl ? (
                             <Image
                               src={articleImageUrl}
-                              alt={item.portfolio.title}
+                              alt={item.title}
                               fill
+                              unoptimized
                               sizes="(max-width: 1024px) 50vw, 25vw"
                               className="object-cover"
                             />
@@ -1102,10 +1120,10 @@ export default function ProductDetailsPage() {
                         </div>
                         <div className="px-3 pb-3 pt-2">
                           <div className="line-clamp-1 text-base font-black uppercase tracking-wide text-[#2f2a24]">
-                            {item.portfolio.title}
+                            {item.title}
                           </div>
                           <div className="mt-1 line-clamp-2 text-[12px] text-[#6d665d]">
-                            {item.portfolio.description || "Portfolio article"}
+                            {articlePreview || "Blog article"}
                           </div>
                           <div className="mt-3 rounded-full bg-[#b58d52] py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
                             Read Now

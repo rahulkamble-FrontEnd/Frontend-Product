@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBlog, type BlogStatus } from "@/lib/api";
+import { createBlog, getCategories, type BlogStatus } from "@/lib/api";
+
+type CategoryOption = {
+  id: string;
+  name: string;
+};
 
 function slugify(value: string) {
   return value
@@ -19,7 +24,9 @@ export default function CreateBlogPage() {
   const [slug, setSlug] = useState("");
   const [body, setBody] = useState("<p>Rich text HTML content here</p>");
   const [status, setStatus] = useState<BlogStatus>("draft");
-  const [categoryTag, setCategoryTag] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [featuredImageS3Key, setFeaturedImageS3Key] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,6 +52,32 @@ export default function CreateBlogPage() {
     setSlug(slugify(title));
   }, [title, slugEdited]);
 
+  useEffect(() => {
+    let active = true;
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const data = (await getCategories()) as Array<{ id?: string; name?: string }>;
+        if (!active) return;
+        const normalized = Array.isArray(data)
+          ? data
+              .map((item) => ({ id: item.id ?? "", name: item.name ?? "" }))
+              .filter((item) => item.id && item.name)
+          : [];
+        setCategories(normalized);
+      } catch {
+        if (active) setCategories([]);
+      } finally {
+        if (active) setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const isAllowed = userRole === "blogadmin";
   const canSubmit = useMemo(
     () => Boolean(isAllowed && title.trim() && slug.trim() && body.trim() && !isSaving),
@@ -68,7 +101,7 @@ export default function CreateBlogPage() {
           slug: slug.trim(),
           body: body.trim(),
           status,
-          categoryTag: categoryTag.trim() || null,
+          categoryId: categoryId || null,
           featuredImageS3Key: featuredImageS3Key.trim() || null,
         },
         imageFile || undefined
@@ -150,14 +183,21 @@ export default function CreateBlogPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category Tag (optional)</label>
-                <input
-                  type="text"
-                  value={categoryTag}
-                  onChange={(e) => setCategoryTag(e.target.value)}
-                  placeholder="material-guide"
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category (optional)</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
-                />
+                >
+                  <option value="">
+                    {isLoadingCategories ? "Loading categories..." : "Select category"}
+                  </option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

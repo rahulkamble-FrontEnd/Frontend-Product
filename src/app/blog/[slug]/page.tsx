@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getBlogBySlug, type BlogItem } from "@/lib/api";
+import { getBlogBySlug, getRelevantBlogs, type BlogItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -26,6 +27,7 @@ export default function BlogDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
+  const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
 
   useEffect(() => {
     if (!slug) return;
@@ -39,9 +41,20 @@ export default function BlogDetailsPage() {
         if (!active) return;
         setBlog(data);
         setImageFailed(false);
+        try {
+          const relevant = await getRelevantBlogs(slug, 3);
+          if (active) {
+            setRelevantBlogs(relevant);
+          }
+        } catch {
+          if (active) {
+            setRelevantBlogs([]);
+          }
+        }
       } catch (err: unknown) {
         if (!active) return;
         setBlog(null);
+        setRelevantBlogs([]);
         setError(err instanceof Error ? err.message : "Failed to load blog.");
       } finally {
         if (active) setIsLoading(false);
@@ -95,9 +108,9 @@ export default function BlogDetailsPage() {
                 <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[#7c716a]">{blog.status}</span>
               </div>
               <h1 className="text-3xl font-semibold leading-tight tracking-tight text-[#302824]">{blog.title}</h1>
-              {blog.categoryTag && (
+              {blog.category?.name && (
                 <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9d958d]">
-                  Category: {blog.categoryTag}
+                  Category: {blog.category.name}
                 </div>
               )}
             </div>
@@ -125,6 +138,25 @@ export default function BlogDetailsPage() {
                 className="prose prose-sm max-w-none text-[#534a44] prose-p:leading-7 prose-headings:text-[#302824]"
                 dangerouslySetInnerHTML={{ __html: blog.body }}
               />
+
+              {relevantBlogs.length > 0 && (
+                <div className="mt-10 border-t border-[#eee8df] pt-8">
+                  <h2 className="text-2xl font-semibold tracking-tight text-[#302824]">
+                    Relevant Articles
+                  </h2>
+                  <div className="mt-4 grid gap-3">
+                    {relevantBlogs.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/blog/${encodeURIComponent(item.slug)}`}
+                        className="rounded-md border border-[#e6dfd7] bg-[#faf8f5] px-4 py-3 text-sm font-semibold text-[#3b322d] hover:bg-white"
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </article>
         )}

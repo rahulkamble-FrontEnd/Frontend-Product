@@ -5,17 +5,28 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import CommonStoreHeader from "@/components/common-store-header";
 import {
+  getBlogs,
   getCategoryBySlug,
-  getPortfolios,
+  type BlogItem,
   getProducts,
   type CategoryDetails,
-  type PortfolioResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
 } from "@/lib/api";
 
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+}
+
+function getBlogImageUrl(blog: BlogItem) {
+  const directUrl = (blog.featuredImageUrl ?? "").trim();
+  if (directUrl) return directUrl;
+  const key = (blog.featuredImageS3Key ?? "").trim();
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
 }
 
 function getProductImageUrls(product: ProductListItem) {
@@ -60,11 +71,11 @@ export default function CategoryProductsPage() {
   const [userRole, setUserRole] = useState("");
   const [category, setCategory] = useState<CategoryDetails | null>(null);
   const [products, setProducts] = useState<ProductListItem[]>([]);
-  const [portfolioArticles, setPortfolioArticles] = useState<PortfolioResponse[]>([]);
+  const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
-  const [portfolioError, setPortfolioError] = useState("");
+  const [isLoadingRelevantBlogs, setIsLoadingRelevantBlogs] = useState(false);
+  const [relevantBlogsError, setRelevantBlogsError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
   const [selectedFinishTypes, setSelectedFinishTypes] = useState<Set<string>>(new Set());
@@ -165,26 +176,30 @@ export default function CategoryProductsPage() {
   }, [slug, userName]);
 
   useEffect(() => {
-    if (!userName || !slug) return;
+    if (!userName || !slug || !category?.id) return;
 
-    const loadPortfolioArticles = async () => {
-      setIsLoadingPortfolio(true);
-      setPortfolioError("");
+    const loadRelevantBlogs = async () => {
+      setIsLoadingRelevantBlogs(true);
+      setRelevantBlogsError("");
       try {
-        const records = await getPortfolios({ category: slug });
-        setPortfolioArticles(Array.isArray(records) ? records : []);
+        const blogs = await getBlogs({ publishedOnly: true });
+        const currentCategoryId = category.id.trim();
+        const filtered = blogs.filter(
+          (item) => (item.categoryId ?? "").trim() === currentCategoryId,
+        );
+        setRelevantBlogs(filtered);
       } catch (err: unknown) {
-        setPortfolioArticles([]);
-        setPortfolioError(
+        setRelevantBlogs([]);
+        setRelevantBlogsError(
           err instanceof Error ? err.message : "Failed to load relevant articles.",
         );
       } finally {
-        setIsLoadingPortfolio(false);
+        setIsLoadingRelevantBlogs(false);
       }
     };
 
-    loadPortfolioArticles();
-  }, [slug, userName]);
+    loadRelevantBlogs();
+  }, [slug, userName, category?.id]);
 
   const shouldShowBrand = userRole !== "customer";
   const availableSubcategories = useMemo(() => {
@@ -685,36 +700,40 @@ export default function CategoryProductsPage() {
                   </h3>
                 </div>
 
-                {portfolioError && (
+                {relevantBlogsError && (
                   <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
-                    {portfolioError}
+                    {relevantBlogsError}
                   </div>
                 )}
 
-                {isLoadingPortfolio ? (
+                {isLoadingRelevantBlogs ? (
                   <div className="rounded-lg border border-[#d9cab5] bg-white p-4 text-sm text-gray-500">
                     Loading relevant articles...
                   </div>
-                ) : portfolioArticles.length === 0 ? (
+                ) : relevantBlogs.length === 0 ? (
                   <div className="rounded-lg border border-[#d9cab5] bg-white p-4 text-sm text-gray-500">
                     No relevant articles found for this category.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {portfolioArticles.slice(0, 8).map((item) => {
-                      const firstImageUrl =
-                        item.images.find((image) => image.url)?.url ?? null;
+                    {relevantBlogs.slice(0, 8).map((item) => {
+                      const contentText = item.body
+                        .replace(/<[^>]*>/g, " ")
+                        .replace(/\s+/g, " ")
+                        .trim();
+                      const imageUrl = getBlogImageUrl(item);
                       return (
                         <article
-                          key={item.portfolio.id}
+                          key={item.id}
                           className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
                         >
                           <div className="relative aspect-[4/3] w-full bg-[#e8dfd0]">
-                            {firstImageUrl ? (
+                            {imageUrl ? (
                               <Image
-                                src={firstImageUrl}
-                                alt={item.portfolio.title}
+                                src={imageUrl}
+                                alt={item.title}
                                 fill
+                                unoptimized
                                 sizes="(max-width: 1200px) 50vw, 25vw"
                                 className="object-cover"
                               />
@@ -726,14 +745,16 @@ export default function CategoryProductsPage() {
                           </div>
                           <div className="p-3">
                             <div className="line-clamp-1 text-xs font-black uppercase tracking-wider text-gray-800">
-                              {item.portfolio.title}
+                              {item.title}
                             </div>
                             <div className="mt-1 line-clamp-2 text-[10px] text-gray-500">
-                              {item.portfolio.description || "Portfolio article"}
+                              {contentText || "Blog article"}
                             </div>
                             <button
                               type="button"
-                              onClick={() => router.push("/blog")}
+                              onClick={() =>
+                                router.push(`/blog/${encodeURIComponent(item.slug)}`)
+                              }
                               className="mt-3 w-full rounded-full bg-[#b38a50] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white"
                             >
                               Read Now
