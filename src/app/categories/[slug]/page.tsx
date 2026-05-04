@@ -15,6 +15,10 @@ import {
 } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpeg";
+const CATEGORY_BANNER_BY_SLUG: Record<string, string> = {
+  "handles-knobs": "/handle.jpeg",
+};
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -359,6 +363,8 @@ export default function CategoryProductsPage() {
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size;
+  const categoryBannerUrl =
+    CATEGORY_BANNER_BY_SLUG[slug] ?? DEFAULT_CATEGORY_BANNER_URL;
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
@@ -523,6 +529,21 @@ export default function CategoryProductsPage() {
         </aside>
 
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
+          {categoryBannerUrl ? (
+            <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
+              <div className="relative h-[220px] w-full sm:h-[300px]">
+                <Image
+                  src={categoryBannerUrl}
+                  alt={`${category?.name ?? "Category"} banner`}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 1200px"
+                  className="object-fill"
+                />
+              </div>
+            </div>
+          ) : null}
+
           <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="text-[13px] font-black uppercase tracking-wide text-[#8b6b45] sm:text-base">
               {category?.name ?? "Category"} Products

@@ -57,16 +57,18 @@ import {
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
-const FALLBACK_MENU_NAMES = [
-  "Flooring",
-  "Laminates",
-  "Louvers & Panels",
-  "Wallpaper",
-  "Kitchen",
-  "Bathroom",
-  "Wardrobe",
-  "TV Unit",
-  "Outdoor",
+const MENU_CATEGORIES_CACHE_KEY = "dashboard_menu_categories_cache_v1";
+// NOTE: Keeping this fallback for now; menu data is currently coming directly from API.
+const FALLBACK_MENU_NAMES: string[] = [
+  // "Flooring",
+  // "Laminates",
+  // "Louvers & Panels",
+  // "Wallpaper",
+  // "Kitchen",
+  // "Bathroom",
+  // "Wardrobe",
+  // "TV Unit",
+  // "Outdoor",
 ];
 const CATEGORY_TILE_IMAGES = [
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
@@ -1916,12 +1918,34 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
+
+    if (typeof window !== "undefined") {
+      const cached = window.sessionStorage.getItem(MENU_CATEGORIES_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as unknown;
+          if (Array.isArray(parsed) && isMounted) {
+            setMenuCategories(parsed as CategoryMenuItem[]);
+          }
+        } catch {
+          // Ignore invalid cache and fetch fresh data below.
+        }
+      }
+    }
+
     const loadMenuCategories = async () => {
       setIsLoadingMenuCategories(true);
       try {
         const data = await getCategoryMenu({ includeChildren: true, productLimit: 8 });
         if (isMounted) {
-          setMenuCategories(Array.isArray(data) ? data : []);
+          const nextMenuCategories = Array.isArray(data) ? data : [];
+          setMenuCategories(nextMenuCategories);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(
+              MENU_CATEGORIES_CACHE_KEY,
+              JSON.stringify(nextMenuCategories),
+            );
+          }
         }
       } catch {
         if (isMounted) {
