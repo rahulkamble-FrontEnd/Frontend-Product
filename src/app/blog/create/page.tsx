@@ -1,12 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createBlog, getCategories, type BlogStatus } from "@/lib/api";
+import { BlogRichTextEditor } from "@/components/blog/BlogRichTextEditor";
+import { BlogSeoPanel } from "@/components/blog/BlogSeoPanel";
+import {
+  checkBlogSlugAvailable,
+  createBlog,
+  getCategories,
+  uploadBlogBodyImage,
+  type BlogItem,
+  type BlogStatus,
+} from "@/lib/api";
 
 type CategoryOption = {
   id: string;
   name: string;
+  slug: string;
 };
 
 function slugify(value: string) {
@@ -18,16 +28,25 @@ function slugify(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
+function htmlHasText(html: string) {
+  const t = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return t.length > 0;
+}
+
 export default function CreateBlogPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [body, setBody] = useState("<p>Rich text HTML content here</p>");
+  const [body, setBody] = useState("<p></p>");
   const [status, setStatus] = useState<BlogStatus>("draft");
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   const [featuredImageS3Key, setFeaturedImageS3Key] = useState("");
+  const [featuredImageAlt, setFeaturedImageAlt] = useState("");
+  const [featuredImageTitle, setFeaturedImageTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [seoKeyword, setSeoKeyword] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -35,6 +54,8 @@ export default function CreateBlogPage() {
   const [userRole, setUserRole] = useState("");
   const [userName, setUserName] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
+  const [slugAvailability, setSlugAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const slugCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName") || "";
@@ -53,15 +74,42 @@ export default function CreateBlogPage() {
   }, [title, slugEdited]);
 
   useEffect(() => {
+    if (slugCheckTimerRef.current) clearTimeout(slugCheckTimerRef.current);
+    const s = slug.trim();
+    if (!s) {
+      setSlugAvailability("idle");
+      return;
+    }
+    setSlugAvailability("checking");
+    slugCheckTimerRef.current = setTimeout(() => {
+      void (async () => {
+        try {
+          const { available } = await checkBlogSlugAvailable(s);
+          setSlugAvailability(available ? "available" : "taken");
+        } catch {
+          setSlugAvailability("idle");
+        }
+      })();
+    }, 400);
+    return () => {
+      if (slugCheckTimerRef.current) clearTimeout(slugCheckTimerRef.current);
+    };
+  }, [slug]);
+
+  useEffect(() => {
     let active = true;
     const loadCategories = async () => {
       setIsLoadingCategories(true);
       try {
-        const data = (await getCategories()) as Array<{ id?: string; name?: string }>;
+        const data = (await getCategories()) as Array<{ id?: string; name?: string; slug?: string }>;
         if (!active) return;
         const normalized = Array.isArray(data)
           ? data
-              .map((item) => ({ id: item.id ?? "", name: item.name ?? "" }))
+              .map((item) => ({
+                id: item.id ?? "",
+                name: item.name ?? "",
+                slug: item.slug ?? "",
+              }))
               .filter((item) => item.id && item.name)
           : [];
         setCategories(normalized);
@@ -78,10 +126,39 @@ export default function CreateBlogPage() {
     };
   }, []);
 
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === categoryId) ?? null,
+    [categories, categoryId]
+  );
+
+  const seoPreviewBlog = useMemo((): Pick<BlogItem, "slug" | "category"> | null => {
+    if (!slug.trim()) return null;
+    if (selectedCategory?.slug) {
+      return {
+        slug: slug.trim(),
+        category: {
+          id: selectedCategory.id,
+          name: selectedCategory.name,
+          slug: selectedCategory.slug,
+        },
+      };
+    }
+    return { slug: slug.trim(), category: null };
+  }, [slug, selectedCategory]);
+
   const isAllowed = userRole === "blogadmin";
   const canSubmit = useMemo(
-    () => Boolean(isAllowed && title.trim() && slug.trim() && body.trim() && !isSaving),
-    [isAllowed, title, slug, body, isSaving]
+    () =>
+      Boolean(
+        isAllowed &&
+          title.trim() &&
+          slug.trim() &&
+          htmlHasText(body) &&
+          !isSaving &&
+          slugAvailability !== "taken" &&
+          slugAvailability !== "checking"
+      ),
+    [isAllowed, title, slug, body, isSaving, slugAvailability]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -103,6 +180,10 @@ export default function CreateBlogPage() {
           status,
           categoryId: categoryId || null,
           featuredImageS3Key: featuredImageS3Key.trim() || null,
+          featuredImageAlt: featuredImageAlt.trim() || null,
+          featuredImageTitle: featuredImageTitle.trim() || null,
+          metaDescription: metaDescription.trim() || null,
+          seoKeyword: seoKeyword.trim() || null,
         },
         imageFile || undefined
       );
@@ -155,7 +236,20 @@ export default function CreateBlogPage() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Slug</label>
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">URL slug</label>
+                <button
+                  type="button"
+                  onClick={() => setSlugEdited(false)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-[#0468a3] hover:underline"
+                >
+                  Regenerate from title
+                </button>
+              </div>
+              <p className="mt-1 text-xs font-medium text-gray-500">
+                Public path is <span className="font-mono text-gray-700">/blog/(category)/(slug)</span> when a category is
+                selected. Slug uses lowercase letters, numbers, and hyphens only.
+              </p>
               <input
                 type="text"
                 required
@@ -164,9 +258,26 @@ export default function CreateBlogPage() {
                   setSlug(e.target.value);
                   setSlugEdited(true);
                 }}
+                onBlur={() => {
+                  const next = slugify(slug);
+                  if (next !== slug) setSlug(next);
+                }}
                 placeholder="laminate-vs-acrylic"
-                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                className="mt-2 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                autoComplete="off"
+                spellCheck={false}
               />
+              {slugAvailability === "checking" && (
+                <p className="mt-1.5 text-xs font-semibold text-gray-500">Checking if this URL is available…</p>
+              )}
+              {slugAvailability === "taken" && (
+                <p className="mt-1.5 text-xs font-semibold text-red-600">
+                  This URL is already used by another post. Change the slug so each article has a unique address.
+                </p>
+              )}
+              {slugAvailability === "available" && slug.trim() && (
+                <p className="mt-1.5 text-xs font-semibold text-green-700">This URL is available.</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -183,14 +294,14 @@ export default function CreateBlogPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category (optional)</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category (for URL)</label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
                 >
                   <option value="">
-                    {isLoadingCategories ? "Loading categories..." : "Select category"}
+                    {isLoadingCategories ? "Loading categories..." : "Select category (recommended)"}
                   </option>
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
@@ -202,19 +313,56 @@ export default function CreateBlogPage() {
             </div>
 
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Blog Body (HTML)</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Meta description</label>
               <textarea
-                required
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="mt-1 block min-h-[180px] w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
-                placeholder="<p>Rich text HTML content here</p>"
+                value={metaDescription}
+                onChange={(e) => setMetaDescription(e.target.value)}
+                rows={3}
+                maxLength={320}
+                placeholder="Short summary for search results (≈120–160 characters works well)."
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
               />
+              <p className="mt-1 text-xs text-gray-500">{metaDescription.length} / 320 characters</p>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Focus keyword (optional)</label>
+              <input
+                type="text"
+                value={seoKeyword}
+                onChange={(e) => setSeoKeyword(e.target.value)}
+                placeholder="e.g. laminate kitchen cabinets"
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+              />
+              <p className="mt-1 text-xs text-gray-500">Used only for the SEO checklist below (not shown on the live site).</p>
+            </div>
+
+            <BlogSeoPanel
+              title={title}
+              metaDescription={metaDescription}
+              bodyHtml={body}
+              focusKeyword={seoKeyword}
+              previewBlog={seoPreviewBlog}
+            />
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Article content</label>
+              <p className="mt-1 text-xs text-gray-500">
+                Headings, bold, lists, links, and images (with alt text). Images are compressed in the browser before upload.
+              </p>
+              <div className="mt-2">
+                <BlogRichTextEditor
+                  value={body}
+                  onChange={setBody}
+                  onUploadImage={(file) => uploadBlogBodyImage(file)}
+                  placeholder="Write your article…"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured Image File (optional)</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured image file (optional)</label>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -224,7 +372,7 @@ export default function CreateBlogPage() {
                 {imageFile && <p className="mt-2 text-xs font-semibold text-gray-500">Selected file: {imageFile.name}</p>}
               </div>
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured Image S3 Key (optional fallback)</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured image S3 key (optional)</label>
                 <input
                   type="text"
                   value={featuredImageS3Key}
@@ -232,9 +380,29 @@ export default function CreateBlogPage() {
                   placeholder="blogs/1mob.jpg"
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
                 />
-                <p className="mt-2 text-xs font-semibold text-gray-500">
-                  If file is selected, it will be uploaded as `featuredImage`.
-                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured image alt text</label>
+                <input
+                  type="text"
+                  value={featuredImageAlt}
+                  onChange={(e) => setFeaturedImageAlt(e.target.value)}
+                  placeholder="Describe the image for accessibility and SEO"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Featured image title</label>
+                <input
+                  type="text"
+                  value={featuredImageTitle}
+                  onChange={(e) => setFeaturedImageTitle(e.target.value)}
+                  placeholder="Optional tooltip / image title attribute"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                />
               </div>
             </div>
 

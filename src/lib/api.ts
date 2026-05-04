@@ -1083,6 +1083,10 @@ export type CreateBlogPayload = {
   status: BlogStatus;
   categoryId?: string | null;
   featuredImageS3Key?: string | null;
+  featuredImageAlt?: string | null;
+  featuredImageTitle?: string | null;
+  metaDescription?: string | null;
+  seoKeyword?: string | null;
 };
 
 export type BlogAuthor = {
@@ -1099,9 +1103,14 @@ export type BlogItem = {
   category?: {
     id: string;
     name: string;
+    slug?: string;
   } | null;
   featuredImageS3Key: string | null;
   featuredImageUrl: string | null;
+  featuredImageAlt: string | null;
+  featuredImageTitle: string | null;
+  metaDescription: string | null;
+  seoKeyword: string | null;
   author?: BlogAuthor | null;
   publishedAt: string | null;
   createdAt: string;
@@ -1119,11 +1128,20 @@ type RawBlogResponse = {
   category?: {
     id?: string;
     name?: string;
+    slug?: string;
   } | null;
   featuredImageS3Key?: string | null;
   featured_image_s3_key?: string | null;
   featuredImageUrl?: string | null;
   featured_image_url?: string | null;
+  featuredImageAlt?: string | null;
+  featured_image_alt?: string | null;
+  featuredImageTitle?: string | null;
+  featured_image_title?: string | null;
+  metaDescription?: string | null;
+  meta_description?: string | null;
+  seoKeyword?: string | null;
+  seo_keyword?: string | null;
   author?: BlogAuthor | null;
   publishedAt?: string | null;
   published_at?: string | null;
@@ -1146,10 +1164,15 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
         ? {
             id: raw.category.id ?? "",
             name: raw.category.name ?? "",
+            slug: raw.category.slug,
           }
         : null,
     featuredImageS3Key: raw.featuredImageS3Key ?? raw.featured_image_s3_key ?? null,
     featuredImageUrl: raw.featuredImageUrl ?? raw.featured_image_url ?? null,
+    featuredImageAlt: raw.featuredImageAlt ?? raw.featured_image_alt ?? null,
+    featuredImageTitle: raw.featuredImageTitle ?? raw.featured_image_title ?? null,
+    metaDescription: raw.metaDescription ?? raw.meta_description ?? null,
+    seoKeyword: raw.seoKeyword ?? raw.seo_keyword ?? null,
     author: raw.author ?? null,
     publishedAt: raw.publishedAt ?? raw.published_at ?? null,
     createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
@@ -1212,12 +1235,46 @@ export async function getBlogBySlug(slug: string, params?: { publishedOnly?: boo
   return data;
 }
 
+export async function getBlogByCategoryAndSlug(
+  categorySlug: string,
+  postSlug: string,
+  params?: { publishedOnly?: boolean }
+) {
+  const cat = categorySlug.trim();
+  const post = postSlug.trim();
+  if (!cat || !post) throw new Error("Category slug and post slug are required");
+
+  const response = await fetch(
+    `${BASE_URL.replace("/auth", "")}/blog/by-category/${encodeURIComponent(cat)}/${encodeURIComponent(post)}`,
+    {
+      method: "GET",
+      headers: authHeaders(),
+      credentials: "omit",
+    }
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch blog");
+  }
+
+  const data = normalizeBlog((await response.json()) as RawBlogResponse);
+  if (params?.publishedOnly === false) return data;
+  if (data.status !== "published") {
+    throw new Error("Blog not available");
+  }
+  return data;
+}
+
 export type UpdateBlogPayload = {
   title: string;
   slug: string;
   body: string;
   categoryId?: string | null;
   featuredImageS3Key?: string | null;
+  featuredImageAlt?: string | null;
+  featuredImageTitle?: string | null;
+  metaDescription?: string | null;
+  seoKeyword?: string | null;
   status: BlogStatus;
 };
 
@@ -1231,6 +1288,10 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     body: payload.body.trim(),
     categoryId: payload.categoryId?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+    featuredImageAlt: payload.featuredImageAlt?.trim() || null,
+    featuredImageTitle: payload.featuredImageTitle?.trim() || null,
+    metaDescription: payload.metaDescription?.trim() || null,
+    seoKeyword: payload.seoKeyword?.trim() || null,
     status: payload.status,
   };
 
@@ -1244,6 +1305,10 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
       status: cleanPayload.status,
       ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
       ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+      featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
+      featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
+      metaDescription: cleanPayload.metaDescription ?? "",
+      seoKeyword: cleanPayload.seoKeyword ?? "",
     }),
     credentials: "include",
   });
@@ -1293,6 +1358,50 @@ export async function deleteBlog(blogId: string) {
   return response.json() as Promise<DeleteBlogResponse>;
 }
 
+/** Blogadmin: check if a URL slug is unused before create/update. Use excludeId when editing. */
+export async function checkBlogSlugAvailable(
+  slug: string,
+  options?: { excludeId?: string }
+): Promise<{ available: boolean }> {
+  const clean = slug.trim();
+  if (!clean) {
+    return { available: false };
+  }
+
+  const url = new URL(`${BASE_URL.replace("/auth", "")}/blog/check-slug`);
+  url.searchParams.set("slug", clean);
+  const exclude = options?.excludeId?.trim();
+  if (exclude) url.searchParams.set("excludeId", exclude);
+
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to check slug availability");
+  }
+
+  return response.json() as Promise<{ available: boolean }>;
+}
+
+export async function uploadBlogBodyImage(file: File): Promise<{ url: string; key: string }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${BASE_URL.replace("/auth", "")}/blog/body-image`, {
+    method: "POST",
+    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    body: formData,
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to upload image");
+  }
+  return response.json() as Promise<{ url: string; key: string }>;
+}
+
 export async function createBlog(payload: CreateBlogPayload, featuredImageFile?: File) {
   const cleanPayload = {
     title: payload.title.trim(),
@@ -1301,6 +1410,10 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
     status: payload.status,
     categoryId: payload.categoryId?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
+    featuredImageAlt: payload.featuredImageAlt?.trim() || null,
+    featuredImageTitle: payload.featuredImageTitle?.trim() || null,
+    metaDescription: payload.metaDescription?.trim() || null,
+    seoKeyword: payload.seoKeyword?.trim() || null,
   };
 
   const endpoint = `${BASE_URL.replace('/auth', '')}/blog`;
@@ -1316,6 +1429,10 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           formData.append("status", cleanPayload.status);
           if (cleanPayload.categoryId) formData.append("categoryId", cleanPayload.categoryId);
           if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
+          if (cleanPayload.featuredImageAlt) formData.append("featuredImageAlt", cleanPayload.featuredImageAlt);
+          if (cleanPayload.featuredImageTitle) formData.append("featuredImageTitle", cleanPayload.featuredImageTitle);
+          if (cleanPayload.metaDescription) formData.append("metaDescription", cleanPayload.metaDescription);
+          if (cleanPayload.seoKeyword) formData.append("seoKeyword", cleanPayload.seoKeyword);
           formData.append("featuredImage", featuredImageFile);
           return formData;
         })(),
@@ -1331,6 +1448,10 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           status: cleanPayload.status,
           ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
           ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+          ...(cleanPayload.featuredImageAlt ? { featuredImageAlt: cleanPayload.featuredImageAlt } : {}),
+          ...(cleanPayload.featuredImageTitle ? { featuredImageTitle: cleanPayload.featuredImageTitle } : {}),
+          ...(cleanPayload.metaDescription ? { metaDescription: cleanPayload.metaDescription } : {}),
+          ...(cleanPayload.seoKeyword ? { seoKeyword: cleanPayload.seoKeyword } : {}),
         }),
         credentials: "include",
       });

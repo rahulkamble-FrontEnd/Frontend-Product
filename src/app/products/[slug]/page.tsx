@@ -20,6 +20,7 @@ import {
   type UpdateProductPayload,
   type UpdateProductResponse,
 } from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -1101,7 +1102,7 @@ export default function ProductDetailsPage() {
                     >
                       <button
                         type="button"
-                        onClick={() => router.push(`/blog/${encodeURIComponent(item.slug)}`)}
+                        onClick={() => router.push(blogPublicPath(item))}
                         className="block w-full text-left"
                       >
                         <div className="p-2 pb-0">

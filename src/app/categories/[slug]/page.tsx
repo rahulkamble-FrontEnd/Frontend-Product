@@ -13,6 +13,7 @@ import {
   type ProductImageUploadResponse,
   type ProductListItem,
 } from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -754,9 +755,7 @@ export default function CategoryProductsPage() {
                             </div>
                             <button
                               type="button"
-                              onClick={() =>
-                                router.push(`/blog/${encodeURIComponent(item.slug)}`)
-                              }
+                              onClick={() => router.push(blogPublicPath(item))}
                               className="mt-2 w-full rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]"
                             >
                               Read Now

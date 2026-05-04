@@ -54,6 +54,7 @@ import {
   type BlogItem,
   type TagItem,
 } from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -3551,7 +3552,7 @@ export default function DashboardPage() {
                     }`}
                     onClick={() => {
                       if (!blogSlug) return;
-                      router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                      router.push(blogPublicPath(blog));
                     }}
                   >
                     <div className="relative h-[170px] w-full sm:h-[270px]">
@@ -3573,7 +3574,7 @@ export default function DashboardPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!blogSlug) return;
-                          router.push(`/blog/${encodeURIComponent(blogSlug)}`);
+                          router.push(blogPublicPath(blog));
                         }}
                         className="inline-flex items-center gap-1.5 rounded-full bg-[#AE8953] px-3 py-1 text-[10px] font-medium text-white sm:gap-2 sm:px-5 sm:text-[11px]"
                       >
