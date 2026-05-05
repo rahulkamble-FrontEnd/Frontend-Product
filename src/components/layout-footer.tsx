@@ -5,11 +5,12 @@ import CommonFooter from "@/components/common-footer";
 
 export default function LayoutFooter() {
   const pathname = usePathname();
-  const shouldHideFooter = pathname === "/login";
+  const shouldHideFooter = pathname === "/login" || pathname === "/blog";
+  const shouldHideNewsletter = pathname === "/blog";
 
   if (shouldHideFooter) {
     return null;
   }
 
-  return <CommonFooter />;
+  return <CommonFooter hideNewsletter={shouldHideNewsletter} />;
 }
