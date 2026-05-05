@@ -236,7 +236,7 @@ export default function BlogPage() {
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-            {orderedBlogs.map((blog) => {
+            {orderedBlogs.map((blog, idx) => {
               const imageUrl = makeBlogImageUrl(blog);
               const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
               const preview = stripHtml(blog.body).slice(0, 150);
@@ -253,6 +253,7 @@ export default function BlogPage() {
                         src={imageUrl!}
                         alt={blog.title}
                         fill
+                        loading={idx === 0 ? "eager" : "lazy"}
                         unoptimized
                         sizes="(max-width: 1024px) 100vw, 33vw"
                         className="object-cover"
@@ -338,6 +339,7 @@ export default function BlogPage() {
                           src={imageUrl!}
                           alt={item.title || "Trending image"}
                           fill
+                          loading="eager"
                           unoptimized
                           sizes="(max-width: 1024px) 100vw, 52vw"
                           className="object-cover"
@@ -424,6 +426,7 @@ export default function BlogPage() {
                           src={imageUrl!}
                           alt={entry.portfolio.title || "Portfolio image"}
                           fill
+                          loading="eager"
                           unoptimized
                           sizes="(max-width: 1024px) 100vw, 50vw"
                           className="object-cover transition duration-500 group-hover:scale-[1.03]"
