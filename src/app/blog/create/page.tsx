@@ -39,6 +39,7 @@ export default function CreateBlogPage() {
   const [slug, setSlug] = useState("");
   const [body, setBody] = useState("<p></p>");
   const [status, setStatus] = useState<BlogStatus>("draft");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -48,6 +49,7 @@ export default function CreateBlogPage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [seoKeyword, setSeoKeyword] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -172,16 +174,22 @@ export default function CreateBlogPage() {
     setError("");
     setSuccess("");
     try {
+      const uploadedSocialImageKey =
+        socialImageFile instanceof File
+          ? (await uploadBlogBodyImage(socialImageFile)).key
+          : null;
       const created = await createBlog(
         {
           title: title.trim(),
           slug: slug.trim(),
           body: body.trim(),
           status,
+          publishedAt: status === "published" && scheduledAt ? new Date(scheduledAt).toISOString() : null,
           categoryId: categoryId || null,
           featuredImageS3Key: featuredImageS3Key.trim() || null,
           featuredImageAlt: featuredImageAlt.trim() || null,
           featuredImageTitle: featuredImageTitle.trim() || null,
+          socialImageS3Key: uploadedSocialImageKey,
           metaDescription: metaDescription.trim() || null,
           seoKeyword: seoKeyword.trim() || null,
         },
@@ -294,6 +302,20 @@ export default function CreateBlogPage() {
                 </select>
               </div>
               <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Schedule publish date & time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Works when status is published. If future time is selected, post stays hidden until that time.
+                </p>
+              </div>
+              <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Category (for URL)</label>
                 <select
                   value={categoryId}
@@ -404,6 +426,26 @@ export default function CreateBlogPage() {
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Custom social image file (optional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => setSocialImageFile(e.target.files?.[0] || null)}
+                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+              />
+              {socialImageFile && (
+                <p className="mt-2 text-xs font-semibold text-gray-500">
+                  Social image file selected: {socialImageFile.name}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                If selected, this uploaded file is used for Open Graph/Twitter preview image.
+              </p>
             </div>
 
             {error && <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</div>}

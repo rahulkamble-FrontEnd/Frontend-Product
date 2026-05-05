@@ -1,129 +1,173 @@
-"use client";
+import type { Metadata } from "next";
+import { cache } from "react";
+import { redirect } from "next/navigation";
+import { BlogDetailsClient } from "./BlogDetailsClient";
+import type { BlogItem } from "@/lib/api";
 
-import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { BlogArticleView } from "@/components/blog/BlogArticleView";
-import {
-  getBlogByCategoryAndSlug,
-  getBlogBySlug,
-  getRelevantBlogs,
-  type BlogItem,
-} from "@/lib/api";
+type RouteParams = { slug?: string[] };
+type BlogMetadataResponse = BlogItem & {
+  title?: string;
+  body?: string;
+  slug?: string;
+  category?: { slug?: string | null } | null;
+  metaDescription?: string | null;
+  socialImageS3Key?: string | null;
+  featuredImageUrl?: string | null;
+  featuredImageS3Key?: string | null;
+};
 
-function segmentsFromParams(slug: string | string[] | undefined): string[] {
-  if (slug === undefined) return [];
-  return Array.isArray(slug) ? slug : [slug];
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-export default function BlogDetailsPage() {
-  const router = useRouter();
-  const params = useParams<{ slug: string | string[] }>();
-  const segments = useMemo(() => segmentsFromParams(params.slug), [params.slug]);
+function getApiBaseUrl() {
+  const authBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    (process.env.NODE_ENV === "development"
+      ? "http://localhost:3000/api/auth"
+      : "https://pmsapi.customfurnish.com/api/auth");
+  return authBase.replace("/auth", "");
+}
 
-  const [blog, setBlog] = useState<BlogItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [imageFailed, setImageFailed] = useState(false);
-  const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
+function getSiteBaseUrl() {
+  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:4200").replace(/\/+$/, "");
+}
 
-  useEffect(() => {
-    if (segments.length === 0) {
-      setIsLoading(false);
-      setBlog(null);
-      setError("Blog not found.");
-      return;
-    }
+function makeBlogImageUrl(blog: BlogMetadataResponse) {
+  const socialKey = blog.socialImageS3Key?.trim() || "";
+  if (socialKey) {
+    if (socialKey.startsWith("http://") || socialKey.startsWith("https://")) return socialKey;
+    return `${BLOG_IMAGE_BASE_URL}/${socialKey.replace(/^\/+/, "")}`;
+  }
+  const directUrl = blog.featuredImageUrl?.trim() || "";
+  if (directUrl) return directUrl;
+  const key = blog.featuredImageS3Key?.trim() || "";
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
+}
 
-    let active = true;
-    const load = async () => {
-      setIsLoading(true);
-      setError("");
-      try {
-        if (segments.length > 2) {
-          setBlog(null);
-          setRelevantBlogs([]);
-          setError("Invalid blog URL.");
-          return;
-        }
+const fetchBlogForMetadata = cache(async (segments: string[]): Promise<BlogMetadataResponse | null> => {
+  if (segments.length < 1 || segments.length > 2) return null;
+  const apiBase = getApiBaseUrl();
+  const url =
+    segments.length === 2
+      ? `${apiBase}/blog/by-category/${encodeURIComponent(segments[0]!)}${"/"}${encodeURIComponent(segments[1]!)}`
+      : `${apiBase}/blog/${encodeURIComponent(segments[0]!)}`;
 
-        if (segments.length === 2) {
-          const [categorySlug, postSlug] = segments;
-          const data = await getBlogByCategoryAndSlug(categorySlug, postSlug, { publishedOnly: true });
-          if (!active) return;
-          setBlog(data);
-          setImageFailed(false);
-          try {
-            const relevant = await getRelevantBlogs(postSlug, 3);
-            if (active) setRelevantBlogs(relevant);
-          } catch {
-            if (active) setRelevantBlogs([]);
-          }
-          return;
-        }
+  const res = await fetch(url, { method: "GET", cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as BlogMetadataResponse;
+  return data;
+});
 
-        const postSlug = segments[0]!;
-        const data = await getBlogBySlug(postSlug, { publishedOnly: true });
-        if (!active) return;
-        if (data.category?.slug) {
-          router.replace(`/blog/${encodeURIComponent(data.category.slug)}/${encodeURIComponent(data.slug)}`);
-          return;
-        }
-        setBlog(data);
-        setImageFailed(false);
-        try {
-          const relevant = await getRelevantBlogs(postSlug, 3);
-          if (active) setRelevantBlogs(relevant);
-        } catch {
-          if (active) setRelevantBlogs([]);
-        }
-      } catch (err: unknown) {
-        if (!active) return;
-        setBlog(null);
-        setRelevantBlogs([]);
-        setError(err instanceof Error ? err.message : "Failed to load blog.");
-      } finally {
-        if (active) setIsLoading(false);
-      }
+const fetchRelevantBlogsForSlug = cache(async (slug: string): Promise<BlogItem[]> => {
+  const cleanSlug = slug.trim();
+  if (!cleanSlug) return [];
+  const res = await fetch(
+    `${getApiBaseUrl()}/blog/${encodeURIComponent(cleanSlug)}/relevant?limit=3`,
+    { method: "GET", cache: "no-store" }
+  );
+  if (!res.ok) return [];
+  const data = (await res.json()) as unknown;
+  return Array.isArray(data) ? (data as BlogItem[]) : [];
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<RouteParams> | RouteParams;
+}): Promise<Metadata> {
+  const resolved = await params;
+  const segments = Array.isArray(resolved?.slug) ? resolved.slug : [];
+  const blog = await fetchBlogForMetadata(segments);
+
+  const fallbackTitle = "Blog | Custom Furnish";
+  const fallbackDescription = "Read the latest insights from Custom Furnish blog.";
+  if (!blog) {
+    return {
+      title: fallbackTitle,
+      description: fallbackDescription,
+      openGraph: {
+        title: fallbackTitle,
+        description: fallbackDescription,
+        type: "article",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: fallbackTitle,
+        description: fallbackDescription,
+      },
     };
+  }
 
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [segments, router]);
+  const title = blog.title?.trim() || fallbackTitle;
+  const description = (blog.metaDescription || "").trim() || stripHtml(blog.body || "").slice(0, 160) || fallbackDescription;
+  const canonicalPath = blog.category?.slug
+    ? `/blog/${encodeURIComponent(blog.category.slug)}/${encodeURIComponent(blog.slug || "")}`
+    : `/blog/${encodeURIComponent(blog.slug || "")}`;
+  const canonicalUrl = `${getSiteBaseUrl()}${canonicalPath}`;
+  const imageUrl = makeBlogImageUrl(blog);
 
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type: "article",
+      images: imageUrl ? [{ url: imageUrl, alt: title }] : undefined,
+    },
+    twitter: {
+      card: imageUrl ? "summary_large_image" : "summary",
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : undefined,
+    },
+  };
+}
+
+export default async function BlogDetailsPage({
+  params,
+}: {
+  params: Promise<RouteParams> | RouteParams;
+}) {
+  const resolved = await params;
+  const segments = Array.isArray(resolved?.slug) ? resolved.slug : [];
+  if (segments.length < 1 || segments.length > 2) {
+    return (
+      <BlogDetailsClient
+        initialBlog={null}
+        initialRelevantBlogs={[]}
+        initialError="Invalid blog URL."
+      />
+    );
+  }
+
+  const blog = await fetchBlogForMetadata(segments);
+  if (!blog) {
+    return (
+      <BlogDetailsClient
+        initialBlog={null}
+        initialRelevantBlogs={[]}
+        initialError="Blog not found."
+      />
+    );
+  }
+
+  if (segments.length === 1 && blog.category?.slug) {
+    redirect(`/blog/${encodeURIComponent(blog.category.slug)}/${encodeURIComponent(blog.slug || "")}`);
+  }
+
+  const relevant = await fetchRelevantBlogsForSlug(blog.slug || "");
   return (
-    <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
-      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
-          >
-            Dashboard
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {isLoading ? (
-          <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-            Loading blog...
-          </div>
-        ) : error || !blog ? (
-          <div className="rounded-md border border-red-100 bg-red-50 p-8 text-center text-sm font-semibold text-red-600">
-            {error || "Blog not found."}
-          </div>
-        ) : (
-          <BlogArticleView
-            blog={blog}
-            relevantBlogs={relevantBlogs}
-            imageFailed={imageFailed}
-            onImageError={() => setImageFailed(true)}
-          />
-        )}
-      </main>
-    </div>
+    <BlogDetailsClient
+      initialBlog={blog}
+      initialRelevantBlogs={relevant}
+      initialError=""
+    />
   );
 }

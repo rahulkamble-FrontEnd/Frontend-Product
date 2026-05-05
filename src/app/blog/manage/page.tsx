@@ -26,10 +26,12 @@ type BlogEditForm = {
   title: string;
   slug: string;
   body: string;
+  publishedAt: string;
   categoryId: string;
   featuredImageS3Key: string;
   featuredImageAlt: string;
   featuredImageTitle: string;
+  socialImageS3Key: string;
   metaDescription: string;
   seoKeyword: string;
   status: BlogStatus;
@@ -49,6 +51,14 @@ function slugify(value: string) {
     .replace(/-{2,}/g, "-");
 }
 
+function toDateTimeLocalValue(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 export default function ManageBlogsPage() {
   const router = useRouter();
   const [userRole, setUserRole] = useState("");
@@ -60,6 +70,7 @@ export default function ManageBlogsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [publishingBlogId, setPublishingBlogId] = useState<string | null>(null);
   const [deletingBlogId, setDeletingBlogId] = useState<string | null>(null);
+  const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
   const [slugAvailability, setSlugAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const slugCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -68,10 +79,12 @@ export default function ManageBlogsPage() {
     title: "",
     slug: "",
     body: "",
+    publishedAt: "",
     categoryId: "",
     featuredImageS3Key: "",
     featuredImageAlt: "",
     featuredImageTitle: "",
+    socialImageS3Key: "",
     metaDescription: "",
     seoKeyword: "",
     status: "draft",
@@ -220,14 +233,17 @@ export default function ManageBlogsPage() {
       title: blog.title || "",
       slug: blog.slug || "",
       body: blog.body || "<p></p>",
+      publishedAt: toDateTimeLocalValue(blog.publishedAt),
       categoryId: blog.categoryId || "",
       featuredImageS3Key: blog.featuredImageS3Key || "",
       featuredImageAlt: blog.featuredImageAlt || "",
       featuredImageTitle: blog.featuredImageTitle || "",
+      socialImageS3Key: blog.socialImageS3Key || "",
       metaDescription: blog.metaDescription || "",
       seoKeyword: blog.seoKeyword || "",
       status: blog.status === "published" || blog.status === "archived" ? blog.status : "draft",
     });
+    setSocialImageFile(null);
     setError("");
     setSuccess("");
   };
@@ -247,14 +263,20 @@ export default function ManageBlogsPage() {
     setError("");
     setSuccess("");
     try {
+      const uploadedSocialImageKey =
+        socialImageFile instanceof File
+          ? (await uploadBlogBodyImage(socialImageFile)).key
+          : null;
       const updated = await updateBlog(editingBlogId, {
         title: form.title,
         slug: form.slug,
         body: form.body,
+        publishedAt: form.status === "published" && form.publishedAt ? new Date(form.publishedAt).toISOString() : null,
         categoryId: form.categoryId || null,
         featuredImageS3Key: form.featuredImageS3Key || null,
         featuredImageAlt: form.featuredImageAlt || null,
         featuredImageTitle: form.featuredImageTitle || null,
+        socialImageS3Key: uploadedSocialImageKey || form.socialImageS3Key || null,
         metaDescription: form.metaDescription || null,
         seoKeyword: form.seoKeyword || null,
         status: form.status,
@@ -366,9 +388,17 @@ export default function ManageBlogsPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-[#362f2a]">{blog.title}</td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{blog.slug}</td>
                     <td className="px-4 py-3">
+                      {(() => {
+                        const isScheduled =
+                          blog.status === "published" &&
+                          Boolean(blog.publishedAt) &&
+                          new Date(blog.publishedAt as string).getTime() > Date.now();
+                        return (
                       <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c716a]">
-                        {blog.status}
+                        {isScheduled ? "scheduled" : blog.status}
                       </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{new Date(blog.updatedAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-right">
@@ -509,6 +539,17 @@ export default function ManageBlogsPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                    Schedule publish date & time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.publishedAt}
+                    onChange={(e) => setForm((prev) => ({ ...prev, publishedAt: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Image S3 Key</label>
                   <input
                     type="text"
@@ -517,6 +558,26 @@ export default function ManageBlogsPage() {
                     className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                  Social image file (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setSocialImageFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                />
+                {socialImageFile && (
+                  <p className="mt-1 text-xs font-semibold text-[#9b9088]">
+                    Selected social image file: {socialImageFile.name}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-[#9b9088]">
+                  If selected, uploaded image is used for social preview (Open Graph/Twitter).
+                </p>
               </div>
 
               <div>

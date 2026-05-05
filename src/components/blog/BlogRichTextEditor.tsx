@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
@@ -9,6 +9,8 @@ import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
 import imageCompression from "browser-image-compression";
+import { getBlogs, type BlogItem } from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
 
 export type BlogRichTextEditorProps = {
   value: string;
@@ -25,6 +27,13 @@ export function BlogRichTextEditor({
   placeholder = "Write your article…",
   className = "",
 }: BlogRichTextEditorProps) {
+  const [showInternalLinkPicker, setShowInternalLinkPicker] = useState(false);
+  const [internalLinkQuery, setInternalLinkQuery] = useState("");
+  const [blogOptions, setBlogOptions] = useState<BlogItem[]>([]);
+  const [isLoadingBlogOptions, setIsLoadingBlogOptions] = useState(false);
+  const [blogOptionsError, setBlogOptionsError] = useState("");
+  const [activeAutocompleteIndex, setActiveAutocompleteIndex] = useState(0);
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -63,6 +72,34 @@ export function BlogRichTextEditor({
     if (cur === value) return;
     editor.commands.setContent(value, false);
   }, [value, editor]);
+
+  const filteredBlogOptions = useMemo(() => {
+    const query = internalLinkQuery.trim().toLowerCase();
+    const list = blogOptions
+      .map((item) => {
+        const title = (item.title || "").toLowerCase();
+        const slug = (item.slug || "").toLowerCase();
+        let score = 0;
+        if (!query) {
+          score = 1;
+        } else {
+          if (title.startsWith(query)) score += 6;
+          if (slug.startsWith(query)) score += 5;
+          if (title.includes(query)) score += 3;
+          if (slug.includes(query)) score += 2;
+        }
+        return { item, score };
+      })
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title))
+      .slice(0, 8)
+      .map((entry) => entry.item);
+    return list;
+  }, [blogOptions, internalLinkQuery]);
+
+  useEffect(() => {
+    setActiveAutocompleteIndex(0);
+  }, [internalLinkQuery, showInternalLinkPicker]);
 
   const runImagePick = () => {
     const input = document.createElement("input");
@@ -119,6 +156,76 @@ export function BlogRichTextEditor({
       .run();
   };
 
+  const openInternalLinkPicker = async () => {
+    const nextOpen = !showInternalLinkPicker;
+    setShowInternalLinkPicker(nextOpen);
+    if (!nextOpen || blogOptions.length > 0 || isLoadingBlogOptions) return;
+    setIsLoadingBlogOptions(true);
+    setBlogOptionsError("");
+    try {
+      const blogs = await getBlogs();
+      setBlogOptions(blogs);
+    } catch (err: unknown) {
+      setBlogOptionsError(err instanceof Error ? err.message : "Unable to load blogs.");
+      setBlogOptions([]);
+    } finally {
+      setIsLoadingBlogOptions(false);
+    }
+  };
+
+  const onAutocompleteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredBlogOptions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveAutocompleteIndex((prev) => (prev + 1) % filteredBlogOptions.length);
+      return;
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveAutocompleteIndex((prev) => (prev - 1 + filteredBlogOptions.length) % filteredBlogOptions.length);
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const selected = filteredBlogOptions[activeAutocompleteIndex];
+      if (selected) insertInternalLink(selected);
+      return;
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowInternalLinkPicker(false);
+      setInternalLinkQuery("");
+    }
+  };
+
+  const insertInternalLink = (item: BlogItem) => {
+    if (!editor) return;
+    const href = blogPublicPath(item);
+    const { from, to } = editor.state.selection;
+    const isSelectionEmpty = from === to;
+    if (isSelectionEmpty) {
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "text",
+          text: item.title,
+          marks: [{ type: "link", attrs: { href } }],
+        })
+        .run();
+    } else {
+      editor
+        .chain()
+        .focus()
+        .setTextSelection({ from, to })
+        .extendMarkRange("link")
+        .setLink({ href })
+        .run();
+    }
+    setShowInternalLinkPicker(false);
+    setInternalLinkQuery("");
+  };
+
   if (!editor) {
     return (
       <div className="min-h-[280px] animate-pulse rounded-lg border border-gray-200 bg-gray-50" aria-hidden />
@@ -146,8 +253,48 @@ export function BlogRichTextEditor({
         <ToolbarBtn label="Numbered list" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
         <span className="mx-1 w-px self-stretch bg-gray-200" />
         <ToolbarBtn label="Link" active={editor.isActive("link")} onClick={setLink} />
+        <ToolbarBtn label="Link blog" active={showInternalLinkPicker} onClick={() => void openInternalLinkPicker()} />
         <ToolbarBtn label="Image" active={false} onClick={runImagePick} />
       </div>
+      {showInternalLinkPicker && (
+        <div className="border-b border-gray-100 bg-white px-3 py-3">
+          <label className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Search existing blogs</label>
+          <input
+            type="text"
+            value={internalLinkQuery}
+            onChange={(e) => setInternalLinkQuery(e.target.value)}
+            onKeyDown={onAutocompleteKeyDown}
+            placeholder="Type title or slug..."
+            autoFocus
+            className="mt-1 block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3]"
+          />
+          <div className="mt-2 max-h-52 space-y-1 overflow-y-auto">
+            {isLoadingBlogOptions ? (
+              <p className="text-xs font-semibold text-gray-500">Loading blogs...</p>
+            ) : blogOptionsError ? (
+              <p className="text-xs font-semibold text-red-600">{blogOptionsError}</p>
+            ) : filteredBlogOptions.length === 0 ? (
+              <p className="text-xs font-semibold text-gray-500">No matching blogs found.</p>
+            ) : (
+              filteredBlogOptions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => insertInternalLink(item)}
+                  className={`block w-full rounded-md border px-3 py-2 text-left ${
+                    filteredBlogOptions[activeAutocompleteIndex]?.id === item.id
+                      ? "border-[#0468a3] bg-[#edf6fc]"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  <p className="line-clamp-1 text-sm font-semibold text-gray-800">{item.title || "(Untitled)"}</p>
+                  <p className="line-clamp-1 text-[11px] font-medium text-gray-500">{blogPublicPath(item)}</p>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
       <EditorContent editor={editor} />
       <div className="border-t border-gray-100 px-3 py-2 text-[11px] font-semibold text-gray-500">
         {typeof editor.storage.characterCount?.characters === "function"

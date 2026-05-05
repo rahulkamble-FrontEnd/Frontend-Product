@@ -1081,16 +1081,19 @@ export type CreateBlogPayload = {
   slug: string;
   body: string;
   status: BlogStatus;
+  publishedAt?: string | null;
   categoryId?: string | null;
   featuredImageS3Key?: string | null;
   featuredImageAlt?: string | null;
   featuredImageTitle?: string | null;
+  socialImageS3Key?: string | null;
   metaDescription?: string | null;
   seoKeyword?: string | null;
 };
 
 export type BlogAuthor = {
   id: string;
+  name?: string | null;
 };
 
 export type BlogItem = {
@@ -1109,9 +1112,11 @@ export type BlogItem = {
   featuredImageUrl: string | null;
   featuredImageAlt: string | null;
   featuredImageTitle: string | null;
+  socialImageS3Key: string | null;
   metaDescription: string | null;
   seoKeyword: string | null;
   author?: BlogAuthor | null;
+  author_name?: string | null;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1138,11 +1143,14 @@ type RawBlogResponse = {
   featured_image_alt?: string | null;
   featuredImageTitle?: string | null;
   featured_image_title?: string | null;
+  socialImageS3Key?: string | null;
+  social_image_s3_key?: string | null;
   metaDescription?: string | null;
   meta_description?: string | null;
   seoKeyword?: string | null;
   seo_keyword?: string | null;
   author?: BlogAuthor | null;
+  author_name?: string | null;
   publishedAt?: string | null;
   published_at?: string | null;
   createdAt?: string;
@@ -1171,9 +1179,18 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
     featuredImageUrl: raw.featuredImageUrl ?? raw.featured_image_url ?? null,
     featuredImageAlt: raw.featuredImageAlt ?? raw.featured_image_alt ?? null,
     featuredImageTitle: raw.featuredImageTitle ?? raw.featured_image_title ?? null,
+    socialImageS3Key: raw.socialImageS3Key ?? raw.social_image_s3_key ?? null,
     metaDescription: raw.metaDescription ?? raw.meta_description ?? null,
     seoKeyword: raw.seoKeyword ?? raw.seo_keyword ?? null,
-    author: raw.author ?? null,
+    author:
+      raw.author && typeof raw.author === "object"
+        ? {
+            id: raw.author.id ?? "",
+            name: raw.author.name ?? raw.author_name ?? null,
+          }
+        : raw.author_name
+          ? { id: "", name: raw.author_name }
+          : null,
     publishedAt: raw.publishedAt ?? raw.published_at ?? null,
     createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
     updatedAt: raw.updatedAt ?? raw.updated_at ?? new Date().toISOString(),
@@ -1269,10 +1286,12 @@ export type UpdateBlogPayload = {
   title: string;
   slug: string;
   body: string;
+  publishedAt?: string | null;
   categoryId?: string | null;
   featuredImageS3Key?: string | null;
   featuredImageAlt?: string | null;
   featuredImageTitle?: string | null;
+  socialImageS3Key?: string | null;
   metaDescription?: string | null;
   seoKeyword?: string | null;
   status: BlogStatus;
@@ -1287,9 +1306,11 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     slug: payload.slug.trim(),
     body: payload.body.trim(),
     categoryId: payload.categoryId?.trim() || null,
+    publishedAt: payload.publishedAt?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
     featuredImageAlt: payload.featuredImageAlt?.trim() || null,
     featuredImageTitle: payload.featuredImageTitle?.trim() || null,
+    socialImageS3Key: payload.socialImageS3Key?.trim() || null,
     metaDescription: payload.metaDescription?.trim() || null,
     seoKeyword: payload.seoKeyword?.trim() || null,
     status: payload.status,
@@ -1303,8 +1324,10 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
       slug: cleanPayload.slug,
       body: cleanPayload.body,
       status: cleanPayload.status,
+      ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
       ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
       ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+      ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
       featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
       featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
       metaDescription: cleanPayload.metaDescription ?? "",
@@ -1408,10 +1431,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
     slug: payload.slug.trim(),
     body: payload.body.trim(),
     status: payload.status,
+    publishedAt: payload.publishedAt?.trim() || null,
     categoryId: payload.categoryId?.trim() || null,
     featuredImageS3Key: payload.featuredImageS3Key?.trim() || null,
     featuredImageAlt: payload.featuredImageAlt?.trim() || null,
     featuredImageTitle: payload.featuredImageTitle?.trim() || null,
+    socialImageS3Key: payload.socialImageS3Key?.trim() || null,
     metaDescription: payload.metaDescription?.trim() || null,
     seoKeyword: payload.seoKeyword?.trim() || null,
   };
@@ -1427,10 +1452,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           formData.append("slug", cleanPayload.slug);
           formData.append("body", cleanPayload.body);
           formData.append("status", cleanPayload.status);
+          if (cleanPayload.publishedAt) formData.append("publishedAt", cleanPayload.publishedAt);
           if (cleanPayload.categoryId) formData.append("categoryId", cleanPayload.categoryId);
           if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
           if (cleanPayload.featuredImageAlt) formData.append("featuredImageAlt", cleanPayload.featuredImageAlt);
           if (cleanPayload.featuredImageTitle) formData.append("featuredImageTitle", cleanPayload.featuredImageTitle);
+          if (cleanPayload.socialImageS3Key) formData.append("socialImageS3Key", cleanPayload.socialImageS3Key);
           if (cleanPayload.metaDescription) formData.append("metaDescription", cleanPayload.metaDescription);
           if (cleanPayload.seoKeyword) formData.append("seoKeyword", cleanPayload.seoKeyword);
           formData.append("featuredImage", featuredImageFile);
@@ -1446,10 +1473,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           slug: cleanPayload.slug,
           body: cleanPayload.body,
           status: cleanPayload.status,
+          ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
           ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
           ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
           ...(cleanPayload.featuredImageAlt ? { featuredImageAlt: cleanPayload.featuredImageAlt } : {}),
           ...(cleanPayload.featuredImageTitle ? { featuredImageTitle: cleanPayload.featuredImageTitle } : {}),
+          ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
           ...(cleanPayload.metaDescription ? { metaDescription: cleanPayload.metaDescription } : {}),
           ...(cleanPayload.seoKeyword ? { seoKeyword: cleanPayload.seoKeyword } : {}),
         }),
