@@ -3260,7 +3260,17 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="w-full">
-          <div className="relative bg-[url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px]">
+          <div className="relative h-[280px] lg:h-[450px] 2xl:h-[520px]">
+             <Image
+               src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop"
+               alt="Newly Launched Karigari Laminate Collection"
+               fill
+               sizes="100vw"
+               quality={70}
+               loading="eager"
+               fetchPriority="high"
+               className="object-cover object-center"
+             />
              {/* Overlay for text readability */}
              <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">
