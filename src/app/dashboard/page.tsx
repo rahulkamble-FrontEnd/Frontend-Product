@@ -2817,6 +2817,111 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {userRole === "blogadmin" && (
+        <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsBlogMenuOpen(false);
+                setIsUsersMenuOpen(false);
+                setIsCategoriesMenuOpen(false);
+                setIsProductsMenuOpen(false);
+                router.push("/blog");
+              }}
+              className="rounded-md border-2 border-black px-2 py-2 text-[10px] font-black uppercase tracking-wider text-black shadow-sm"
+            >
+              Blogs
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsBlogMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm"
+              >
+                Blog
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isBlogMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Blog
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/portfolio/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Portfolio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/trending/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Blogs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/trending/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    View Blog
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
           <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
