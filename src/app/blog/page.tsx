@@ -162,7 +162,7 @@ export default function BlogPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
-      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-4 py-6 sm:px-6 lg:px-8">
+      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-3 py-6 sm:px-6 lg:px-8">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
@@ -205,7 +205,7 @@ export default function BlogPage() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-3 py-8 sm:px-6 lg:px-8">
         <section>
           <div className="mb-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
@@ -218,10 +218,10 @@ export default function BlogPage() {
         )}
 
         {isLoading ? (
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible xl:grid-cols-3">
             {Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                <div className="h-56 animate-pulse bg-[#f1ede8]" />
+              <div key={idx} className="w-[270px] shrink-0 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink">
+                <div className="h-44 animate-pulse bg-[#f1ede8] sm:h-56" />
                 <div className="space-y-3 p-4">
                   <div className="h-3 w-24 animate-pulse rounded bg-[#f1ede8]" />
                   <div className="h-5 w-full animate-pulse rounded bg-[#f1ede8]" />
@@ -235,7 +235,7 @@ export default function BlogPage() {
             No blogs available yet.
           </div>
         ) : (
-          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible xl:grid-cols-3">
             {orderedBlogs.map((blog, idx) => {
               const imageUrl = makeBlogImageUrl(blog);
               const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
@@ -245,9 +245,9 @@ export default function BlogPage() {
                 <Link
                   key={blog.id}
                   href={`/blog/${encodeURIComponent(blog.slug)}`}
-                  className="block overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)]"
+                  className="block w-[270px] shrink-0 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)] sm:w-auto sm:shrink"
                 >
-                  <div className="relative h-56 w-full bg-[#f1ede8]">
+                  <div className="relative h-40 w-full bg-[#f1ede8] sm:h-56">
                     {canRenderImage ? (
                       <Image
                         src={imageUrl!}
@@ -276,10 +276,10 @@ export default function BlogPage() {
                       <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                       <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[#7c716a]">{blog.status}</span>
                     </div>
-                    <h2 className="line-clamp-2 text-[27px] font-semibold leading-[1.15] text-[#302824]">
+                    <h2 className="line-clamp-2 text-[20px] font-semibold leading-[1.2] text-[#302824] sm:text-[27px] sm:leading-[1.15]">
                       {blog.title}
                     </h2>
-                    <p className="line-clamp-3 text-sm leading-6 text-[#7a7069]">{preview || "No blog content added yet."}</p>
+                    <p className="line-clamp-3 text-[13px] leading-5 text-[#7a7069] sm:text-sm sm:leading-6">{preview || "No blog content added yet."}</p>
                   </div>
                 </Link>
               );
@@ -288,7 +288,7 @@ export default function BlogPage() {
         )}
         </section>
 
-        <section className="mt-16 border-t border-[#e6dfd7] pt-14">
+        <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
           <div className="mb-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Inspiration</p>
             <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Trending</h2>
@@ -301,13 +301,13 @@ export default function BlogPage() {
           )}
 
           {isLoadingTrending ? (
-            <div className="space-y-6">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:block sm:space-y-6 sm:overflow-visible sm:pb-0">
               {Array.from({ length: 2 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="grid overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] lg:grid-cols-[1.06fr_1fr]"
+                  className="grid w-[290px] shrink-0 overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink-0 lg:grid-cols-[1.06fr_1fr]"
                 >
-                  <div className="h-64 animate-pulse bg-[#f1ede8] lg:h-full" />
+                  <div className="h-48 animate-pulse bg-[#f1ede8] sm:h-64 lg:h-full" />
                   <div className="space-y-4 p-6 sm:p-8">
                     <div className="h-4 w-28 animate-pulse rounded bg-[#f1ede8]" />
                     <div className="h-10 w-4/5 animate-pulse rounded bg-[#f1ede8]" />
@@ -322,7 +322,7 @@ export default function BlogPage() {
               No trending stories available yet.
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:block sm:space-y-6 sm:overflow-visible sm:pb-0">
               {orderedTrendings.map((item, idx) => {
                 const imageUrl = makeTrendingImageUrl(item);
                 const fallbackId = item.id?.trim() || `${item.title || "trending"}-${idx}`;
@@ -331,9 +331,9 @@ export default function BlogPage() {
                 return (
                   <article
                     key={fallbackId}
-                    className="grid overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] lg:grid-cols-[1.06fr_1fr]"
+                    className="grid w-[290px] shrink-0 overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink-0 lg:grid-cols-[1.06fr_1fr]"
                   >
-                    <div className="relative h-72 w-full bg-[#ece7df] lg:h-full">
+                    <div className="relative h-48 w-full bg-[#ece7df] sm:h-72 lg:h-full">
                       {canRenderImage ? (
                         <Image
                           src={imageUrl!}
@@ -357,16 +357,16 @@ export default function BlogPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col justify-center p-6 sm:p-10">
+                    <div className="flex flex-col justify-center p-4 sm:p-10">
                       <div className="mb-4 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9b9088]">
                         <span className="rounded-full bg-[#f4efe8] px-2.5 py-1 text-[#7d7269]">News</span>
                         <span className="rounded-full bg-[#efe9f8] px-2.5 py-1 text-[#7f6d9f]">{item.styleTag || "Inspiration"}</span>
                         <span>{new Date(item.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <h3 className="text-3xl font-semibold leading-tight text-[#2d2622] sm:text-5xl">
+                      <h3 className="text-2xl font-semibold leading-tight text-[#2d2622] sm:text-5xl">
                         {item.title || "Untitled trend"}
                       </h3>
-                      <p className="mt-5 text-sm leading-7 text-[#746b64] sm:text-base sm:leading-8">
+                      <p className="mt-4 text-[13px] leading-6 text-[#746b64] sm:text-base sm:leading-8">
                         {item.caption || "No caption available for this trend yet."}
                       </p>
                     </div>
@@ -377,9 +377,9 @@ export default function BlogPage() {
           )}
         </section>
 
-        <section className="mt-16 border-t border-[#e6dfd7] pt-14">
+        <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
           <div className="mb-10 text-center">
-            <h2 className="text-4xl font-black uppercase tracking-[0.06em] text-[#3b4762]">Portfolio</h2>
+            <h2 className="text-3xl font-black uppercase tracking-[0.06em] text-[#3b4762] sm:text-4xl">Portfolio</h2>
             <div className="mx-auto mt-3 h-0.5 w-16 bg-[#c7dbe9]" />
           </div>
 
@@ -390,7 +390,7 @@ export default function BlogPage() {
           )}
 
           {isLoadingPortfolio ? (
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 6 }).map((_, idx) => (
                 <div
                   key={idx}
@@ -405,7 +405,7 @@ export default function BlogPage() {
               No portfolio entries available yet.
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2">
               {orderedPortfolios.map((entry, idx) => {
                 const sortedImages = [...entry.images].sort((a, b) => a.displayOrder - b.displayOrder);
                 const firstImage = sortedImages[0];
@@ -445,17 +445,17 @@ export default function BlogPage() {
                       )}
                     </div>
                     <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#060b14]/92 via-[#060b14]/40 to-transparent" />
-                    <div className="absolute inset-x-0 bottom-0 z-10 p-5 sm:p-6">
-                      <div className="mb-3 flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#d8e3f7]">
-                        <span className="rounded-full border border-[#d8e3f7]/45 bg-[#0b1324]/35 px-2.5 py-1">
+                    <div className="absolute inset-x-0 bottom-0 z-10 p-3 sm:p-6">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#d8e3f7] sm:mb-3 sm:gap-3 sm:text-[10px] sm:tracking-[0.16em]">
+                        <span className="rounded-full border border-[#d8e3f7]/45 bg-[#0b1324]/35 px-2 py-0.5 sm:px-2.5 sm:py-1">
                           {entry.portfolio.roomType || "General"}
                         </span>
                         <span>{new Date(entry.portfolio.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <h3 className="line-clamp-2 text-2xl font-semibold leading-tight text-white sm:text-[30px]">
+                      <h3 className="line-clamp-2 text-[22px] font-semibold leading-[1.05] text-white sm:text-[30px] sm:leading-tight">
                         {entry.portfolio.title || "Portfolio"}
                       </h3>
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#d7dfef]">
+                      <p className="mt-1.5 line-clamp-2 text-[12px] leading-4.5 text-[#d7dfef] sm:mt-2 sm:text-sm sm:leading-6">
                         {entry.portfolio.description || "No description provided."}
                       </p>
                     </div>
