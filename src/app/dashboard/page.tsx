@@ -2374,10 +2374,15 @@ export default function DashboardPage() {
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
           {/* Logo */}
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="max-w-[190px] truncate text-[22px] leading-none text-[#1f1f1f] sm:max-w-none sm:text-[34px]">
-              <span className="font-serif">CustomFurnish</span>
-            </div>
+          <div className="-ml-6 flex min-w-0 flex-1 items-center gap-2 overflow-hidden pr-1 sm:-ml-8 sm:pr-2 lg:-ml-11">
+            <Image
+              src="/logo-cf.svg"
+              alt="CustomFurnish"
+              width={309}
+              height={28}
+              priority
+              className="pointer-events-none block h-[22px] w-auto max-w-full object-contain object-left sm:h-[34px]"
+            />
           </div>
 
           {/* Actions */}
@@ -3040,7 +3045,7 @@ export default function DashboardPage() {
         onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
-          className={`${dashboardShellClass} flex items-center justify-center gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:gap-5 sm:text-[16px] sm:leading-6`}
+          className={`${dashboardShellClass} flex items-center justify-start gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:justify-center sm:gap-5 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
             const hasFlyout =
