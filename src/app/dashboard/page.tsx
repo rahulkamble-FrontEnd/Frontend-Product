@@ -3266,7 +3266,7 @@ export default function DashboardPage() {
                alt="Newly Launched Karigari Laminate Collection"
                fill
                sizes="100vw"
-               quality={70}
+               quality={75}
                loading="eager"
                fetchPriority="high"
                className="object-cover object-center"
