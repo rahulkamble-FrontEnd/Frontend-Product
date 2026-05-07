@@ -19,6 +19,9 @@ type CategoryOption = {
   slug: string;
 };
 
+const SEO_META_TITLE_MAX = 60;
+const SEO_META_DESCRIPTION_MAX = 160;
+
 function slugify(value: string) {
   return value
     .trim()
@@ -31,6 +34,16 @@ function slugify(value: string) {
 function htmlHasText(html: string) {
   const t = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return t.length > 0;
+}
+
+function isValidCanonicalUrl(value: string) {
+  if (!value.trim()) return true;
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export default function CreateBlogPage() {
@@ -48,6 +61,10 @@ export default function CreateBlogPage() {
   const [featuredImageTitle, setFeaturedImageTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [seoKeyword, setSeoKeyword] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [secondaryKeywords, setSecondaryKeywords] = useState("");
+  const [canonicalUrl, setCanonicalUrl] = useState("");
+  const [metaRobots, setMetaRobots] = useState<"index" | "noindex">("index");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -158,9 +175,12 @@ export default function CreateBlogPage() {
           htmlHasText(body) &&
           !isSaving &&
           slugAvailability !== "taken" &&
-          slugAvailability !== "checking"
+          slugAvailability !== "checking" &&
+          metaTitle.length <= SEO_META_TITLE_MAX &&
+          metaDescription.length <= SEO_META_DESCRIPTION_MAX &&
+          isValidCanonicalUrl(canonicalUrl)
       ),
-    [isAllowed, title, slug, body, isSaving, slugAvailability]
+    [isAllowed, title, slug, body, isSaving, slugAvailability, metaTitle, metaDescription, canonicalUrl]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -174,6 +194,16 @@ export default function CreateBlogPage() {
     setError("");
     setSuccess("");
     try {
+      if (metaTitle.length > SEO_META_TITLE_MAX) {
+        throw new Error(`Meta title must be ${SEO_META_TITLE_MAX} characters or fewer.`);
+      }
+      if (metaDescription.length > SEO_META_DESCRIPTION_MAX) {
+        throw new Error(`Meta description must be ${SEO_META_DESCRIPTION_MAX} characters or fewer.`);
+      }
+      if (!isValidCanonicalUrl(canonicalUrl)) {
+        throw new Error("Canonical URL must be a valid http/https URL.");
+      }
+
       const uploadedSocialImageKey =
         socialImageFile instanceof File
           ? (await uploadBlogBodyImage(socialImageFile)).key
@@ -190,8 +220,12 @@ export default function CreateBlogPage() {
           featuredImageAlt: featuredImageAlt.trim() || null,
           featuredImageTitle: featuredImageTitle.trim() || null,
           socialImageS3Key: uploadedSocialImageKey,
+          metaTitle: metaTitle.trim() || null,
           metaDescription: metaDescription.trim() || null,
           seoKeyword: seoKeyword.trim() || null,
+          secondaryKeywords: secondaryKeywords.trim() || null,
+          canonicalUrl: canonicalUrl.trim() || null,
+          metaRobots,
         },
         imageFile || undefined
       );
@@ -334,30 +368,94 @@ export default function CreateBlogPage() {
               </div>
             </div>
 
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Meta description</label>
-              <textarea
-                value={metaDescription}
-                onChange={(e) => setMetaDescription(e.target.value)}
-                rows={3}
-                maxLength={320}
-                placeholder="Short summary for search results (≈120–160 characters works well)."
-                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
-              />
-              <p className="mt-1 text-xs text-gray-500">{metaDescription.length} / 320 characters</p>
-            </div>
+            <section className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:p-5">
+              <div>
+                <h2 className="text-xs font-black uppercase tracking-widest text-[#0468a3]">SEO</h2>
+                <p className="mt-1 text-xs text-gray-500">Set search metadata for this blog post.</p>
+              </div>
 
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Focus keyword (optional)</label>
-              <input
-                type="text"
-                value={seoKeyword}
-                onChange={(e) => setSeoKeyword(e.target.value)}
-                placeholder="e.g. laminate kitchen cabinets"
-                className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
-              />
-              <p className="mt-1 text-xs text-gray-500">Used only for the SEO checklist below (not shown on the live site).</p>
-            </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Meta title</label>
+                <input
+                  type="text"
+                  value={metaTitle}
+                  onChange={(e) => setMetaTitle(e.target.value)}
+                  maxLength={SEO_META_TITLE_MAX}
+                  placeholder="SEO title shown in search results"
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {metaTitle.length} / {SEO_META_TITLE_MAX} characters
+                </p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Meta description</label>
+                <textarea
+                  value={metaDescription}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  rows={3}
+                  maxLength={SEO_META_DESCRIPTION_MAX}
+                  placeholder="Short summary for search results (≈120–160 characters works well)."
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {metaDescription.length} / {SEO_META_DESCRIPTION_MAX} characters
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Focus keyword</label>
+                  <input
+                    type="text"
+                    value={seoKeyword}
+                    onChange={(e) => setSeoKeyword(e.target.value)}
+                    placeholder="e.g. laminate kitchen cabinets"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Secondary keywords
+                  </label>
+                  <input
+                    type="text"
+                    value={secondaryKeywords}
+                    onChange={(e) => setSecondaryKeywords(e.target.value)}
+                    placeholder="keyword 1, keyword 2, keyword 3"
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Canonical URL</label>
+                  <input
+                    type="url"
+                    value={canonicalUrl}
+                    onChange={(e) => setCanonicalUrl(e.target.value)}
+                    placeholder="https://www.customfurnish.com/blog/..."
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                  />
+                  {!!canonicalUrl.trim() && !isValidCanonicalUrl(canonicalUrl) && (
+                    <p className="mt-1 text-xs font-semibold text-red-600">Enter a valid http/https canonical URL.</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Meta robots</label>
+                  <select
+                    value={metaRobots}
+                    onChange={(e) => setMetaRobots(e.target.value === "noindex" ? "noindex" : "index")}
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                  >
+                    <option value="index">index</option>
+                    <option value="noindex">noindex</option>
+                  </select>
+                </div>
+              </div>
+            </section>
 
             <BlogSeoPanel
               title={title}

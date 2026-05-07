@@ -22,6 +22,9 @@ type CategoryOption = {
   slug: string;
 };
 
+const SEO_META_TITLE_MAX = 60;
+const SEO_META_DESCRIPTION_MAX = 160;
+
 type BlogEditForm = {
   title: string;
   slug: string;
@@ -32,8 +35,12 @@ type BlogEditForm = {
   featuredImageAlt: string;
   featuredImageTitle: string;
   socialImageS3Key: string;
+  metaTitle: string;
   metaDescription: string;
   seoKeyword: string;
+  secondaryKeywords: string;
+  canonicalUrl: string;
+  metaRobots: "index" | "noindex";
   status: BlogStatus;
 };
 
@@ -57,6 +64,16 @@ function toDateTimeLocalValue(value: string | null | undefined) {
   if (Number.isNaN(date.getTime())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
+}
+
+function isValidCanonicalUrl(value: string) {
+  if (!value.trim()) return true;
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export default function ManageBlogsPage() {
@@ -85,8 +102,12 @@ export default function ManageBlogsPage() {
     featuredImageAlt: "",
     featuredImageTitle: "",
     socialImageS3Key: "",
+    metaTitle: "",
     metaDescription: "",
     seoKeyword: "",
+    secondaryKeywords: "",
+    canonicalUrl: "",
+    metaRobots: "index",
     status: "draft",
   });
 
@@ -193,8 +214,11 @@ export default function ManageBlogsPage() {
     if (!editingBlogId || isSaving) return false;
     if (!form.title.trim() || !form.slug.trim() || !htmlHasText(form.body)) return false;
     if (slugAvailability === "taken" || slugAvailability === "checking") return false;
+    if (form.metaTitle.length > SEO_META_TITLE_MAX) return false;
+    if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) return false;
+    if (!isValidCanonicalUrl(form.canonicalUrl)) return false;
     return true;
-  }, [editingBlogId, isSaving, form.title, form.slug, form.body, slugAvailability]);
+  }, [editingBlogId, isSaving, form.title, form.slug, form.body, slugAvailability, form.metaTitle, form.metaDescription, form.canonicalUrl]);
 
   const selectedCategoryEdit = useMemo(
     () => categories.find((c) => c.id === form.categoryId) ?? null,
@@ -239,8 +263,12 @@ export default function ManageBlogsPage() {
       featuredImageAlt: blog.featuredImageAlt || "",
       featuredImageTitle: blog.featuredImageTitle || "",
       socialImageS3Key: blog.socialImageS3Key || "",
+      metaTitle: blog.metaTitle || "",
       metaDescription: blog.metaDescription || "",
       seoKeyword: blog.seoKeyword || "",
+      secondaryKeywords: blog.secondaryKeywords || "",
+      canonicalUrl: blog.canonicalUrl || "",
+      metaRobots: blog.metaRobots === "noindex" ? "noindex" : "index",
       status: blog.status === "published" || blog.status === "archived" ? blog.status : "draft",
     });
     setSocialImageFile(null);
@@ -263,6 +291,16 @@ export default function ManageBlogsPage() {
     setError("");
     setSuccess("");
     try {
+      if (form.metaTitle.length > SEO_META_TITLE_MAX) {
+        throw new Error(`Meta title must be ${SEO_META_TITLE_MAX} characters or fewer.`);
+      }
+      if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) {
+        throw new Error(`Meta description must be ${SEO_META_DESCRIPTION_MAX} characters or fewer.`);
+      }
+      if (!isValidCanonicalUrl(form.canonicalUrl)) {
+        throw new Error("Canonical URL must be a valid http/https URL.");
+      }
+
       const uploadedSocialImageKey =
         socialImageFile instanceof File
           ? (await uploadBlogBodyImage(socialImageFile)).key
@@ -277,8 +315,12 @@ export default function ManageBlogsPage() {
         featuredImageAlt: form.featuredImageAlt || null,
         featuredImageTitle: form.featuredImageTitle || null,
         socialImageS3Key: uploadedSocialImageKey || form.socialImageS3Key || null,
+        metaTitle: form.metaTitle || null,
         metaDescription: form.metaDescription || null,
         seoKeyword: form.seoKeyword || null,
+        secondaryKeywords: form.secondaryKeywords || null,
+        canonicalUrl: form.canonicalUrl || null,
+        metaRobots: form.metaRobots,
         status: form.status,
       });
       applyBlogUpdate(updated);
@@ -580,26 +622,91 @@ export default function ManageBlogsPage() {
                 </p>
               </div>
 
-              <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta description</label>
-                <textarea
-                  value={form.metaDescription}
-                  onChange={(e) => setForm((prev) => ({ ...prev, metaDescription: e.target.value }))}
-                  rows={2}
-                  maxLength={320}
-                  className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
-                />
-              </div>
+              <section className="space-y-4 rounded-lg border border-[#e6dfd7] bg-[#fbfaf8] p-4">
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7f7167]">SEO</h3>
+                  <p className="mt-1 text-xs text-[#9b9088]">Set search metadata for this blog post.</p>
+                </div>
 
-              <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Focus keyword</label>
-                <input
-                  type="text"
-                  value={form.seoKeyword}
-                  onChange={(e) => setForm((prev) => ({ ...prev, seoKeyword: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
-                />
-              </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta title</label>
+                  <input
+                    type="text"
+                    value={form.metaTitle}
+                    onChange={(e) => setForm((prev) => ({ ...prev, metaTitle: e.target.value }))}
+                    maxLength={SEO_META_TITLE_MAX}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-[#9b9088]">
+                    {form.metaTitle.length} / {SEO_META_TITLE_MAX} characters
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta description</label>
+                  <textarea
+                    value={form.metaDescription}
+                    onChange={(e) => setForm((prev) => ({ ...prev, metaDescription: e.target.value }))}
+                    rows={2}
+                    maxLength={SEO_META_DESCRIPTION_MAX}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-[#9b9088]">
+                    {form.metaDescription.length} / {SEO_META_DESCRIPTION_MAX} characters
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Focus keyword</label>
+                    <input
+                      type="text"
+                      value={form.seoKeyword}
+                      onChange={(e) => setForm((prev) => ({ ...prev, seoKeyword: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                      Secondary keywords
+                    </label>
+                    <input
+                      type="text"
+                      value={form.secondaryKeywords}
+                      onChange={(e) => setForm((prev) => ({ ...prev, secondaryKeywords: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Canonical URL</label>
+                    <input
+                      type="url"
+                      value={form.canonicalUrl}
+                      onChange={(e) => setForm((prev) => ({ ...prev, canonicalUrl: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                    {!!form.canonicalUrl.trim() && !isValidCanonicalUrl(form.canonicalUrl) && (
+                      <p className="mt-1 text-xs font-semibold text-red-600">Enter a valid http/https canonical URL.</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta robots</label>
+                    <select
+                      value={form.metaRobots}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, metaRobots: e.target.value === "noindex" ? "noindex" : "index" }))
+                      }
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    >
+                      <option value="index">index</option>
+                      <option value="noindex">noindex</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
 
               <BlogSeoPanel
                 title={form.title}

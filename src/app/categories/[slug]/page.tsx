@@ -16,9 +16,9 @@ import {
 import { blogPublicPath } from "@/lib/blog-path";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
-const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpeg";
+const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 const CATEGORY_BANNER_BY_SLUG: Record<string, string> = {
-  "handles-knobs": "/handle.jpeg",
+  "handles-knobs": "/handle.jpg",
 };
 
 function cleanUrl(value: string) {

@@ -1087,8 +1087,12 @@ export type CreateBlogPayload = {
   featuredImageAlt?: string | null;
   featuredImageTitle?: string | null;
   socialImageS3Key?: string | null;
+  metaTitle?: string | null;
   metaDescription?: string | null;
   seoKeyword?: string | null;
+  secondaryKeywords?: string | null;
+  canonicalUrl?: string | null;
+  metaRobots?: "index" | "noindex" | null;
 };
 
 export type BlogAuthor = {
@@ -1113,8 +1117,12 @@ export type BlogItem = {
   featuredImageAlt: string | null;
   featuredImageTitle: string | null;
   socialImageS3Key: string | null;
+  metaTitle: string | null;
   metaDescription: string | null;
   seoKeyword: string | null;
+  secondaryKeywords: string | null;
+  canonicalUrl: string | null;
+  metaRobots: "index" | "noindex" | null;
   author?: BlogAuthor | null;
   author_name?: string | null;
   publishedAt: string | null;
@@ -1145,10 +1153,18 @@ type RawBlogResponse = {
   featured_image_title?: string | null;
   socialImageS3Key?: string | null;
   social_image_s3_key?: string | null;
+  metaTitle?: string | null;
+  meta_title?: string | null;
   metaDescription?: string | null;
   meta_description?: string | null;
   seoKeyword?: string | null;
   seo_keyword?: string | null;
+  secondaryKeywords?: string | null;
+  secondary_keywords?: string | null;
+  canonicalUrl?: string | null;
+  canonical_url?: string | null;
+  metaRobots?: "index" | "noindex" | null;
+  meta_robots?: "index" | "noindex" | null;
   author?: BlogAuthor | null;
   author_name?: string | null;
   publishedAt?: string | null;
@@ -1160,6 +1176,8 @@ type RawBlogResponse = {
 };
 
 function normalizeBlog(raw: RawBlogResponse): BlogItem {
+  const metaRobots =
+    raw.metaRobots ?? raw.meta_robots ?? null;
   return {
     id: raw.id ?? "",
     title: raw.title ?? "",
@@ -1180,8 +1198,12 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
     featuredImageAlt: raw.featuredImageAlt ?? raw.featured_image_alt ?? null,
     featuredImageTitle: raw.featuredImageTitle ?? raw.featured_image_title ?? null,
     socialImageS3Key: raw.socialImageS3Key ?? raw.social_image_s3_key ?? null,
+    metaTitle: raw.metaTitle ?? raw.meta_title ?? null,
     metaDescription: raw.metaDescription ?? raw.meta_description ?? null,
     seoKeyword: raw.seoKeyword ?? raw.seo_keyword ?? null,
+    secondaryKeywords: raw.secondaryKeywords ?? raw.secondary_keywords ?? null,
+    canonicalUrl: raw.canonicalUrl ?? raw.canonical_url ?? null,
+    metaRobots: metaRobots === "noindex" ? "noindex" : metaRobots === "index" ? "index" : null,
     author:
       raw.author && typeof raw.author === "object"
         ? {
@@ -1292,8 +1314,12 @@ export type UpdateBlogPayload = {
   featuredImageAlt?: string | null;
   featuredImageTitle?: string | null;
   socialImageS3Key?: string | null;
+  metaTitle?: string | null;
   metaDescription?: string | null;
   seoKeyword?: string | null;
+  secondaryKeywords?: string | null;
+  canonicalUrl?: string | null;
+  metaRobots?: "index" | "noindex" | null;
   status: BlogStatus;
 };
 
@@ -1311,8 +1337,12 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     featuredImageAlt: payload.featuredImageAlt?.trim() || null,
     featuredImageTitle: payload.featuredImageTitle?.trim() || null,
     socialImageS3Key: payload.socialImageS3Key?.trim() || null,
+    metaTitle: payload.metaTitle?.trim() || null,
     metaDescription: payload.metaDescription?.trim() || null,
     seoKeyword: payload.seoKeyword?.trim() || null,
+    secondaryKeywords: payload.secondaryKeywords?.trim() || null,
+    canonicalUrl: payload.canonicalUrl?.trim() || null,
+    metaRobots: payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null,
     status: payload.status,
   };
 
@@ -1330,8 +1360,12 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
       ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
       featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
       featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
+      metaTitle: cleanPayload.metaTitle ?? "",
       metaDescription: cleanPayload.metaDescription ?? "",
       seoKeyword: cleanPayload.seoKeyword ?? "",
+      secondaryKeywords: cleanPayload.secondaryKeywords ?? "",
+      canonicalUrl: cleanPayload.canonicalUrl ?? "",
+      metaRobots: cleanPayload.metaRobots ?? "index",
     }),
     credentials: "include",
   });
@@ -1437,8 +1471,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
     featuredImageAlt: payload.featuredImageAlt?.trim() || null,
     featuredImageTitle: payload.featuredImageTitle?.trim() || null,
     socialImageS3Key: payload.socialImageS3Key?.trim() || null,
+    metaTitle: payload.metaTitle?.trim() || null,
     metaDescription: payload.metaDescription?.trim() || null,
     seoKeyword: payload.seoKeyword?.trim() || null,
+    secondaryKeywords: payload.secondaryKeywords?.trim() || null,
+    canonicalUrl: payload.canonicalUrl?.trim() || null,
+    metaRobots: payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null,
   };
 
   const endpoint = `${BASE_URL.replace('/auth', '')}/blog`;
@@ -1458,8 +1496,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           if (cleanPayload.featuredImageAlt) formData.append("featuredImageAlt", cleanPayload.featuredImageAlt);
           if (cleanPayload.featuredImageTitle) formData.append("featuredImageTitle", cleanPayload.featuredImageTitle);
           if (cleanPayload.socialImageS3Key) formData.append("socialImageS3Key", cleanPayload.socialImageS3Key);
+          if (cleanPayload.metaTitle) formData.append("metaTitle", cleanPayload.metaTitle);
           if (cleanPayload.metaDescription) formData.append("metaDescription", cleanPayload.metaDescription);
           if (cleanPayload.seoKeyword) formData.append("seoKeyword", cleanPayload.seoKeyword);
+          if (cleanPayload.secondaryKeywords) formData.append("secondaryKeywords", cleanPayload.secondaryKeywords);
+          if (cleanPayload.canonicalUrl) formData.append("canonicalUrl", cleanPayload.canonicalUrl);
+          if (cleanPayload.metaRobots) formData.append("metaRobots", cleanPayload.metaRobots);
           formData.append("featuredImage", featuredImageFile);
           return formData;
         })(),
@@ -1479,8 +1521,12 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
           ...(cleanPayload.featuredImageAlt ? { featuredImageAlt: cleanPayload.featuredImageAlt } : {}),
           ...(cleanPayload.featuredImageTitle ? { featuredImageTitle: cleanPayload.featuredImageTitle } : {}),
           ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
+          ...(cleanPayload.metaTitle ? { metaTitle: cleanPayload.metaTitle } : {}),
           ...(cleanPayload.metaDescription ? { metaDescription: cleanPayload.metaDescription } : {}),
           ...(cleanPayload.seoKeyword ? { seoKeyword: cleanPayload.seoKeyword } : {}),
+          ...(cleanPayload.secondaryKeywords ? { secondaryKeywords: cleanPayload.secondaryKeywords } : {}),
+          ...(cleanPayload.canonicalUrl ? { canonicalUrl: cleanPayload.canonicalUrl } : {}),
+          ...(cleanPayload.metaRobots ? { metaRobots: cleanPayload.metaRobots } : {}),
         }),
         credentials: "include",
       });

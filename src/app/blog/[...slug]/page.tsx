@@ -22,6 +22,33 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function parseCanonicalUrl(value: string | null | undefined) {
+  const raw = value?.trim();
+  if (!raw) return null;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildKeywords(blog: BlogMetadataResponse): string[] {
+  const keywords: string[] = [];
+  const focus = blog.seoKeyword?.trim();
+  if (focus) keywords.push(focus);
+
+  const secondary = blog.secondaryKeywords?.trim();
+  if (secondary) {
+    for (const piece of secondary.split(",")) {
+      const keyword = piece.trim();
+      if (keyword) keywords.push(keyword);
+    }
+  }
+  return Array.from(new Set(keywords));
+}
+
 function getApiBaseUrl() {
   const authBase =
     process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -103,17 +130,31 @@ export async function generateMetadata({
     };
   }
 
-  const title = blog.title?.trim() || fallbackTitle;
+  const title = blog.metaTitle?.trim() || blog.title?.trim() || fallbackTitle;
   const description = (blog.metaDescription || "").trim() || stripHtml(blog.body || "").slice(0, 160) || fallbackDescription;
   const canonicalPath = blog.category?.slug
     ? `/blog/${encodeURIComponent(blog.category.slug)}/${encodeURIComponent(blog.slug || "")}`
     : `/blog/${encodeURIComponent(blog.slug || "")}`;
-  const canonicalUrl = `${getSiteBaseUrl()}${canonicalPath}`;
+  const canonicalUrl = parseCanonicalUrl(blog.canonicalUrl) || `${getSiteBaseUrl()}${canonicalPath}`;
   const imageUrl = makeBlogImageUrl(blog);
+  const robotsIndex = blog.metaRobots === "noindex" ? false : true;
+  const keywords = buildKeywords(blog);
 
   return {
     title,
     description,
+    keywords: keywords.length > 0 ? keywords : undefined,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    robots: {
+      index: robotsIndex,
+      follow: robotsIndex,
+      googleBot: {
+        index: robotsIndex,
+        follow: robotsIndex,
+      },
+    },
     openGraph: {
       title,
       description,
