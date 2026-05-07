@@ -2375,10 +2375,15 @@ export default function DashboardPage() {
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
           {/* Logo */}
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="max-w-[190px] truncate text-[22px] leading-none text-[#1f1f1f] sm:max-w-none sm:text-[34px]">
-              <span className="font-serif">CustomFurnish</span>
-            </div>
+          <div className="-ml-6 flex min-w-0 flex-1 items-center gap-2 overflow-hidden pr-1 sm:-ml-8 sm:pr-2 lg:-ml-11">
+            <Image
+              src="/logo-cf.svg"
+              alt="CustomFurnish"
+              width={309}
+              height={28}
+              priority
+              className="pointer-events-none block h-[22px] w-auto max-w-full object-contain object-left sm:h-[34px]"
+            />
           </div>
 
           {/* Actions */}
@@ -2813,6 +2818,111 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {userRole === "blogadmin" && (
+        <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsBlogMenuOpen(false);
+                setIsUsersMenuOpen(false);
+                setIsCategoriesMenuOpen(false);
+                setIsProductsMenuOpen(false);
+                router.push("/blog");
+              }}
+              className="rounded-md border-2 border-black px-2 py-2 text-[10px] font-black uppercase tracking-wider text-black shadow-sm"
+            >
+              Blogs
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsBlogMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-2 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm"
+              >
+                Blog
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isBlogMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Blog
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/portfolio/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Portfolio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/trending/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Blogs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/trending/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/blog");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    View Blog
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
           <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
@@ -3041,7 +3151,7 @@ export default function DashboardPage() {
         onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
-          className={`${dashboardShellClass} flex items-center justify-center gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:gap-5 sm:text-[16px] sm:leading-6`}
+          className={`${dashboardShellClass} flex items-center justify-start gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:justify-center sm:gap-5 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
             const hasFlyout =
@@ -3151,7 +3261,17 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="w-full">
-          <div className="relative bg-[url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px]">
+          <div className="relative h-[280px] lg:h-[450px] 2xl:h-[520px]">
+             <Image
+               src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop"
+               alt="Newly Launched Karigari Laminate Collection"
+               fill
+               sizes="100vw"
+               quality={75}
+               loading="eager"
+               fetchPriority="high"
+               className="object-cover object-center"
+             />
              {/* Overlay for text readability */}
              <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">

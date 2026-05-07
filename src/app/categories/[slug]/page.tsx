@@ -380,7 +380,7 @@ export default function CategoryProductsPage() {
         userRole={userRole}
       />
 
-      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:max-w-[2200px] 2xl:px-6">
         {isMobileFiltersOpen && (
           <div
             className="fixed inset-0 z-[680] bg-black/40 lg:hidden"
