@@ -198,30 +198,30 @@ export default function CategoriesPage() {
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="border-b border-gray-200 bg-white px-3 py-4 sm:px-6 lg:px-8 shadow-sm">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button 
               onClick={() => router.push("/dashboard")}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Category Management</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg font-black uppercase tracking-tight text-[#4d2c1e] sm:text-xl">Category Management</h1>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Admin Dashboard</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-             <div className="flex items-center gap-3">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mr-2">Type:</span>
-                <div className="flex gap-1 rounded-full bg-gray-100 p-1">
+          <div className="flex w-full flex-wrap items-center gap-3 md:w-auto md:flex-nowrap md:gap-6">
+             <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:gap-3">
+                <span className="mr-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 md:mr-2">Type:</span>
+                <div className="flex flex-wrap gap-1 rounded-full bg-gray-100 p-1">
                    {['all', 'material', 'furniture'].map((type) => (
                      <button
                        key={type}
                        onClick={() => handleFilterChange(type)}
-                       className={`rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all ${
+                       className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all sm:px-4 ${
                          typeFilter === type 
                            ? "bg-black text-[#ffde59] shadow-md" 
                            : "text-gray-500 hover:text-black"
@@ -234,7 +234,7 @@ export default function CategoriesPage() {
              </div>
              <button 
                 onClick={() => setIsCatModalOpen(true)}
-                className="rounded-md bg-black px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#ffde59] shadow-md hover:opacity-90 transition-all"
+                className="rounded-md bg-black px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#ffde59] shadow-md transition-all hover:opacity-90 md:ml-auto"
              >
                 Add Category
              </button>
@@ -242,7 +242,7 @@ export default function CategoriesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         {error && (
           <div className="mb-6 rounded-xl bg-red-50 p-4 text-center text-sm font-bold text-red-600 border border-red-100">
             {error}
@@ -250,30 +250,30 @@ export default function CategoriesPage() {
         )}
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[860px] text-left">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Category Name</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Slug</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Level</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Date Created</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Category Name</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Slug</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Type</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Level</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Status</th>
+                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Date Created</th>
+                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={7} className="px-6 py-4"><div className="h-4 w-full rounded bg-gray-100" /></td>
+                      <td colSpan={7} className="px-4 py-4 sm:px-6"><div className="h-4 w-full rounded bg-gray-100" /></td>
                     </tr>
                   ))
                 ) : visibleCategories.length > 0 ? (
                   visibleCategories.map((cat) => (
                     <tr key={cat.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4d2c1e] text-[10px] font-bold text-[#ffde59]">
                             {cat.name.charAt(0)}
@@ -281,20 +281,20 @@ export default function CategoriesPage() {
                           <span className="text-sm font-bold text-gray-900">{cat.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
                           {cat.parent_id || cat.parent?.id ? "Sub-category" : "Category"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs font-mono text-gray-400">{cat.slug}</td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 text-xs font-mono text-gray-400 sm:px-6">{cat.slug}</td>
+                      <td className="px-4 py-4 sm:px-6">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
                           cat.type === 'material' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'
                         }`}>
                           {cat.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-4 sm:px-6">
                         <div className="flex items-center gap-1.5">
                           <div className={`h-1.5 w-1.5 rounded-full ${cat.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
@@ -302,10 +302,10 @@ export default function CategoriesPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right text-[11px] font-bold text-gray-400">
+                      <td className="px-4 py-4 text-right text-[11px] font-bold text-gray-400 sm:px-6">
                         {new Date(cat.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-4 text-right sm:px-6">
                         <div className="flex justify-end gap-3">
                           <button 
                             onClick={() => handleViewDetails(cat.slug)}
@@ -342,7 +342,7 @@ export default function CategoriesPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-sm font-medium text-gray-400">
+                    <td colSpan={7} className="px-4 py-12 text-center text-sm font-medium text-gray-400 sm:px-6">
                       No categories found for this selection.
                     </td>
                   </tr>

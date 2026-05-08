@@ -2726,18 +2726,18 @@ export default function DashboardPage() {
               {isNotificationsOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-[340px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[350]"
+                  className="fixed left-1/2 top-[86px] z-[500] w-[min(92vw,320px)] -translate-x-1/2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:z-[350] sm:mt-2 sm:w-[340px] sm:translate-x-0"
                 >
-                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-600">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5 sm:px-4 sm:py-3">
+                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-600 sm:text-[11px] sm:tracking-widest">
                       Notifications
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <button
                         type="button"
                         onClick={handleMarkAllNotificationsRead}
                         disabled={unreadNotificationsCount <= 0 || isMarkingAllNotificationsRead}
-                        className="text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:text-gray-300"
+                        className="text-[9px] font-black uppercase tracking-[0.08em] text-[#0468a3] disabled:cursor-not-allowed disabled:text-gray-300 sm:text-[10px] sm:tracking-widest"
                       >
                         {isMarkingAllNotificationsRead ? "Marking..." : "Mark all read"}
                       </button>
@@ -2747,7 +2747,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-72 overflow-y-auto sm:max-h-80">
                     {isLoadingNotifications ? (
                       <div className="px-4 py-6 text-center text-xs font-bold text-gray-500">Loading notifications...</div>
                     ) : notificationsError ? (
@@ -2984,17 +2984,17 @@ export default function DashboardPage() {
                   setIsProductsMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
-                className="flex w-full items-center justify-center gap-1 rounded-md border-2 border-[#4d2c1e] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm"
+                className="flex w-full items-center justify-between rounded-md border-2 border-[#4d2c1e] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#4d2c1e] shadow-sm"
               >
-                Categories
-                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <span className="truncate pr-1">Categories</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </button>
               {isCategoriesMenuOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                  className="absolute left-1/2 z-[320] mt-2 max-h-[56vh] w-[210px] -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg"
                 >
                   {canManageCategoryMasters && (
                     <>
@@ -3004,7 +3004,7 @@ export default function DashboardPage() {
                           setIsCategoriesMenuOpen(false);
                           router.push("/categories");
                         }}
-                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                       >
                         Manage Categories
                       </button>
@@ -3014,7 +3014,7 @@ export default function DashboardPage() {
                           setIsCategoriesMenuOpen(false);
                           router.push("/subcategories");
                         }}
-                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                       >
                         Manage Subcategories
                       </button>
@@ -3024,7 +3024,7 @@ export default function DashboardPage() {
                           setIsCategoriesMenuOpen(false);
                           router.push("/tags");
                         }}
-                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                       >
                         Manage Tags
                       </button>
@@ -3035,7 +3035,7 @@ export default function DashboardPage() {
                           closeAdminActionModals();
                           setIsCategoryModalOpen(true);
                         }}
-                        className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                       >
                         Create Category
                       </button>
@@ -3050,7 +3050,7 @@ export default function DashboardPage() {
                       setBindError("");
                       setBindMsg("");
                     }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                   >
                     Bind Subcategories
                   </button>
@@ -3063,7 +3063,7 @@ export default function DashboardPage() {
                       setProductTagError("");
                       setProductTagMsg("");
                     }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
                   >
                     Link/Delink Tags
                   </button>
@@ -3260,7 +3260,17 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="w-full">
-          <div className="relative bg-[url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop')] bg-cover bg-center h-[280px] lg:h-[450px] 2xl:h-[520px]">
+          <div className="relative h-[280px] lg:h-[450px] 2xl:h-[520px]">
+             <Image
+               src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop"
+               alt="Newly Launched Karigari Laminate Collection"
+               fill
+               sizes="100vw"
+               quality={75}
+               loading="eager"
+               fetchPriority="high"
+               className="object-cover object-center"
+             />
              {/* Overlay for text readability */}
              <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">
@@ -3290,7 +3300,7 @@ export default function DashboardPage() {
           <h3 className="min-w-0 text-left text-[22px] font-bold leading-[28px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Shop Interior Materials by Category
           </h3>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
@@ -3364,7 +3374,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/trending/manage")}
-              className="text-[12px] font-medium text-white sm:text-[14px]"
+              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Designs
             </button>
@@ -3514,7 +3524,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/products")}
-              className="text-[12px] font-medium text-white sm:text-[14px]"
+              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Products
             </button>
@@ -3637,7 +3647,7 @@ export default function DashboardPage() {
             <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
-            <div className="mr-[80px] hidden items-center gap-2 md:flex">
+            <div className="mr-[80px] hidden items-center gap-2">
               <button
                 type="button"
                 className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
@@ -4404,13 +4414,13 @@ export default function DashboardPage() {
           onClick={() => setIsShortlistOpen(false)}
         >
           <div
-            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="absolute right-1/2 top-16 h-[calc(100vh-5rem)] w-[min(92vw,22rem)] translate-x-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl sm:right-4 sm:top-20 sm:h-[calc(100vh-6rem)] sm:w-[min(28rem,calc(100vw-2rem))] sm:translate-x-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-black">My Shortlist</h3>
-                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                <h3 className="text-base font-black uppercase tracking-tight text-black sm:text-lg">My Shortlist</h3>
+                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 sm:text-[11px] sm:tracking-widest">
                   {shortlistItems.length} Saved
                 </div>
               </div>
@@ -4424,7 +4434,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+            <div className="h-[calc(100%-4.25rem)] overflow-y-auto p-3 sm:h-[calc(100%-4.5rem)] sm:p-4">
               {shortlistMsg && (
                 <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
                   {shortlistMsg}
@@ -4436,10 +4446,10 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-500 sm:text-[11px] sm:tracking-widest">
                       Compare: {shortlistCompareSelectedList.length}/4 selected
                     </div>
                     <div className="flex items-center gap-2">
@@ -4447,7 +4457,7 @@ export default function DashboardPage() {
                         type="button"
                         disabled={shortlistCompareSelectedList.length < 2 || isComparing}
                         onClick={openShortlistCompare}
-                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+                        className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                       >
                         {isComparing ? "Comparing..." : "Compare"}
                       </button>
@@ -4455,7 +4465,7 @@ export default function DashboardPage() {
                         type="button"
                         disabled={shortlistCompareSelectedList.length === 0}
                         onClick={clearShortlistCompareSelection}
-                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                       >
                         Reset
                       </button>
@@ -4506,7 +4516,7 @@ export default function DashboardPage() {
                           }
                         }}
                         className={[
-                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          "overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:rounded-2xl",
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
@@ -4518,12 +4528,12 @@ export default function DashboardPage() {
                               No Image
                             </div>
                           )}
-                          <div className="absolute left-3 top-3 flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                          <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
+                            <span className="inline-flex items-center rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                               {item.sampleStatus}
                             </span>
                             {item.sampleRequested && (
-                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-amber-700 sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                                 Sample Requested
                               </span>
                             )}
@@ -4537,7 +4547,7 @@ export default function DashboardPage() {
                                   : "Tick for compare"
                               }
                               className={[
-                                "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm",
+                                "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border shadow-sm sm:right-3 sm:top-3 sm:h-9 sm:w-9",
                                 isSelectedForShortlistCompare(shortlistedProduct.id)
                                   ? "border-black bg-black text-white"
                                   : "border-gray-200 bg-white/95 text-gray-800"
@@ -4549,7 +4559,7 @@ export default function DashboardPage() {
                             >
                               <input
                                 type="checkbox"
-                                className="pointer-events-none h-4 w-4 accent-black"
+                                className="pointer-events-none h-3.5 w-3.5 accent-black sm:h-4 sm:w-4"
                                 checked={isSelectedForShortlistCompare(shortlistedProduct.id)}
                                 readOnly
                                 tabIndex={-1}
@@ -4559,23 +4569,23 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        <div className="space-y-3 bg-[#e8dfd0] p-4">
+                        <div className="space-y-2.5 bg-[#e8dfd0] p-3 sm:space-y-3 sm:p-4">
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
                             </div>
-                            <div className="mt-1 font-black leading-snug text-gray-900">
+                            <div className="mt-1 text-[20px] font-black leading-snug text-gray-900 sm:text-base">
                               {shortlistedProduct?.name || item.productId}
                             </div>
                             {shortlistedProduct && (
-                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                              <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
                                 <span>SKU: {shortlistedProduct.sku}</span>
                                 {userRole !== "customer" ? <span>{shortlistedProduct.brand}</span> : null}
                               </div>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
                             <button
                               type="button"
                               disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
@@ -4583,7 +4593,7 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleRequestSample(item.id);
                               }}
-                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full bg-[#0468a3] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                             >
                               {requestingSampleId === item.id
                                 ? "Requesting..."
@@ -4598,15 +4608,15 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleDeleteShortlist(item.id);
                               }}
-                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                             >
                               {deletingShortlistId === item.id ? "Removing..." : "Remove"}
                             </button>
                           </div>
 
-                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                          <div className="rounded-xl bg-gray-50 p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                              <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Note</div>
                               <button
                                 type="button"
                                 disabled={savingNoteId === item.id}
@@ -4614,7 +4624,7 @@ export default function DashboardPage() {
                                   e.stopPropagation();
                                   handleUpdateShortlistNote(item.id);
                                 }}
-                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-widest"
                               >
                                 {savingNoteId === item.id ? "Saving..." : "Save Note"}
                               </button>
@@ -4630,18 +4640,18 @@ export default function DashboardPage() {
                                 }))
                               }
                               placeholder="Updated note text"
-                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                              className="mt-2 block min-h-[82px] w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-700 shadow-inner sm:min-h-[96px] sm:px-3 sm:text-sm"
                             />
                           </div>
 
-                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          <div className="rounded-xl bg-[#f4f8fb] p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
+                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
                               Designer Reply
                             </div>
                             <div className="mt-1 whitespace-pre-wrap">
                               {item.designerReplyNote?.trim() || "-"}
                             </div>
-                            <div className="mt-2 text-[11px] font-bold text-gray-600">
+                            <div className="mt-1.5 text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
                               Updated:{" "}
                               {item.designerReplyUpdatedAt
                                 ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
@@ -4717,7 +4727,7 @@ export default function DashboardPage() {
 
       {userRole === "designer" && isDesignerCustomerDetailsOpen && (
         <div
-          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
           onClick={() => {
             setIsDesignerCustomerDetailsOpen(false);
             setDesignerCustomerDetailsError("");
@@ -4738,13 +4748,13 @@ export default function DashboardPage() {
           }}
         >
           <div
-            className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-black">Customer Details</h3>
-                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                <h3 className="text-lg font-black uppercase tracking-tight text-black sm:text-xl">Customer Details</h3>
+                <div className="mt-1 break-all text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400 sm:text-[11px] sm:tracking-widest">
                   {selectedDesignerCustomerId}
                 </div>
               </div>
@@ -4771,7 +4781,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="max-h-[calc(90vh-4.5rem)] overflow-y-auto p-6">
+            <div className="max-h-[calc(92vh-4.25rem)] overflow-y-auto p-3 sm:max-h-[calc(90vh-4.5rem)] sm:p-6">
               {designerCustomerDetailsError && (
                 <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
                   {designerCustomerDetailsError}
@@ -4790,25 +4800,25 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : designerCustomerDetails ? (
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="space-y-6 lg:col-span-1">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Profile</div>
-                      <div className="mt-3 text-xl font-black text-gray-900">{designerCustomerDetails.customer.name}</div>
-                      <div className="mt-1 break-all text-sm text-gray-600">{designerCustomerDetails.customer.email}</div>
-                      <div className="mt-4 grid gap-3 text-sm text-gray-700">
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
+                  <div className="space-y-3 sm:space-y-6 lg:col-span-1">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
+                      <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Profile</div>
+                      <div className="mt-2.5 text-2xl font-black text-gray-900 sm:mt-3 sm:text-xl">{designerCustomerDetails.customer.name}</div>
+                      <div className="mt-1 break-all text-xs text-gray-600 sm:text-sm">{designerCustomerDetails.customer.email}</div>
+                      <div className="mt-3 grid gap-2.5 text-xs text-gray-700 sm:mt-4 sm:gap-3 sm:text-sm">
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Project</div>
                           <div className="mt-1 font-medium text-gray-900">{designerCustomerDetails.customer.projectName || "-"}</div>
                         </div>
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Status</div>
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Status</div>
                           <div className="mt-1 font-medium text-gray-900">
                             {designerCustomerDetails.customer.isActive ? "Active" : "Inactive"}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Assigned Designer</div>
                           <div className="mt-1 font-medium text-gray-900">
                             {designerCustomerDetails.customer.assignedDesigner?.name || "-"}
                           </div>
@@ -4817,14 +4827,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-6 lg:col-span-2">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="space-y-3 sm:space-y-6 lg:col-span-2">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Shortlist</div>
-                          <div className="mt-1 text-sm text-gray-500">Products saved by this customer.</div>
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Shortlist</div>
+                          <div className="mt-1 text-xs text-gray-500 sm:text-sm">Products saved by this customer.</div>
                         </div>
-                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
                           {designerCustomerDetails.shortlist.length} Items
                         </div>
                       </div>
@@ -5815,10 +5825,12 @@ export default function DashboardPage() {
       )}
 
       {isBindCategoriesOpen && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Bind Sub-Categories to Product</h2>
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-4 shadow-2xl sm:p-8">
+            <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
+              <h2 className="text-lg font-black uppercase leading-tight tracking-tight text-[#4d2c1e] sm:text-xl">
+                Bind Sub-Categories to Product
+              </h2>
               <button
                 onClick={() => {
                   setIsBindCategoriesOpen(false);
@@ -5827,13 +5839,14 @@ export default function DashboardPage() {
                   setBindProductId("");
                   setSelectedCategoryIds(new Set());
                 }}
-                className="text-gray-400 hover:text-black"
+                className="shrink-0 text-gray-400 hover:text-black"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
-            <form onSubmit={handleBindCategories} className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+            <form onSubmit={handleBindCategories} className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden sm:gap-4">
+              <div className="space-y-3 overflow-y-auto pr-1 sm:space-y-4">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
                 <input
@@ -5848,7 +5861,7 @@ export default function DashboardPage() {
 
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Select Sub-Categories</div>
-                <div className="max-h-[45vh] overflow-y-auto pr-1">
+                <div className="max-h-[50vh] overflow-y-auto pr-1 sm:max-h-[45vh]">
                   <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                   {allCategories.map((c) => (
                     <label key={c.id} className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
@@ -5856,11 +5869,12 @@ export default function DashboardPage() {
                         type="checkbox"
                         checked={selectedCategoryIds.has(c.id)}
                         onChange={() => toggleCategory(c.id)}
+                        className="shrink-0"
                       />
-                      <span className="font-medium">
+                      <span className="min-w-0 font-medium break-words">
                         {c.parentName ? `${c.parentName} > ${c.name}` : c.name}
                       </span>
-                      <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
+                      <span className="ml-auto shrink-0 text-[10px] uppercase tracking-widest text-gray-400">{c.type}</span>
                     </label>
                   ))}
                   {allCategories.length === 0 && (
@@ -5872,24 +5886,27 @@ export default function DashboardPage() {
 
               {bindError && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{bindError}</div>}
               {bindMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{bindMsg}</div>}
+              </div>
 
-              <button
-                type="submit"
-                disabled={isBindingCats}
-                className="w-full rounded-full bg-[#4d2c1e] py-3.5 text-sm font-black uppercase tracking-widest text-[#ffcb05] shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
-              >
-                {isBindingCats ? "Binding..." : "Bind Selected Sub-Categories"}
-              </button>
+              <div className="sticky bottom-0 mt-2 bg-white pt-2 sm:pt-3">
+                <button
+                  type="submit"
+                  disabled={isBindingCats}
+                  className="w-full rounded-full bg-[#4d2c1e] py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-[#ffcb05] shadow-md transition-transform active:scale-95 disabled:opacity-50 sm:py-3.5 sm:text-sm sm:tracking-widest"
+                >
+                  {isBindingCats ? "Binding..." : "Bind Selected Sub-Categories"}
+                </button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
       {isProductTagsOpen && (
-        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Link / Delink Product Tags</h2>
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4">
+          <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-2xl bg-white p-4 shadow-2xl sm:p-8">
+            <div className="mb-4 flex items-start justify-between gap-3 sm:mb-6 sm:items-center">
+              <h2 className="text-lg font-black uppercase leading-tight tracking-tight text-[#4d2c1e] sm:text-xl">Link / Delink Product Tags</h2>
               <button
                 onClick={() => {
                   setIsProductTagsOpen(false);
@@ -5901,13 +5918,13 @@ export default function DashboardPage() {
                   setProductLinkedTagIds([]);
                   setHasLinkedTagData(false);
                 }}
-                className="text-gray-400 hover:text-black"
+                className="shrink-0 text-gray-400 hover:text-black"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4 overflow-y-auto pr-1 sm:space-y-5">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Step 1: Product ID</label>
                 <input
@@ -5947,7 +5964,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <form onSubmit={handleLinkProductTag} className="space-y-3 rounded-xl border border-green-100 bg-green-50/40 p-4">
                   <div className="text-[10px] font-black uppercase tracking-widest text-green-700">Step 2A: Link Tag</div>
                   <select
@@ -5966,7 +5983,7 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={isLinkingTag || !productTagProductId.trim() || !selectedLinkTagId}
-                    className="w-full rounded-full bg-green-700 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                    className="w-full rounded-full bg-green-700 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 sm:text-xs sm:tracking-widest"
                   >
                     {isLinkingTag ? "Linking..." : "Link Tag"}
                   </button>
@@ -5992,7 +6009,7 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={isUnlinkingTag || !productTagProductId.trim() || !selectedUnlinkTagId}
-                    className="w-full rounded-full bg-red-600 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                    className="w-full rounded-full bg-red-600 py-2.5 text-[11px] font-black uppercase tracking-[0.12em] text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 sm:text-xs sm:tracking-widest"
                   >
                     {isUnlinkingTag ? "Delinking..." : "Delink Tag"}
                   </button>
