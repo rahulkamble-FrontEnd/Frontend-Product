@@ -2726,18 +2726,18 @@ export default function DashboardPage() {
               {isNotificationsOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-2 w-[340px] overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg z-[350]"
+                  className="fixed left-1/2 top-[86px] z-[500] w-[min(92vw,320px)] -translate-x-1/2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:z-[350] sm:mt-2 sm:w-[340px] sm:translate-x-0"
                 >
-                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-600">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-3 py-2.5 sm:px-4 sm:py-3">
+                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-600 sm:text-[11px] sm:tracking-widest">
                       Notifications
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <button
                         type="button"
                         onClick={handleMarkAllNotificationsRead}
                         disabled={unreadNotificationsCount <= 0 || isMarkingAllNotificationsRead}
-                        className="text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:text-gray-300"
+                        className="text-[9px] font-black uppercase tracking-[0.08em] text-[#0468a3] disabled:cursor-not-allowed disabled:text-gray-300 sm:text-[10px] sm:tracking-widest"
                       >
                         {isMarkingAllNotificationsRead ? "Marking..." : "Mark all read"}
                       </button>
@@ -2747,7 +2747,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="max-h-80 overflow-y-auto">
+                  <div className="max-h-72 overflow-y-auto sm:max-h-80">
                     {isLoadingNotifications ? (
                       <div className="px-4 py-6 text-center text-xs font-bold text-gray-500">Loading notifications...</div>
                     ) : notificationsError ? (
@@ -4414,13 +4414,13 @@ export default function DashboardPage() {
           onClick={() => setIsShortlistOpen(false)}
         >
           <div
-            className="absolute right-4 top-20 h-[calc(100vh-6rem)] w-[min(28rem,calc(100vw-2rem))] overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="absolute right-1/2 top-16 h-[calc(100vh-5rem)] w-[min(92vw,22rem)] translate-x-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl sm:right-4 sm:top-20 sm:h-[calc(100vh-6rem)] sm:w-[min(28rem,calc(100vw-2rem))] sm:translate-x-0"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
               <div>
-                <h3 className="text-lg font-black uppercase tracking-tight text-black">My Shortlist</h3>
-                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                <h3 className="text-base font-black uppercase tracking-tight text-black sm:text-lg">My Shortlist</h3>
+                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 sm:text-[11px] sm:tracking-widest">
                   {shortlistItems.length} Saved
                 </div>
               </div>
@@ -4434,7 +4434,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="h-[calc(100%-4.5rem)] overflow-y-auto p-4">
+            <div className="h-[calc(100%-4.25rem)] overflow-y-auto p-3 sm:h-[calc(100%-4.5rem)] sm:p-4">
               {shortlistMsg && (
                 <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
                   {shortlistMsg}
@@ -4446,10 +4446,10 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
+                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-500 sm:text-[11px] sm:tracking-widest">
                       Compare: {shortlistCompareSelectedList.length}/4 selected
                     </div>
                     <div className="flex items-center gap-2">
@@ -4457,7 +4457,7 @@ export default function DashboardPage() {
                         type="button"
                         disabled={shortlistCompareSelectedList.length < 2 || isComparing}
                         onClick={openShortlistCompare}
-                        className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-sm disabled:opacity-50"
+                        className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                       >
                         {isComparing ? "Comparing..." : "Compare"}
                       </button>
@@ -4465,7 +4465,7 @@ export default function DashboardPage() {
                         type="button"
                         disabled={shortlistCompareSelectedList.length === 0}
                         onClick={clearShortlistCompareSelection}
-                        className="rounded-full border border-gray-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50"
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                       >
                         Reset
                       </button>
@@ -4516,7 +4516,7 @@ export default function DashboardPage() {
                           }
                         }}
                         className={[
-                          "overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm",
+                          "overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:rounded-2xl",
                           shortlistedProduct?.slug ? "cursor-pointer" : ""
                         ].join(" ")}
                       >
@@ -4528,12 +4528,12 @@ export default function DashboardPage() {
                               No Image
                             </div>
                           )}
-                          <div className="absolute left-3 top-3 flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-full bg-black px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+                          <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
+                            <span className="inline-flex items-center rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                               {item.sampleStatus}
                             </span>
                             {item.sampleRequested && (
-                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-amber-700">
+                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-amber-700 sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                                 Sample Requested
                               </span>
                             )}
@@ -4547,7 +4547,7 @@ export default function DashboardPage() {
                                   : "Tick for compare"
                               }
                               className={[
-                                "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border shadow-sm",
+                                "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border shadow-sm sm:right-3 sm:top-3 sm:h-9 sm:w-9",
                                 isSelectedForShortlistCompare(shortlistedProduct.id)
                                   ? "border-black bg-black text-white"
                                   : "border-gray-200 bg-white/95 text-gray-800"
@@ -4559,7 +4559,7 @@ export default function DashboardPage() {
                             >
                               <input
                                 type="checkbox"
-                                className="pointer-events-none h-4 w-4 accent-black"
+                                className="pointer-events-none h-3.5 w-3.5 accent-black sm:h-4 sm:w-4"
                                 checked={isSelectedForShortlistCompare(shortlistedProduct.id)}
                                 readOnly
                                 tabIndex={-1}
@@ -4569,23 +4569,23 @@ export default function DashboardPage() {
                           )}
                         </div>
 
-                        <div className="space-y-3 bg-[#e8dfd0] p-4">
+                        <div className="space-y-2.5 bg-[#e8dfd0] p-3 sm:space-y-3 sm:p-4">
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
                             </div>
-                            <div className="mt-1 font-black leading-snug text-gray-900">
+                            <div className="mt-1 text-[20px] font-black leading-snug text-gray-900 sm:text-base">
                               {shortlistedProduct?.name || item.productId}
                             </div>
                             {shortlistedProduct && (
-                              <div className="mt-2 flex items-center justify-between text-[11px] font-bold text-gray-600">
+                              <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
                                 <span>SKU: {shortlistedProduct.sku}</span>
                                 {userRole !== "customer" ? <span>{shortlistedProduct.brand}</span> : null}
                               </div>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
                             <button
                               type="button"
                               disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
@@ -4593,7 +4593,7 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleRequestSample(item.id);
                               }}
-                              className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full bg-[#0468a3] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                             >
                               {requestingSampleId === item.id
                                 ? "Requesting..."
@@ -4608,15 +4608,15 @@ export default function DashboardPage() {
                                 e.stopPropagation();
                                 handleDeleteShortlist(item.id);
                               }}
-                              className="rounded-full border border-red-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
                             >
                               {deletingShortlistId === item.id ? "Removing..." : "Remove"}
                             </button>
                           </div>
 
-                          <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-700">
+                          <div className="rounded-xl bg-gray-50 p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
                             <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                              <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Note</div>
                               <button
                                 type="button"
                                 disabled={savingNoteId === item.id}
@@ -4624,7 +4624,7 @@ export default function DashboardPage() {
                                   e.stopPropagation();
                                   handleUpdateShortlistNote(item.id);
                                 }}
-                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-widest"
                               >
                                 {savingNoteId === item.id ? "Saving..." : "Save Note"}
                               </button>
@@ -4640,18 +4640,18 @@ export default function DashboardPage() {
                                 }))
                               }
                               placeholder="Updated note text"
-                              className="mt-2 block min-h-[96px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
+                              className="mt-2 block min-h-[82px] w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-700 shadow-inner sm:min-h-[96px] sm:px-3 sm:text-sm"
                             />
                           </div>
 
-                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                          <div className="rounded-xl bg-[#f4f8fb] p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
+                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
                               Designer Reply
                             </div>
                             <div className="mt-1 whitespace-pre-wrap">
                               {item.designerReplyNote?.trim() || "-"}
                             </div>
-                            <div className="mt-2 text-[11px] font-bold text-gray-600">
+                            <div className="mt-1.5 text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
                               Updated:{" "}
                               {item.designerReplyUpdatedAt
                                 ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
@@ -4727,7 +4727,7 @@ export default function DashboardPage() {
 
       {userRole === "designer" && isDesignerCustomerDetailsOpen && (
         <div
-          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
           onClick={() => {
             setIsDesignerCustomerDetailsOpen(false);
             setDesignerCustomerDetailsError("");
@@ -4748,13 +4748,13 @@ export default function DashboardPage() {
           }}
         >
           <div
-            className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+            className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
               <div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-black">Customer Details</h3>
-                <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                <h3 className="text-lg font-black uppercase tracking-tight text-black sm:text-xl">Customer Details</h3>
+                <div className="mt-1 break-all text-[10px] font-bold uppercase tracking-[0.08em] text-gray-400 sm:text-[11px] sm:tracking-widest">
                   {selectedDesignerCustomerId}
                 </div>
               </div>
@@ -4781,7 +4781,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="max-h-[calc(90vh-4.5rem)] overflow-y-auto p-6">
+            <div className="max-h-[calc(92vh-4.25rem)] overflow-y-auto p-3 sm:max-h-[calc(90vh-4.5rem)] sm:p-6">
               {designerCustomerDetailsError && (
                 <div className="mb-6 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
                   {designerCustomerDetailsError}
@@ -4800,25 +4800,25 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : designerCustomerDetails ? (
-                <div className="grid gap-6 lg:grid-cols-3">
-                  <div className="space-y-6 lg:col-span-1">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Profile</div>
-                      <div className="mt-3 text-xl font-black text-gray-900">{designerCustomerDetails.customer.name}</div>
-                      <div className="mt-1 break-all text-sm text-gray-600">{designerCustomerDetails.customer.email}</div>
-                      <div className="mt-4 grid gap-3 text-sm text-gray-700">
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Project</div>
+                <div className="grid gap-3 sm:gap-6 lg:grid-cols-3">
+                  <div className="space-y-3 sm:space-y-6 lg:col-span-1">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
+                      <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Profile</div>
+                      <div className="mt-2.5 text-2xl font-black text-gray-900 sm:mt-3 sm:text-xl">{designerCustomerDetails.customer.name}</div>
+                      <div className="mt-1 break-all text-xs text-gray-600 sm:text-sm">{designerCustomerDetails.customer.email}</div>
+                      <div className="mt-3 grid gap-2.5 text-xs text-gray-700 sm:mt-4 sm:gap-3 sm:text-sm">
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Project</div>
                           <div className="mt-1 font-medium text-gray-900">{designerCustomerDetails.customer.projectName || "-"}</div>
                         </div>
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Status</div>
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Status</div>
                           <div className="mt-1 font-medium text-gray-900">
                             {designerCustomerDetails.customer.isActive ? "Active" : "Inactive"}
                           </div>
                         </div>
-                        <div className="rounded-xl bg-gray-50 p-3">
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
+                        <div className="rounded-xl bg-gray-50 p-2.5 sm:p-3">
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Assigned Designer</div>
                           <div className="mt-1 font-medium text-gray-900">
                             {designerCustomerDetails.customer.assignedDesigner?.name || "-"}
                           </div>
@@ -4827,14 +4827,14 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-6 lg:col-span-2">
-                    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="space-y-3 sm:space-y-6 lg:col-span-2">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Shortlist</div>
-                          <div className="mt-1 text-sm text-gray-500">Products saved by this customer.</div>
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Shortlist</div>
+                          <div className="mt-1 text-xs text-gray-500 sm:text-sm">Products saved by this customer.</div>
                         </div>
-                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
                           {designerCustomerDetails.shortlist.length} Items
                         </div>
                       </div>
