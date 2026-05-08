@@ -3300,7 +3300,7 @@ export default function DashboardPage() {
           <h3 className="min-w-0 text-left text-[22px] font-bold leading-[28px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Shop Interior Materials by Category
           </h3>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
@@ -3374,7 +3374,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/trending/manage")}
-              className="text-[12px] font-medium text-white sm:text-[14px]"
+              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Designs
             </button>
@@ -3524,7 +3524,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/products")}
-              className="text-[12px] font-medium text-white sm:text-[14px]"
+              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
             >
               View All Products
             </button>
@@ -3647,7 +3647,7 @@ export default function DashboardPage() {
             <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
-            <div className="mr-[80px] hidden items-center gap-2 md:flex">
+            <div className="mr-[80px] hidden items-center gap-2">
               <button
                 type="button"
                 className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
