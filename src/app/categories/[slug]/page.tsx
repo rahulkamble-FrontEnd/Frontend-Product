@@ -16,9 +16,56 @@ import {
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
-const CATEGORY_BANNER_BY_SLUG: Record<string, string> = {
-  "handles-knobs": "/handle.jpg",
+
+/** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
+const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
+  finishes: "finishes.webp",
+  fabrics: "fabrics.webp",
+  glass: "glass.webp",
+  hardware: "hardware.webp",
+  mirrors: "Mirrors.webp",
+  lighting: "ligting.webp",
+  handles: "Handels.webp",
+  "handles-knobs": "Handels.webp",
+  "handles-and-knobs": "Handels.webp",
+  knobs: "Handels.webp",
+  "wall-decorative": "wall panels.webp",
+  "wall-decorative-panels": "wall panels.webp",
+  "wall-panels": "wall panels.webp",
+  "wall-panels-and-cladding": "wall panels.webp",
+  "counter-tops": "Counter tops.webp",
+  countertops: "Counter tops.webp",
+  flooring: "Flooring.webp",
+  "flooring-tiles": "Flooring.webp",
+  "flooring-and-tiles": "Flooring.webp",
+  tiles: "Flooring.webp",
 };
+
+function normalizeCategoryBannerKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function categoryBannerS3Url(fileName: string) {
+  const path = ["category banner", "categories banner", fileName]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${BLOG_IMAGE_BASE_URL}/${path}`;
+}
+
+function resolveCategoryBannerUrl(slug: string, categoryName?: string | null) {
+  const keys = [slug, categoryName ?? ""].filter((v) => v.trim().length > 0).map(normalizeCategoryBannerKey);
+  for (const key of keys) {
+    const file = CATEGORY_BANNER_FILE_BY_KEY[key];
+    if (file) return categoryBannerS3Url(file);
+  }
+  return DEFAULT_CATEGORY_BANNER_URL;
+}
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -363,8 +410,7 @@ export default function CategoryProductsPage() {
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size;
-  const categoryBannerUrl =
-    CATEGORY_BANNER_BY_SLUG[slug] ?? DEFAULT_CATEGORY_BANNER_URL;
+  const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
@@ -538,7 +584,7 @@ export default function CategoryProductsPage() {
                   fill
                   unoptimized
                   sizes="(max-width: 1024px) 100vw, 1200px"
-                  className="object-fill"
+                  className="object-cover object-center"
                 />
               </div>
             </div>
