@@ -3260,7 +3260,11 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="w-full">
-          <div className="relative h-[280px] lg:h-[450px] 2xl:h-[520px]">
+          {/* Banner natural aspect ratio is 3:1 (3000x1000). On small screens we crop
+              to a fixed height so the hero isn't excessively tall; from lg upward we
+              honour the image's aspect ratio so the whole banner is always visible
+              and never cropped on wide desktops/2xl screens. */}
+          <div className="relative h-[280px] lg:h-auto lg:aspect-[3/1]">
              <Image
                src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/banner.webp"
                alt="Newly Launched Karigari Laminate Collection"
