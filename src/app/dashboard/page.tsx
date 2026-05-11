@@ -3262,7 +3262,7 @@ export default function DashboardPage() {
         <div className="w-full">
           <div className="relative h-[280px] lg:h-[450px] 2xl:h-[520px]">
              <Image
-               src="https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=2600&auto=format&fit=crop"
+               src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/banner.webp"
                alt="Newly Launched Karigari Laminate Collection"
                fill
                sizes="100vw"
@@ -3271,8 +3271,8 @@ export default function DashboardPage() {
                fetchPriority="high"
                className="object-cover object-center"
              />
-             {/* Overlay for text readability */}
-             <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
+             {/* Overlay for text readability - temporarily disabled */}
+             {/* <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
                 <div className="max-w-xl text-white">
                    <div className="flex items-center gap-2 mb-4">
                       <div className="h-0.5 w-8 bg-[#ffcb05]" />
@@ -3289,7 +3289,7 @@ export default function DashboardPage() {
                     Celebration of <span className="font-bold">Faith, Folklore & Creativity</span>
                    </p>
                 </div>
-             </div>
+             </div> */}
 
           </div>
         </div>
