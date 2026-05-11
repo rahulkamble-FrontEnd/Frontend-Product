@@ -19,12 +19,16 @@ const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 
 /** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
 const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
-  finishes: "finishes.webp",
+  finishes: "finishes2.webp",
+  finish: "finishes2.webp",
   fabrics: "fabrics.webp",
+  fabric: "fabrics.webp",
   glass: "glass.webp",
   hardware: "hardware.webp",
   mirrors: "Mirrors.webp",
+  mirror: "Mirrors.webp",
   lighting: "ligting.webp",
+  lights: "ligting.webp",
   handles: "Handels.webp",
   "handles-knobs": "Handels.webp",
   "handles-and-knobs": "Handels.webp",
@@ -39,6 +43,13 @@ const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   "flooring-tiles": "Flooring.webp",
   "flooring-and-tiles": "Flooring.webp",
   tiles: "Flooring.webp",
+  "core-materials": "Core material.webp",
+  "core-material": "Core material.webp",
+  core: "Core material.webp",
+  ceiling: "False celings.webp",
+  ceilings: "False celings.webp",
+  "false-ceiling": "False celings.webp",
+  "false-ceilings": "False celings.webp",
 };
 
 function normalizeCategoryBannerKey(value: string) {
