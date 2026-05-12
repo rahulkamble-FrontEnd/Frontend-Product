@@ -1,0 +1,102 @@
+.container {
+    --bg-primary: #F8F0E4;
+    --bg-secondary: #efe3cf;
+    --bg-black: #1f1f1f;
+    --text-primary: #1f1f1f;
+    --text-secondary: #6b7280;
+    --border-secondary-color: #d9cab5;
+    --brand-accent: #8A6A3A;
+    --brand-accent-strong: #7A5C2E;
+    --font-secondary: "Plus Jakarta Sans", "Inter", sans-serif;
+    --common-transition: all .2s ease-in-out;
+
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+    min-height: 100vh;
+}
+
+.headerContainer {
+    width: 100%;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-secondary-color);
+}
+
+.header {
+    font-size: 16px;
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 0;
+    color: var(--bg-black);
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    background: var(--bg-primary);
+    gap: 14px;
+    font-family: var(--font-secondary) !important;
+}
+
+.headerText {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-family: var(--font-secondary) !important;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    transition: var(--common-transition);
+}
+
+.headerText:hover {
+    color: var(--text-primary);
+}
+
+.mainPage {
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    padding: 60px 0;
+}
+
+.title {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 36px;
+}
+
+.paragraph {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    line-height: 28px;
+    margin-bottom: 24px;
+    text-align: justify;
+}
+
+.paraContainer {
+    margin-bottom: 32px;
+}
+
+.paraHeading {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--brand-accent);
+}
+
+@media (max-width: 1439px) {
+    .header, .mainPage {
+        width: 90%;
+    }
+}
+
+@media (max-width: 674px) {
+    .header, .mainPage {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+    .title {
+        font-size: 28px;
+    }
+}

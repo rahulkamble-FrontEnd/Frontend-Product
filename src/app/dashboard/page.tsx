@@ -90,6 +90,7 @@ export default function DashboardPage() {
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
+  const [isManageCFMenuOpen, setIsManageCFMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
   const [isBlogMenuOpen, setIsBlogMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -98,8 +99,6 @@ export default function DashboardPage() {
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
   const [menuCategories, setMenuCategories] = useState<CategoryMenuItem[]>([]);
-  const [isLoadingMenuCategories, setIsLoadingMenuCategories] = useState(false);
-  const [activeMenuCategoryId, setActiveMenuCategoryId] = useState<string | null>(null);
   const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
   const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
   const [trendingDesignsError, setTrendingDesignsError] = useState("");
@@ -175,6 +174,9 @@ export default function DashboardPage() {
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
+  const latestProductsScrollRef = useRef<HTMLDivElement | null>(null);
+  const showcaseDesignsScrollRef = useRef<HTMLDivElement | null>(null);
+  const relevantArticlesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
   const [bindProductId, setBindProductId] = useState("");
@@ -453,13 +455,13 @@ export default function DashboardPage() {
     ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
   ].slice(0, 4);
   const latestProductCards: Array<ProductListItem | null> = [
-    ...latestProducts.slice(0, 4),
-    ...Array.from({ length: Math.max(0, 4 - latestProducts.length) }, () => null),
-  ].slice(0, 4);
+    ...latestProducts.slice(0, 8),
+    ...Array.from({ length: Math.max(0, 8 - latestProducts.length) }, () => null),
+  ].slice(0, 8);
   const showcaseDesignCards: Array<DesignCfEntry | null> = [
-    ...designCfEntries.slice(0, 5),
-    ...Array.from({ length: Math.max(0, 5 - designCfEntries.length) }, () => null),
-  ].slice(0, 5);
+    ...designCfEntries.slice(0, 8),
+    ...Array.from({ length: Math.max(0, 8 - designCfEntries.length) }, () => null),
+  ].slice(0, 8);
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length < 2) {
@@ -850,7 +852,7 @@ export default function DashboardPage() {
     try {
       const res = await getProducts({
         page: 1,
-        limit: 4,
+        limit: 8,
         includeImages: true,
         includeCategories: true,
       });
@@ -860,7 +862,7 @@ export default function DashboardPage() {
         const bTime = new Date(b.createdAt || "").getTime();
         return bTime - aTime;
       });
-      setLatestProducts(sortedByNewest.slice(0, 4));
+      setLatestProducts(sortedByNewest.slice(0, 8));
     } catch {
       setLatestProducts([]);
     } finally {
@@ -887,7 +889,7 @@ export default function DashboardPage() {
         const bTime = new Date(b.createdAt || "").getTime();
         return bTime - aTime;
       });
-      setLatestBlogs(sortedByNewest.slice(0, 4));
+      setLatestBlogs(sortedByNewest.slice(0, 8));
     } catch (err: unknown) {
       setLatestBlogs([]);
       setLatestBlogsError(err instanceof Error ? err.message : "Failed to load latest blogs.");
@@ -913,6 +915,7 @@ export default function DashboardPage() {
       setIsShortlistOpen(false);
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
+      setIsManageCFMenuOpen(false);
       setIsProductsMenuOpen(false);
       setIsBlogMenuOpen(false);
       setIsNotificationsOpen(false);
@@ -1934,7 +1937,6 @@ export default function DashboardPage() {
     }
 
     const loadMenuCategories = async () => {
-      setIsLoadingMenuCategories(true);
       try {
         const data = await getCategoryMenu({ includeChildren: true, productLimit: 8 });
         if (isMounted) {
@@ -1952,9 +1954,6 @@ export default function DashboardPage() {
           setMenuCategories([]);
         }
       } finally {
-        if (isMounted) {
-          setIsLoadingMenuCategories(false);
-        }
       }
     };
     loadMenuCategories();
@@ -2000,7 +1999,7 @@ export default function DashboardPage() {
       try {
         const data = await getDesignCfEntries();
         if (isMounted) {
-          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 5) : []);
+          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 8) : []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -2245,8 +2244,6 @@ export default function DashboardPage() {
     }
   };
 
-  const activeMenuCategory =
-    menuCategories.find((category) => category.id === activeMenuCategoryId) ?? null;
   const resolvedMenuCategories =
     menuCategories.length > 0
       ? menuCategories
@@ -2264,6 +2261,30 @@ export default function DashboardPage() {
   const scrollCategoryTiles = (direction: "left" | "right") => {
     if (!categoryTilesScrollRef.current) return;
     categoryTilesScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollLatestProducts = (direction: "left" | "right") => {
+    if (!latestProductsScrollRef.current) return;
+    latestProductsScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollShowcaseDesigns = (direction: "left" | "right") => {
+    if (!showcaseDesignsScrollRef.current) return;
+    showcaseDesignsScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollRelevantArticles = (direction: "left" | "right") => {
+    if (!relevantArticlesScrollRef.current) return;
+    relevantArticlesScrollRef.current.scrollBy({
       left: direction === "left" ? -420 : 420,
       behavior: "smooth",
     });
@@ -2499,6 +2520,7 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setIsUsersMenuOpen((v) => !v);
                         setIsCategoriesMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsProductsMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
@@ -2545,6 +2567,7 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setIsCategoriesMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsProductsMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
@@ -2560,6 +2583,30 @@ export default function DashboardPage() {
                       >
                         {canManageCategoryMasters && (
                           <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Create Category
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsBindCategoriesOpen(true);
+                                setBindError("");
+                                setBindMsg("");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Bind Subcategories
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -2590,55 +2637,8 @@ export default function DashboardPage() {
                             >
                               Manage Tags
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCategoriesMenuOpen(false);
-                                router.push("/design-cf/manage");
-                              }}
-                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                            >
-                              Manage Design CF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCategoriesMenuOpen(false);
-                                closeAdminActionModals();
-                                setIsCategoryModalOpen(true);
-                              }}
-                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                            >
-                              Create Category
-                            </button>
                           </>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsBindCategoriesOpen(true);
-                            setBindError("");
-                            setBindMsg("");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Bind Subcategories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsProductTagsOpen(true);
-                            setProductTagError("");
-                            setProductTagMsg("");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Link/Delink Tags
-                        </button>
                       </div>
                     )}
                   </div>
@@ -2651,6 +2651,7 @@ export default function DashboardPage() {
                         setIsProductsMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsCategoriesMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white shadow-sm hover:opacity-95"
@@ -2702,6 +2703,54 @@ export default function DashboardPage() {
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
                           Bulk Upload
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative hidden md:block">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsManageCFMenuOpen((v) => !v);
+                        setIsUsersMenuOpen(false);
+                        setIsCategoriesMenuOpen(false);
+                        setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
+                      }}
+                      className="rounded-md border-2 border-[#1f2a3d] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#1f2a3d] shadow-sm hover:bg-[#1f2a3d] hover:text-white transition-all"
+                    >
+                      Manage CF
+                      <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    {isManageCFMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full right-0 z-[360] mt-10 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManageCFMenuOpen(false);
+                            router.push("/design-cf/manage");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Design CF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManageCFMenuOpen(false);
+                            closeAdminActionModals();
+                            setIsProductTagsOpen(true);
+                            setProductTagError("");
+                            setProductTagMsg("");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Link/Delink Tags
                         </button>
                       </div>
                     )}
@@ -2924,7 +2973,7 @@ export default function DashboardPage() {
 
       {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-4" : "grid-cols-3"}`}>
             {canManageUsers && (
             <div className="relative">
               <button
@@ -2933,6 +2982,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setIsUsersMenuOpen((v) => !v);
                   setIsCategoriesMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsProductsMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
@@ -2981,6 +3031,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setIsCategoriesMenuOpen((v) => !v);
                   setIsUsersMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsProductsMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
@@ -2998,6 +3049,30 @@ export default function DashboardPage() {
                 >
                   {canManageCategoryMasters && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                      >
+                        Create Category
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsBindCategoriesOpen(true);
+                          setBindError("");
+                          setBindMsg("");
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                      >
+                        Bind Subcategories
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -3028,45 +3103,8 @@ export default function DashboardPage() {
                       >
                         Manage Tags
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCategoriesMenuOpen(false);
-                          closeAdminActionModals();
-                          setIsCategoryModalOpen(true);
-                        }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                      >
-                        Create Category
-                      </button>
                     </>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsBindCategoriesOpen(true);
-                      setBindError("");
-                      setBindMsg("");
-                    }}
-                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                  >
-                    Bind Subcategories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsProductTagsOpen(true);
-                      setProductTagError("");
-                      setProductTagMsg("");
-                    }}
-                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                  >
-                    Link/Delink Tags
-                  </button>
                 </div>
               )}
             </div>
@@ -3079,6 +3117,7 @@ export default function DashboardPage() {
                   setIsProductsMenuOpen((v) => !v);
                   setIsUsersMenuOpen(false);
                   setIsCategoriesMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
                 className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
@@ -3136,6 +3175,56 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsManageCFMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-between rounded-md border-2 border-[#1f2a3d] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#1f2a3d] shadow-sm"
+              >
+                <span className="truncate pr-1">Manage CF</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isManageCFMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-1/2 z-[320] mt-2 max-h-[56vh] w-[210px] -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManageCFMenuOpen(false);
+                      router.push("/design-cf/manage");
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Design CF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManageCFMenuOpen(false);
+                      closeAdminActionModals();
+                      setIsProductTagsOpen(true);
+                      setProductTagError("");
+                      setProductTagMsg("");
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                  >
+                    Link/Delink Tags
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -3147,18 +3236,14 @@ export default function DashboardPage() {
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
-        onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
           className={`${dashboardShellClass} flex items-center justify-start gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:justify-center sm:gap-5 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
-            const hasFlyout =
-              category.products.length > 0 || category.children.length > 0;
             return (
               <div
                 key={category.id}
-                onMouseEnter={() => setActiveMenuCategoryId(category.id)}
                 className="flex-shrink-0"
               >
                 <button
@@ -3171,90 +3256,11 @@ export default function DashboardPage() {
                   className="flex items-center gap-1 hover:text-[#ffcb05]"
                 >
                   {toTitleCase(category.name)}
-                  {hasFlyout && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  )}
                 </button>
               </div>
             );
           })}
         </div>
-
-        {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full z-[260] hidden border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl md:block">
-            <div className={`${dashboardShellClass} py-4`}>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
-                <div className="text-[11px] font-bold uppercase tracking-widest text-[#977543]">
-                  {toTitleCase(activeMenuCategory.name)}
-                </div>
-              </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {activeMenuCategory.products.length > 0 && (
-                  <div className="rounded-xl border border-[#eadfce] bg-white p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#977543]">
-                      Featured Products
-                    </div>
-                    <div className="mt-2 space-y-1.5">
-                      {activeMenuCategory.products.map((product) => (
-                        <a
-                          key={product.id}
-                          href={product.slug ? `/products/${product.slug}` : "#"}
-                          className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
-                        >
-                          {toTitleCase(product.name)}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeMenuCategory.children.map((child) => (
-                  <div key={child.id} className="rounded-xl border border-[#eadfce] bg-white p-3">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#8f6a33]">
-                      {toTitleCase(child.name)}
-                    </div>
-                    {child.products.length > 0 ? (
-                      <div className="mt-2 space-y-1.5">
-                        {child.products.map((product) => (
-                          <a
-                            key={product.id}
-                            href={product.slug ? `/products/${product.slug}` : "#"}
-                            className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
-                          >
-                            {toTitleCase(product.name)}
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-xs text-gray-400">No products available.</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {!isLoadingMenuCategories &&
-                activeMenuCategory.products.length === 0 &&
-                activeMenuCategory.children.length === 0 && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    No products mapped to this category yet.
-                  </div>
-                )}
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Hero Section */}
@@ -3304,7 +3310,7 @@ export default function DashboardPage() {
           <h3 className="min-w-0 text-left text-[22px] font-bold leading-[28px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Shop Interior Materials by Category
           </h3>
-          <div className="hidden shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
@@ -3452,27 +3458,27 @@ export default function DashboardPage() {
             },
             {
               title: "Curated by Designers",
-              subtitle: "Handpicked collections by industry experts",
+              subtitle: "Handpicked collections",
               icon: "list",
             },
             {
               title: "Quality Assured",
-              subtitle: "Every product is tested for durability & finish",
+              subtitle: "Every product is tested for durability & quality",
               icon: "spark",
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare materials, textures & pricing easily",
+              subtitle: "Compare materials, textures & Performance",
               icon: "wave",
             },
             {
               title: "Fast Delivery",
-              subtitle: "Get materials delivered within 10 days",
+              subtitle: "complete Home solution in 21 days",
               icon: "spark",
             },
             {
               title: "End-to-End Support",
-              subtitle: "From selection to execution — we guide you",
+              subtitle: "From selection to after sales service — we are there for you",
               icon: "spark",
             },
           ].map((feature, index) => (
@@ -3522,16 +3528,27 @@ export default function DashboardPage() {
                 Latest Products
               </h3>
               <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
-                Get inspired by the latest styles loved by modern homeowners.
+                View the latest products launch recently
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => router.push("/products")}
-              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
-            >
-              View All Products
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => scrollLatestProducts("left")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll latest products left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollLatestProducts("right")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll latest products right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
 
           {isLoadingLatestProducts ? (
@@ -3539,7 +3556,10 @@ export default function DashboardPage() {
               Loading latest products...
             </div>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:justify-items-center sm:gap-3 sm:overflow-visible lg:grid-cols-4 lg:gap-4">
+            <div
+              ref={latestProductsScrollRef}
+              className="flex gap-3 overflow-x-auto pb-4 pr-2 scrollbar-hide sm:gap-4"
+            >
               {latestProductCards.map((product, idx) => {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
@@ -3563,11 +3583,11 @@ export default function DashboardPage() {
                         router.push(`/products/${product.slug}`);
                       }
                     }}
-                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[410px] sm:w-full sm:max-w-[340px] sm:rounded-2xl sm:p-2.5 ${
+                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[380px] sm:w-[280px] sm:rounded-2xl sm:p-2.5 ${
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[296px] sm:rounded-[14px]">
+                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[260px] sm:rounded-[14px]">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
                     <div className="mt-2 rounded-[10px] bg-[#e8dfd0] px-2.5 py-2 sm:rounded-[14px] sm:px-3">
@@ -3588,20 +3608,45 @@ export default function DashboardPage() {
 
       <section className="bg-[#F8F0E4] py-10 sm:py-12">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
-          <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">Designs done by CustomFurnish</h3>
-          <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
-            See how we transform spaces into beautiful homes.
-          </p>
+          <div className="relative mb-6">
+            <div className="mx-auto max-w-[1449px] text-center">
+              <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
+                Designs done by CustomFurnish
+              </h3>
+              <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
+                See how we transform spaces into beautiful homes.
+              </p>
+            </div>
+            <div className="absolute bottom-0 right-0 flex items-center gap-2 sm:top-1/2 sm:-translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("left")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("right")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
           {designCfEntriesError && (
             <div className="mx-auto mt-4 max-w-[1449px] rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
               {designCfEntriesError}
             </div>
           )}
-          <div className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible lg:flex-nowrap">
+          <div
+            ref={showcaseDesignsScrollRef}
+            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-8 sm:gap-5"
+          >
           {isLoadingDesignCfEntries ? (
-            Array.from({ length: 5 }).map((_, idx) => (
+            Array.from({ length: 8 }).map((_, idx) => (
               <div
                 key={`design-cf-loading-${idx}`}
                 className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
@@ -3616,6 +3661,9 @@ export default function DashboardPage() {
               "Living Room Design",
               "Dining Room Design",
               "Puja Room Design",
+              "Balcony Design",
+              "Guest Room Design",
+              "Study Room Design",
             ] as const;
             const label = (product?.title || showcaseLabels[idx] || "Design").trim();
             const cardImageUrl = product?.coverImageUrl || imageUrl;
@@ -3631,11 +3679,8 @@ export default function DashboardPage() {
                   router.push(`/design-cf/${encodeURIComponent(product.id)}`);
                 }}
               >
-                <div className="relative h-[198px] w-full overflow-hidden rounded-t-[20px] bg-[#eadfcf] sm:h-[285px] sm:rounded-t-[28px]">
+                <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
                   <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
-                </div>
-                <div className="flex h-[32px] items-center justify-center bg-[#AE8953] sm:h-[37px]">
-                  <span className="text-[12px] font-medium leading-none text-white sm:text-[18px]">{label}</span>
                 </div>
               </article>
             );
@@ -3646,39 +3691,44 @@ export default function DashboardPage() {
       </section>
 
       <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
-        <div className={`${dashboardShellClass} px-4 sm:px-0`}>
-          <div className="flex items-center justify-between">
-            <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
+          <div className="relative mx-auto flex max-w-[1449px] items-center justify-between">
+            <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
-            <div className="mr-[80px] hidden items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                onClick={() => scrollRelevantArticles("left")}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Previous relevant article"
               >
-                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
               <button
                 type="button"
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                onClick={() => scrollRelevantArticles("right")}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Next relevant article"
               >
-                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>
             </div>
           </div>
 
-          <div className="mt-6 flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-12 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible">
+          <div 
+            ref={relevantArticlesScrollRef}
+            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-12 sm:gap-5"
+          >
             {isLoadingLatestBlogs ? (
-              Array.from({ length: 4 }).map((_, idx) => (
+              Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-full sm:max-w-[280px] sm:rounded-[18px]"
+                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
@@ -3877,22 +3927,6 @@ export default function DashboardPage() {
                 >
                   Filters
                 </button>
-                <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
-                  disabled={isLoadingProducts || productsPage <= 1}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={() => setProductsPage((p) => p + 1)}
-                  disabled={isLoadingProducts || products.length < productsLimit}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-                >
-                  Next
-                </button>
-                </div>
               </div>
             </div>
 
@@ -3921,7 +3955,6 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
-                <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
                 <div className="mt-4 space-y-3">
                   <input
                     value={filterQ}
@@ -3933,15 +3966,14 @@ export default function DashboardPage() {
                     value={filterStatus}
                     onChange={(e) =>
                       setFilterStatus(
-                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
+                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : ""
                       )
                     }
                     className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
                   >
                     <option value="">All Status</option>
                     <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
+                    <option value="draft">Unactive</option>
                   </select>
                   <select
                     value={filterCategoryType}
@@ -3960,6 +3992,7 @@ export default function DashboardPage() {
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
+                    <option value={100}>100</option>
                   </select>
 
                   <div className="rounded-xl border border-[#cbbca6] bg-[#f4eee5] p-3">
@@ -4157,9 +4190,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {isLoadingProducts ? (
-            Array.from({ length: 6 }).map((_, idx) => (
+            Array.from({ length: 12 }).map((_, idx) => (
               <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm">
                 <div className="aspect-[4/3] w-full bg-white" />
                 <div className="bg-[#e8dfd0] p-4 space-y-2">
@@ -4210,33 +4243,7 @@ export default function DashboardPage() {
 
                     <div className="absolute left-2 right-2 top-2 hidden flex-wrap items-center gap-2 overflow-hidden sm:left-3 sm:right-24 sm:top-3 sm:flex">
                       <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
-                        {p.status}
-                      </span>
-                      {userRole === "admin" && (
-                        <select
-                          value={p.status}
-                          disabled={isUpdatingProductStatus && updatingProductStatusId === p.id}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleUpdateProductStatus(p.id, e.target.value);
-                          }}
-                          className="max-w-[120px] rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800"
-                        >
-                          {Array.from(new Set([p.status, ...allowedStatuses])).filter(Boolean).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <span
-                        className={[
-                          "inline-flex max-w-[100px] items-center truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                          hasImage ? "bg-black text-white" : "bg-white text-gray-700 border border-gray-200"
-                        ].join(" ")}
-                      >
-                        {hasImage ? "Image" : "No Image"}
+                        {p.status === "draft" ? "unactive" : p.status}
                       </span>
                     </div>
 
@@ -4260,7 +4267,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         disabled={isDeletingProduct}
-                        className="absolute right-11 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50 sm:right-14 sm:top-3 sm:flex sm:h-9 sm:w-9"
+                        className="absolute right-11 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50 sm:right-14 sm:top-3 sm:hidden sm:h-9 sm:w-9"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteProduct(p.id);
@@ -4272,19 +4279,37 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="bg-[#e8dfd0] p-2.5 sm:p-4">
-                    <div className="text-[14px] font-black leading-tight tracking-tight text-[#1f2a3d] sm:text-[10px] sm:uppercase sm:tracking-widest sm:text-gray-400">
-                      {p.sku || p.name}
+                  <div className="bg-[#e8dfd0] p-2 sm:p-2.5">
+                    <div className="flex items-start justify-between">
+                      <div className="text-[14px] font-black leading-tight tracking-tight text-[#1f2a3d] sm:text-[9px] sm:uppercase sm:tracking-widest sm:text-gray-400">
+                        {p.sku || p.name}
+                      </div>
+                      {userRole === "admin" && (
+                        <select
+                          value={p.status}
+                          disabled={isUpdatingProductStatus && updatingProductStatusId === p.id}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleUpdateProductStatus(p.id, e.target.value);
+                          }}
+                          className="max-w-[80px] rounded-full border border-[#d6c8b1] bg-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-gray-800 focus:outline-none"
+                        >
+                          {Array.from(new Set([p.status, ...allowedStatuses]))
+                            .filter((s) => Boolean(s) && s !== "archived")
+                            .map((s) => (
+                              <option key={s} value={s}>
+                                {s === "draft" ? "unactive" : s}
+                              </option>
+                            ))}
+                        </select>
+                      )}
                     </div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-1 sm:text-base sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-0.5 sm:text-sm sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
                       {p.materialType || p.name}
                     </div>
-                    <div className="mt-1 text-[11px] font-bold text-[#5a6780] sm:mt-2 sm:flex sm:items-center sm:justify-between sm:text-[11px] sm:text-gray-600">
+                    <div className="mt-1 text-[11px] font-bold text-[#5a6780] sm:mt-1 sm:flex sm:items-center sm:justify-between sm:text-[10px] sm:text-gray-600">
                       {userRole !== "customer" ? <span className="hidden sm:inline">{p.brand}</span> : null}
-                      <span>ID: {p.id?.slice(0, 8) || "-"}</span>
-                    </div>
-                    <div className="mt-1 text-[11px] font-black uppercase tracking-wide text-[#5a6780] sm:mt-2 sm:text-[11px] sm:font-bold sm:normal-case sm:tracking-normal sm:text-gray-500">
-                      THICKNESS: {p.thickness || "-"}
                     </div>
                     <button
                       type="button"
@@ -4404,7 +4429,65 @@ export default function DashboardPage() {
           </div>
         )}
 
-                <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-[11px] font-bold text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>Total: {productsTotal}</span>
+                    <span className="mx-1">•</span>
+                    <span>Limit: {productsLimit}</span>
+                    <span className="mx-1">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Page:</span>
+                      {(() => {
+                        const totalPages = Math.ceil(productsTotal / productsLimit);
+                        if (totalPages <= 1) return <span>1</span>;
+                        const pages = [];
+                        for (let i = 1; i <= totalPages; i++) {
+                          if (i === 1 || i === totalPages || Math.abs(i - productsPage) <= 1) {
+                            pages.push(i);
+                          } else if (i === productsPage - 2 || i === productsPage + 2) {
+                            pages.push("...");
+                          }
+                        }
+                        const uniquePages = Array.from(new Set(pages));
+                        return uniquePages.map((p, idx) => {
+                          if (p === "...") return <span key={`ellipsis-${idx}`}>...</span>;
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setProductsPage(Number(p))}
+                              className={[
+                                "flex h-6 min-w-[24px] items-center justify-center rounded-md border px-1 transition-colors",
+                                productsPage === p
+                                  ? "border-[#b78b4a] bg-[#b78b4a] text-white"
+                                  : "border-[#cbbca6] bg-white text-[#4d2c1e] hover:border-[#b78b4a] hover:text-[#b78b4a]",
+                              ].join(" ")}
+                            >
+                              {p}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                      disabled={isLoadingProducts || productsPage <= 1}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-black disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => setProductsPage((p) => p + 1)}
+                      disabled={isLoadingProducts || products.length < productsLimit}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-black disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
