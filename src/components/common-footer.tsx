@@ -16,8 +16,8 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
   const companyLinks: FooterLink[] = [
     { label: "About us", href: "/about-us" },
     { label: "Blogs" },
-    { label: "Contact us" },
-    { label: "FAQs" },
+    { label: "Contact us", href: "/contact-us" },
+    { label: "FAQs", href: "/faqs" },
   ];
 
   const categoryLinks = [
