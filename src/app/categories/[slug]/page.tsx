@@ -426,10 +426,10 @@ export default function CategoryProductsPage() {
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
       <CommonStoreHeader
-        pageTitle="CustomFurnish"
-        breadcrumbText={`Home  >  ${category?.name ?? "Category"}`}
+        pageTitle=""
+        breadcrumbText={`HOME  >  ${category?.name ?? "Category"}`}
         breadcrumbItems={[
-          { label: "Home", href: "/dashboard" },
+          { label: "HOME", href: "/dashboard" },
           { label: category?.name ?? "Category" },
         ]}
         userName={userName}
@@ -464,9 +464,6 @@ export default function CategoryProductsPage() {
           </div>
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">
             Filter
-          </div>
-          <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">
-            Finishes
           </div>
 
           {shouldShowBrand ? (

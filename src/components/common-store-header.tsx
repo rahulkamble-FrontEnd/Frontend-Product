@@ -112,8 +112,8 @@ export default function CommonStoreHeader({
 
       <div className="border-t border-[#d9cab5] bg-white">
         <div className="mx-auto w-full max-w-[1680px] px-4 py-2 sm:px-6 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
-          <div className="text-sm font-semibold text-[#1f1f1f]">{pageTitle}</div>
-          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">
+          {pageTitle && <div className="text-sm font-semibold text-[#1f1f1f]">{pageTitle}</div>}
+          <div className={["mt-0.5 flex items-center gap-1 text-[10px] text-gray-500", !pageTitle ? "font-bold" : ""].join(" ")}>
             {Array.isArray(breadcrumbItems) && breadcrumbItems.length > 0 ? (
               breadcrumbItems.map((item, index) => (
                 <span key={`${item.label}-${index}`} className="inline-flex items-center gap-1">
@@ -125,13 +125,13 @@ export default function CommonStoreHeader({
                       {item.label}
                     </Link>
                   ) : (
-                    <span>{item.label}</span>
+                    <span className={!pageTitle ? "text-[#1f1f1f]" : ""}>{item.label}</span>
                   )}
                   {index < breadcrumbItems.length - 1 ? <span>&gt;</span> : null}
                 </span>
               ))
             ) : (
-              <span>{breadcrumbText}</span>
+              <span className={!pageTitle ? "text-[#1f1f1f]" : ""}>{breadcrumbText}</span>
             )}
           </div>
         </div>

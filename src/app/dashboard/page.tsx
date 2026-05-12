@@ -90,6 +90,7 @@ export default function DashboardPage() {
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
+  const [isManageCFMenuOpen, setIsManageCFMenuOpen] = useState(false);
   const [isProductsMenuOpen, setIsProductsMenuOpen] = useState(false);
   const [isBlogMenuOpen, setIsBlogMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -913,6 +914,7 @@ export default function DashboardPage() {
       setIsShortlistOpen(false);
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
+      setIsManageCFMenuOpen(false);
       setIsProductsMenuOpen(false);
       setIsBlogMenuOpen(false);
       setIsNotificationsOpen(false);
@@ -2499,6 +2501,7 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setIsUsersMenuOpen((v) => !v);
                         setIsCategoriesMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsProductsMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
@@ -2545,6 +2548,7 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setIsCategoriesMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsProductsMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
@@ -2560,6 +2564,30 @@ export default function DashboardPage() {
                       >
                         {canManageCategoryMasters && (
                           <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsCategoryModalOpen(true);
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Create Category
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCategoriesMenuOpen(false);
+                                closeAdminActionModals();
+                                setIsBindCategoriesOpen(true);
+                                setBindError("");
+                                setBindMsg("");
+                              }}
+                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                            >
+                              Bind Subcategories
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -2590,55 +2618,8 @@ export default function DashboardPage() {
                             >
                               Manage Tags
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCategoriesMenuOpen(false);
-                                router.push("/design-cf/manage");
-                              }}
-                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                            >
-                              Manage Design CF
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCategoriesMenuOpen(false);
-                                closeAdminActionModals();
-                                setIsCategoryModalOpen(true);
-                              }}
-                              className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                            >
-                              Create Category
-                            </button>
                           </>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsBindCategoriesOpen(true);
-                            setBindError("");
-                            setBindMsg("");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Bind Subcategories
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsCategoriesMenuOpen(false);
-                            closeAdminActionModals();
-                            setIsProductTagsOpen(true);
-                            setProductTagError("");
-                            setProductTagMsg("");
-                          }}
-                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                        >
-                          Link/Delink Tags
-                        </button>
                       </div>
                     )}
                   </div>
@@ -2651,6 +2632,7 @@ export default function DashboardPage() {
                         setIsProductsMenuOpen((v) => !v);
                         setIsUsersMenuOpen(false);
                         setIsCategoriesMenuOpen(false);
+                        setIsManageCFMenuOpen(false);
                         setIsBlogMenuOpen(false);
                       }}
                       className="rounded-md bg-[#0468a3] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-white shadow-sm hover:opacity-95"
@@ -2702,6 +2684,54 @@ export default function DashboardPage() {
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
                           Bulk Upload
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative hidden md:block">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsManageCFMenuOpen((v) => !v);
+                        setIsUsersMenuOpen(false);
+                        setIsCategoriesMenuOpen(false);
+                        setIsProductsMenuOpen(false);
+                        setIsBlogMenuOpen(false);
+                      }}
+                      className="rounded-md border-2 border-[#1f2a3d] px-4 py-1.5 text-[11px] font-black uppercase tracking-wider text-[#1f2a3d] shadow-sm hover:bg-[#1f2a3d] hover:text-white transition-all"
+                    >
+                      Manage CF
+                      <svg className="ml-2 inline-block" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    {isManageCFMenuOpen && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute top-full right-0 z-[360] mt-10 w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManageCFMenuOpen(false);
+                            router.push("/design-cf/manage");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Design CF
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsManageCFMenuOpen(false);
+                            closeAdminActionModals();
+                            setIsProductTagsOpen(true);
+                            setProductTagError("");
+                            setProductTagMsg("");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Link/Delink Tags
                         </button>
                       </div>
                     )}
@@ -2924,7 +2954,7 @@ export default function DashboardPage() {
 
       {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-4" : "grid-cols-3"}`}>
             {canManageUsers && (
             <div className="relative">
               <button
@@ -2933,6 +2963,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setIsUsersMenuOpen((v) => !v);
                   setIsCategoriesMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsProductsMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
@@ -2981,6 +3012,7 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setIsCategoriesMenuOpen((v) => !v);
                   setIsUsersMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsProductsMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
@@ -2998,6 +3030,30 @@ export default function DashboardPage() {
                 >
                   {canManageCategoryMasters && (
                     <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsCategoryModalOpen(true);
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                      >
+                        Create Category
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCategoriesMenuOpen(false);
+                          closeAdminActionModals();
+                          setIsBindCategoriesOpen(true);
+                          setBindError("");
+                          setBindMsg("");
+                        }}
+                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                      >
+                        Bind Subcategories
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -3028,45 +3084,8 @@ export default function DashboardPage() {
                       >
                         Manage Tags
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCategoriesMenuOpen(false);
-                          closeAdminActionModals();
-                          setIsCategoryModalOpen(true);
-                        }}
-                        className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                      >
-                        Create Category
-                      </button>
                     </>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsBindCategoriesOpen(true);
-                      setBindError("");
-                      setBindMsg("");
-                    }}
-                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                  >
-                    Bind Subcategories
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsCategoriesMenuOpen(false);
-                      closeAdminActionModals();
-                      setIsProductTagsOpen(true);
-                      setProductTagError("");
-                      setProductTagMsg("");
-                    }}
-                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
-                  >
-                    Link/Delink Tags
-                  </button>
                 </div>
               )}
             </div>
@@ -3079,6 +3098,7 @@ export default function DashboardPage() {
                   setIsProductsMenuOpen((v) => !v);
                   setIsUsersMenuOpen(false);
                   setIsCategoriesMenuOpen(false);
+                  setIsManageCFMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
                 className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
@@ -3132,6 +3152,56 @@ export default function DashboardPage() {
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     {isBulkUploadingProducts ? "Uploading..." : "Bulk Upload"}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsManageCFMenuOpen((v) => !v);
+                  setIsUsersMenuOpen(false);
+                  setIsCategoriesMenuOpen(false);
+                  setIsProductsMenuOpen(false);
+                  setIsBlogMenuOpen(false);
+                }}
+                className="flex w-full items-center justify-between rounded-md border-2 border-[#1f2a3d] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-[#1f2a3d] shadow-sm"
+              >
+                <span className="truncate pr-1">Manage CF</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              {isManageCFMenuOpen && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute left-1/2 z-[320] mt-2 max-h-[56vh] w-[210px] -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManageCFMenuOpen(false);
+                      router.push("/design-cf/manage");
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Design CF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsManageCFMenuOpen(false);
+                      closeAdminActionModals();
+                      setIsProductTagsOpen(true);
+                      setProductTagError("");
+                      setProductTagMsg("");
+                    }}
+                    className="w-full px-3 py-2.5 text-left text-[11px] font-black uppercase tracking-[0.1em] text-gray-700 hover:bg-gray-50"
+                  >
+                    Link/Delink Tags
                   </button>
                 </div>
               )}
@@ -3304,7 +3374,7 @@ export default function DashboardPage() {
           <h3 className="min-w-0 text-left text-[22px] font-bold leading-[28px] tracking-normal text-[#977543] sm:text-[32px] sm:leading-[40px] md:ml-[70px]">
             Shop Interior Materials by Category
           </h3>
-          <div className="hidden shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => scrollCategoryTiles("left")}
@@ -3452,27 +3522,27 @@ export default function DashboardPage() {
             },
             {
               title: "Curated by Designers",
-              subtitle: "Handpicked collections by industry experts",
+              subtitle: "Handpicked collections",
               icon: "list",
             },
             {
               title: "Quality Assured",
-              subtitle: "Every product is tested for durability & finish",
+              subtitle: "Every product is tested for durability & quality",
               icon: "spark",
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare materials, textures & pricing easily",
+              subtitle: "Compare materials, textures & Performance",
               icon: "wave",
             },
             {
               title: "Fast Delivery",
-              subtitle: "Get materials delivered within 10 days",
+              subtitle: "complete Home solution in 21 days",
               icon: "spark",
             },
             {
               title: "End-to-End Support",
-              subtitle: "From selection to execution — we guide you",
+              subtitle: "From selection to after sales service — we are there for you",
               icon: "spark",
             },
           ].map((feature, index) => (
@@ -3522,7 +3592,7 @@ export default function DashboardPage() {
                 Latest Products
               </h3>
               <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
-                Get inspired by the latest styles loved by modern homeowners.
+                View the latest products launch recently
               </p>
             </div>
             <button
@@ -3631,11 +3701,8 @@ export default function DashboardPage() {
                   router.push(`/design-cf/${encodeURIComponent(product.id)}`);
                 }}
               >
-                <div className="relative h-[198px] w-full overflow-hidden rounded-t-[20px] bg-[#eadfcf] sm:h-[285px] sm:rounded-t-[28px]">
+                <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
                   <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
-                </div>
-                <div className="flex h-[32px] items-center justify-center bg-[#AE8953] sm:h-[37px]">
-                  <span className="text-[12px] font-medium leading-none text-white sm:text-[18px]">{label}</span>
                 </div>
               </article>
             );
@@ -3877,22 +3944,6 @@ export default function DashboardPage() {
                 >
                   Filters
                 </button>
-                <div className="ml-auto flex items-center gap-2">
-                <button
-                  onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
-                  disabled={isLoadingProducts || productsPage <= 1}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-                >
-                  Prev
-                </button>
-                <button
-                  onClick={() => setProductsPage((p) => p + 1)}
-                  disabled={isLoadingProducts || products.length < productsLimit}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-[11px] font-black uppercase tracking-wider text-gray-700 shadow-sm disabled:opacity-50"
-                >
-                  Next
-                </button>
-                </div>
               </div>
             </div>
 
@@ -3921,7 +3972,6 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">Filter</div>
-                <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">Finishes</div>
                 <div className="mt-4 space-y-3">
                   <input
                     value={filterQ}
@@ -3933,15 +3983,14 @@ export default function DashboardPage() {
                     value={filterStatus}
                     onChange={(e) =>
                       setFilterStatus(
-                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : e.target.value === "archived" ? "archived" : ""
+                        e.target.value === "active" ? "active" : e.target.value === "draft" ? "draft" : ""
                       )
                     }
                     className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
                   >
                     <option value="">All Status</option>
                     <option value="active">Active</option>
-                    <option value="draft">Draft</option>
-                    <option value="archived">Archived</option>
+                    <option value="draft">Unactive</option>
                   </select>
                   <select
                     value={filterCategoryType}
@@ -3960,6 +4009,7 @@ export default function DashboardPage() {
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
+                    <option value={100}>100</option>
                   </select>
 
                   <div className="rounded-xl border border-[#cbbca6] bg-[#f4eee5] p-3">
@@ -4157,9 +4207,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3 2xl:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
           {isLoadingProducts ? (
-            Array.from({ length: 6 }).map((_, idx) => (
+            Array.from({ length: 12 }).map((_, idx) => (
               <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-[#e8dfd0] shadow-sm">
                 <div className="aspect-[4/3] w-full bg-white" />
                 <div className="bg-[#e8dfd0] p-4 space-y-2">
@@ -4210,33 +4260,7 @@ export default function DashboardPage() {
 
                     <div className="absolute left-2 right-2 top-2 hidden flex-wrap items-center gap-2 overflow-hidden sm:left-3 sm:right-24 sm:top-3 sm:flex">
                       <span className={["inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest", statusClass].join(" ")}>
-                        {p.status}
-                      </span>
-                      {userRole === "admin" && (
-                        <select
-                          value={p.status}
-                          disabled={isUpdatingProductStatus && updatingProductStatusId === p.id}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            handleUpdateProductStatus(p.id, e.target.value);
-                          }}
-                          className="max-w-[120px] rounded-full border border-gray-200 bg-white/90 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800"
-                        >
-                          {Array.from(new Set([p.status, ...allowedStatuses])).filter(Boolean).map((s) => (
-                            <option key={s} value={s}>
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                      )}
-                      <span
-                        className={[
-                          "inline-flex max-w-[100px] items-center truncate rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-widest",
-                          hasImage ? "bg-black text-white" : "bg-white text-gray-700 border border-gray-200"
-                        ].join(" ")}
-                      >
-                        {hasImage ? "Image" : "No Image"}
+                        {p.status === "draft" ? "unactive" : p.status}
                       </span>
                     </div>
 
@@ -4260,7 +4284,7 @@ export default function DashboardPage() {
                       <button
                         type="button"
                         disabled={isDeletingProduct}
-                        className="absolute right-11 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50 sm:right-14 sm:top-3 sm:flex sm:h-9 sm:w-9"
+                        className="absolute right-11 top-2 hidden h-7 w-7 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm disabled:opacity-50 sm:right-14 sm:top-3 sm:hidden sm:h-9 sm:w-9"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteProduct(p.id);
@@ -4272,19 +4296,37 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <div className="bg-[#e8dfd0] p-2.5 sm:p-4">
-                    <div className="text-[14px] font-black leading-tight tracking-tight text-[#1f2a3d] sm:text-[10px] sm:uppercase sm:tracking-widest sm:text-gray-400">
-                      {p.sku || p.name}
+                  <div className="bg-[#e8dfd0] p-2 sm:p-2.5">
+                    <div className="flex items-start justify-between">
+                      <div className="text-[14px] font-black leading-tight tracking-tight text-[#1f2a3d] sm:text-[9px] sm:uppercase sm:tracking-widest sm:text-gray-400">
+                        {p.sku || p.name}
+                      </div>
+                      {userRole === "admin" && (
+                        <select
+                          value={p.status}
+                          disabled={isUpdatingProductStatus && updatingProductStatusId === p.id}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            handleUpdateProductStatus(p.id, e.target.value);
+                          }}
+                          className="max-w-[80px] rounded-full border border-[#d6c8b1] bg-white px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-gray-800 focus:outline-none"
+                        >
+                          {Array.from(new Set([p.status, ...allowedStatuses]))
+                            .filter((s) => Boolean(s) && s !== "archived")
+                            .map((s) => (
+                              <option key={s} value={s}>
+                                {s === "draft" ? "unactive" : s}
+                              </option>
+                            ))}
+                        </select>
+                      )}
                     </div>
-                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-1 sm:text-base sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
+                    <div className="mt-1 text-[11px] font-bold uppercase tracking-wide text-[#5a6780] sm:mt-0.5 sm:text-sm sm:normal-case sm:tracking-normal sm:text-gray-900 sm:leading-snug sm:line-clamp-2 sm:font-black">
                       {p.materialType || p.name}
                     </div>
-                    <div className="mt-1 text-[11px] font-bold text-[#5a6780] sm:mt-2 sm:flex sm:items-center sm:justify-between sm:text-[11px] sm:text-gray-600">
+                    <div className="mt-1 text-[11px] font-bold text-[#5a6780] sm:mt-1 sm:flex sm:items-center sm:justify-between sm:text-[10px] sm:text-gray-600">
                       {userRole !== "customer" ? <span className="hidden sm:inline">{p.brand}</span> : null}
-                      <span>ID: {p.id?.slice(0, 8) || "-"}</span>
-                    </div>
-                    <div className="mt-1 text-[11px] font-black uppercase tracking-wide text-[#5a6780] sm:mt-2 sm:text-[11px] sm:font-bold sm:normal-case sm:tracking-normal sm:text-gray-500">
-                      THICKNESS: {p.thickness || "-"}
                     </div>
                     <button
                       type="button"
@@ -4404,7 +4446,65 @@ export default function DashboardPage() {
           </div>
         )}
 
-                <div className="mt-2 text-[11px] font-bold text-gray-500">Total: {productsTotal} • Page: {productsPage} • Limit: {productsLimit}</div>
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-[11px] font-bold text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <span>Total: {productsTotal}</span>
+                    <span className="mx-1">•</span>
+                    <span>Limit: {productsLimit}</span>
+                    <span className="mx-1">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <span>Page:</span>
+                      {(() => {
+                        const totalPages = Math.ceil(productsTotal / productsLimit);
+                        if (totalPages <= 1) return <span>1</span>;
+                        const pages = [];
+                        for (let i = 1; i <= totalPages; i++) {
+                          if (i === 1 || i === totalPages || Math.abs(i - productsPage) <= 1) {
+                            pages.push(i);
+                          } else if (i === productsPage - 2 || i === productsPage + 2) {
+                            pages.push("...");
+                          }
+                        }
+                        const uniquePages = Array.from(new Set(pages));
+                        return uniquePages.map((p, idx) => {
+                          if (p === "...") return <span key={`ellipsis-${idx}`}>...</span>;
+                          return (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => setProductsPage(Number(p))}
+                              className={[
+                                "flex h-6 min-w-[24px] items-center justify-center rounded-md border px-1 transition-colors",
+                                productsPage === p
+                                  ? "border-[#b78b4a] bg-[#b78b4a] text-white"
+                                  : "border-[#cbbca6] bg-white text-[#4d2c1e] hover:border-[#b78b4a] hover:text-[#b78b4a]",
+                              ].join(" ")}
+                            >
+                              {p}
+                            </button>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
+                      disabled={isLoadingProducts || productsPage <= 1}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-black disabled:opacity-50"
+                    >
+                      Prev
+                    </button>
+                    <button
+                      onClick={() => setProductsPage((p) => p + 1)}
+                      disabled={isLoadingProducts || products.length < productsLimit}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-gray-700 shadow-sm transition-colors hover:border-gray-400 hover:text-black disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
