@@ -40,13 +40,37 @@ export default function CommonFooter() {
   ];
 
   const socialLinks = [
-    { id: "IG", label: "Instagram" },
-    { id: "FB", label: "Facebook" },
-    { id: "YT", label: "YouTube" },
-    { id: "LI", label: "LinkedIn" },
-    { id: "TW", label: "Twitter" },
-    { id: "PT", label: "Pinterest" },
-    { id: "WA", label: "WhatsApp" },
+    {
+      id: "IG",
+      label: "Instagram",
+      url: "https://www.instagram.com/customfurnish/",
+    },
+    {
+      id: "FB",
+      label: "Facebook",
+      url: "https://www.facebook.com/customfurnish",
+    },
+    {
+      id: "YT",
+      label: "YouTube",
+      url: "https://www.youtube.com/@Customfurnish",
+    },
+    {
+      id: "LI",
+      label: "LinkedIn",
+      url: "https://www.linkedin.com/company/customfurnish-official",
+    },
+    { id: "TW", label: "Twitter", url: "https://x.com/CustomFurnish1" },
+    {
+      id: "PT",
+      label: "Pinterest",
+      url: "https://in.pinterest.com/customfurnishin/",
+    },
+    {
+      id: "WA",
+      label: "WhatsApp",
+      url: "https://api.whatsapp.com/send/?phone=916301734646&text&type=phone_number&app_absent=0",
+    },
   ];
 
   return (
@@ -69,10 +93,12 @@ export default function CommonFooter() {
             </p>
             <div className="flex items-center gap-2">
               {socialLinks.map((item) => (
-                <button
+                <a
                   key={item.id}
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white"
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white transition-opacity hover:opacity-80"
                   aria-label={item.label}
                 >
                   {item.id === "IG" && (
@@ -117,7 +143,7 @@ export default function CommonFooter() {
                       <path d="M9.7 9.4c.2-.3.5-.4.8-.2l1.1.8c.3.2.4.5.2.8l-.4.7c.5 1 1.3 1.8 2.3 2.3l.7-.4c.3-.2.6-.1.8.2l.8 1.1c.2.3.1.6-.2.8-.6.4-1.3.6-2 .5-2.7-.4-4.9-2.6-5.3-5.3-.1-.7.1-1.4.5-2z" />
                     </svg>
                   )}
-                </button>
+                </a>
               ))}
             </div>
           </div>
