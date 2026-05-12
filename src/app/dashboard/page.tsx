@@ -99,8 +99,6 @@ export default function DashboardPage() {
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
   const [menuCategories, setMenuCategories] = useState<CategoryMenuItem[]>([]);
-  const [isLoadingMenuCategories, setIsLoadingMenuCategories] = useState(false);
-  const [activeMenuCategoryId, setActiveMenuCategoryId] = useState<string | null>(null);
   const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
   const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
   const [trendingDesignsError, setTrendingDesignsError] = useState("");
@@ -1939,7 +1937,6 @@ export default function DashboardPage() {
     }
 
     const loadMenuCategories = async () => {
-      setIsLoadingMenuCategories(true);
       try {
         const data = await getCategoryMenu({ includeChildren: true, productLimit: 8 });
         if (isMounted) {
@@ -1957,9 +1954,6 @@ export default function DashboardPage() {
           setMenuCategories([]);
         }
       } finally {
-        if (isMounted) {
-          setIsLoadingMenuCategories(false);
-        }
       }
     };
     loadMenuCategories();
@@ -2250,8 +2244,6 @@ export default function DashboardPage() {
     }
   };
 
-  const activeMenuCategory =
-    menuCategories.find((category) => category.id === activeMenuCategoryId) ?? null;
   const resolvedMenuCategories =
     menuCategories.length > 0
       ? menuCategories
@@ -3244,18 +3236,14 @@ export default function DashboardPage() {
           background:
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
-        onMouseLeave={() => setActiveMenuCategoryId(null)}
       >
         <div
           className={`${dashboardShellClass} flex items-center justify-start gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:justify-center sm:gap-5 sm:text-[16px] sm:leading-6`}
         >
           {resolvedMenuCategories.map((category) => {
-            const hasFlyout =
-              category.products.length > 0 || category.children.length > 0;
             return (
               <div
                 key={category.id}
-                onMouseEnter={() => setActiveMenuCategoryId(category.id)}
                 className="flex-shrink-0"
               >
                 <button
@@ -3268,90 +3256,11 @@ export default function DashboardPage() {
                   className="flex items-center gap-1 hover:text-[#ffcb05]"
                 >
                   {toTitleCase(category.name)}
-                  {hasFlyout && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  )}
                 </button>
               </div>
             );
           })}
         </div>
-
-        {activeMenuCategory && (
-          <div className="absolute left-0 right-0 top-full z-[260] hidden border-t border-[#e6dccd] bg-[#F8F0E4] text-gray-900 shadow-2xl md:block">
-            <div className={`${dashboardShellClass} py-4`}>
-              <div className="flex items-center gap-2">
-                <span className="inline-flex h-2 w-2 rounded-full bg-[#AE8953]" />
-                <div className="text-[11px] font-bold uppercase tracking-widest text-[#977543]">
-                  {toTitleCase(activeMenuCategory.name)}
-                </div>
-              </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {activeMenuCategory.products.length > 0 && (
-                  <div className="rounded-xl border border-[#eadfce] bg-white p-3">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#977543]">
-                      Featured Products
-                    </div>
-                    <div className="mt-2 space-y-1.5">
-                      {activeMenuCategory.products.map((product) => (
-                        <a
-                          key={product.id}
-                          href={product.slug ? `/products/${product.slug}` : "#"}
-                          className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
-                        >
-                          {toTitleCase(product.name)}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {activeMenuCategory.children.map((child) => (
-                  <div key={child.id} className="rounded-xl border border-[#eadfce] bg-white p-3">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#8f6a33]">
-                      {toTitleCase(child.name)}
-                    </div>
-                    {child.products.length > 0 ? (
-                      <div className="mt-2 space-y-1.5">
-                        {child.products.map((product) => (
-                          <a
-                            key={product.id}
-                            href={product.slug ? `/products/${product.slug}` : "#"}
-                            className="block rounded-md px-2 py-1.5 text-xs font-medium text-[#5f4b2e] hover:bg-[#f7f0e4] hover:text-[#8f6a33]"
-                          >
-                            {toTitleCase(product.name)}
-                          </a>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-xs text-gray-400">No products available.</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {!isLoadingMenuCategories &&
-                activeMenuCategory.products.length === 0 &&
-                activeMenuCategory.children.length === 0 && (
-                  <div className="mt-3 text-xs text-gray-500">
-                    No products mapped to this category yet.
-                  </div>
-                )}
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* Hero Section */}

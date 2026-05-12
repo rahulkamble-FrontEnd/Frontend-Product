@@ -44,7 +44,7 @@ export default function CommonStoreHeader({
     let isMounted = true;
     const loadMenu = async () => {
       try {
-        const menu = await getCategoryMenu({ includeChildren: true, productLimit: 8 });
+        const menu = await getCategoryMenu({ includeChildren: false, productLimit: 8 });
         if (isMounted) {
           setCategories(Array.isArray(menu) ? menu : []);
         }

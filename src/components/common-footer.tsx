@@ -179,7 +179,15 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">
           <div>© 2026 CustomFurnish.com</div>
-          <div>Terms & Conditions | Privacy Policy</div>
+          <div className="flex items-center gap-1">
+            <Link href="/terms-and-conditions" className="hover:text-white hover:underline">
+              Terms & Conditions
+            </Link>
+            <span>|</span>
+            <Link href="/privacy-policy" className="hover:text-white hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
