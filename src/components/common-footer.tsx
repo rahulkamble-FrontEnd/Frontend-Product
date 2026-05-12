@@ -15,35 +15,9 @@ type FooterLink = { label: string; href?: string };
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
   const companyLinks: FooterLink[] = [
     { label: "About us", href: "/about-us" },
-    { label: "Blogs" },
+    // { label: "Blogs" },
     { label: "Contact us", href: "/contact-us" },
     { label: "FAQs", href: "/faqs" },
-  ];
-
-  const categoryLinks = [
-    "Fabrics",
-    "Core Materials",
-    "Finishes",
-    "Handles",
-    "Wall Decorative",
-    "Counter Tops",
-    "Flooring & Tiles",
-    "Hardware",
-    "Ceiling",
-    "Lighting",
-    "Glass",
-    "Mirrors",
-  ];
-
-  const productLinks = [
-    "Bed Room Design",
-    "Kitchen Design",
-    "Living Room Design",
-    "Dining Room Design",
-    "Puja Room Design",
-    "Partition Design",
-    "Study Room Design",
-    "Office Room Design",
   ];
 
   const socialLinks = [
@@ -65,7 +39,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
       }}
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
-        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_0.95fr_1.2fr]">
+        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_1.2fr]">
           <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
@@ -147,28 +121,6 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
                     link.label
                   )}
                 </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Categories
-            </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {categoryLinks.map((link) => (
-                <li key={link}>{link}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Products
-            </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {productLinks.map((link) => (
-                <li key={link}>{link}</li>
               ))}
             </ul>
           </div>

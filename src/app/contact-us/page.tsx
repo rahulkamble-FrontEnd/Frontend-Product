@@ -86,7 +86,7 @@ const socialLinks = [
   {
     id: "PT",
     label: "Pinterest",
-    href: "https://www.pinterest.com/customfurnishin/",
+    href: "https://in.pinterest.com/customfurnishin/",
   },
 ];
 
