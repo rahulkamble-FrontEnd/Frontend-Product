@@ -489,7 +489,7 @@ export default function ProductDetailsPage() {
         shortlistRefreshKey={shortlistHeaderRefreshKey}
       />
 
-      <main className="mx-auto max-w-[1680px] px-4 py-5 sm:py-8 lg:px-8">
+      <main className="mx-auto max-w-[1680px] px-4 py-5 sm:py-8 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
         {error && (
           <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
             {error}

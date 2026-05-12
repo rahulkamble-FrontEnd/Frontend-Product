@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import StoreHeaderUserBar from "@/components/store-header-user-bar";
@@ -61,17 +62,31 @@ export default function CommonStoreHeader({
 
   return (
     <header className="relative z-[320] border-b border-[#d9cab5] bg-[#F8F0E4]">
-      <div className="mx-auto w-full max-w-[1680px] px-3 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3 sm:gap-4">
-          <Link href="/dashboard" className="text-[26px] leading-none text-[#1f1f1f] sm:text-[34px]">
-            <span className="font-serif">CustomFurnish</span>
-          </Link>
+      <div className="mx-auto w-full max-w-[1680px] px-3 py-3 sm:px-6 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
+        <div className="flex min-w-0 items-center justify-between gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-1 items-center pr-1 sm:pr-2">
+            <Link
+              href="/dashboard"
+              className="ml-0 inline-flex max-w-full min-w-0 items-center sm:-ml-2 lg:-ml-4"
+            >
+              <Image
+                src="/logo-cf.svg"
+                alt="CustomFurnish"
+                width={309}
+                height={28}
+                priority
+                className="pointer-events-none block h-[26px] w-auto max-w-full object-contain object-left sm:h-[34px]"
+              />
+            </Link>
+          </div>
           {showUserBar ? (
-            <StoreHeaderUserBar userName={userName!} userRole={userRole} shortlistRefreshKey={shortlistRefreshKey} />
+            <div className="shrink-0">
+              <StoreHeaderUserBar userName={userName!} userRole={userRole} shortlistRefreshKey={shortlistRefreshKey} />
+            </div>
           ) : rightText ? (
-            <div className="text-xs font-semibold text-gray-500">{rightText}</div>
+            <div className="shrink-0 text-xs font-semibold text-gray-500">{rightText}</div>
           ) : (
-            <div />
+            <div className="shrink-0" />
           )}
         </div>
       </div>
@@ -82,7 +97,7 @@ export default function CommonStoreHeader({
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-start gap-4 overflow-x-auto whitespace-nowrap px-3 py-2 sm:justify-center sm:gap-6 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-start gap-4 overflow-x-auto whitespace-nowrap px-3 py-2 sm:justify-center sm:gap-6 sm:px-6 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
           {categories.map((category) => (
             <Link
               key={category.id}
@@ -96,7 +111,7 @@ export default function CommonStoreHeader({
       </nav>
 
       <div className="border-t border-[#d9cab5] bg-white">
-        <div className="mx-auto w-full max-w-[1680px] px-4 py-2 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-[1680px] px-4 py-2 sm:px-6 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
           <div className="text-sm font-semibold text-[#1f1f1f]">{pageTitle}</div>
           <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">
             {Array.isArray(breadcrumbItems) && breadcrumbItems.length > 0 ? (

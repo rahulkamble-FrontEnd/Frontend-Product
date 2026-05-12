@@ -15,10 +15,68 @@ import {
 } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
-const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpeg";
-const CATEGORY_BANNER_BY_SLUG: Record<string, string> = {
-  "handles-knobs": "/handle.jpeg",
+const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
+
+/** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
+const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
+  finishes: "finishes2.webp",
+  finish: "finishes2.webp",
+  fabrics: "fabrics.webp",
+  fabric: "fabrics.webp",
+  glass: "glass.webp",
+  hardware: "hardware.webp",
+  mirrors: "Mirrors.webp",
+  mirror: "Mirrors.webp",
+  lighting: "ligting.webp",
+  lights: "ligting.webp",
+  handles: "Handels.webp",
+  "handles-knobs": "Handels.webp",
+  "handles-and-knobs": "Handels.webp",
+  knobs: "Handels.webp",
+  "wall-decorative": "wall panels.webp",
+  "wall-decorative-panels": "wall panels.webp",
+  "wall-panels": "wall panels.webp",
+  "wall-panels-and-cladding": "wall panels.webp",
+  "counter-tops": "Counter tops.webp",
+  countertops: "Counter tops.webp",
+  flooring: "Flooring.webp",
+  "flooring-tiles": "Flooring.webp",
+  "flooring-and-tiles": "Flooring.webp",
+  tiles: "Flooring.webp",
+  "core-materials": "Core material.webp",
+  "core-material": "Core material.webp",
+  core: "Core material.webp",
+  ceiling: "False celings.webp",
+  ceilings: "False celings.webp",
+  "false-ceiling": "False celings.webp",
+  "false-ceilings": "False celings.webp",
 };
+
+function normalizeCategoryBannerKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function categoryBannerS3Url(fileName: string) {
+  const path = ["category banner", "categories banner", fileName]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${BLOG_IMAGE_BASE_URL}/${path}`;
+}
+
+function resolveCategoryBannerUrl(slug: string, categoryName?: string | null) {
+  const keys = [slug, categoryName ?? ""].filter((v) => v.trim().length > 0).map(normalizeCategoryBannerKey);
+  for (const key of keys) {
+    const file = CATEGORY_BANNER_FILE_BY_KEY[key];
+    if (file) return categoryBannerS3Url(file);
+  }
+  return DEFAULT_CATEGORY_BANNER_URL;
+}
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -363,8 +421,7 @@ export default function CategoryProductsPage() {
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size;
-  const categoryBannerUrl =
-    CATEGORY_BANNER_BY_SLUG[slug] ?? DEFAULT_CATEGORY_BANNER_URL;
+  const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
@@ -379,7 +436,7 @@ export default function CategoryProductsPage() {
         userRole={userRole}
       />
 
-      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-0 px-0 lg:grid-cols-[280px_minmax(0,1fr)] 2xl:max-w-[2200px] 2xl:px-6">
         {isMobileFiltersOpen && (
           <div
             className="fixed inset-0 z-[680] bg-black/40 lg:hidden"
@@ -531,14 +588,20 @@ export default function CategoryProductsPage() {
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
           {categoryBannerUrl ? (
             <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
-              <div className="relative h-[220px] w-full sm:h-[300px]">
+              {/* Category banners have a natural ~3.84:1 aspect ratio (4489x1170).
+                  Below lg we keep fixed pixel heights so the banner doesn't get too
+                  short on phones/tablets; from lg upward we honour the image ratio so
+                  the full banner is visible on wide laptops and desktops (no top/bottom crop). */}
+              <div className="relative h-[220px] w-full sm:h-[300px] lg:h-auto lg:aspect-[4489/1170]">
                 <Image
                   src={categoryBannerUrl}
                   alt={`${category?.name ?? "Category"} banner`}
                   fill
                   unoptimized
                   sizes="(max-width: 1024px) 100vw, 1200px"
-                  className="object-fill"
+                  loading="eager"
+                  fetchPriority="high"
+                  className="object-cover object-center"
                 />
               </div>
             </div>

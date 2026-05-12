@@ -145,9 +145,9 @@ export default function CreatePortfolioPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-        <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="min-h-screen bg-[#f6f8fb] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-3xl rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-8">
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <h1 className="text-2xl font-black uppercase tracking-tight text-[#0468a3]">Create Portfolio</h1>
             <p className="mt-1 text-xs font-bold uppercase tracking-widest text-gray-400">
@@ -245,12 +245,12 @@ export default function CreatePortfolioPage() {
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-4">
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Manual S3 Keys (optional fallback)</label>
                 <button
                   type="button"
                   onClick={addManualImageRow}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-100"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-gray-600 hover:bg-gray-100 sm:w-auto"
                 >
                   Add Row
                 </button>

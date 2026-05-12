@@ -174,8 +174,8 @@ export default function LoginPage() {
       </div>
 
       {/* Right Section - Forms */}
-      <div className="flex w-full items-center justify-center p-8 lg:w-3/5">
-        <div className="w-full max-w-md space-y-8 rounded-3xl border border-[#dfcfb6] bg-[#fff9f2]/85 p-8 shadow-[0_20px_55px_rgba(73,42,19,0.14)] backdrop-blur-sm">
+      <div className="flex w-full items-center justify-center px-4 py-10 sm:p-8 lg:w-3/5">
+        <div className="w-full max-w-[420px] space-y-8 rounded-3xl border border-[#dfcfb6] bg-[#fff9f2]/85 p-5 shadow-[0_20px_55px_rgba(73,42,19,0.14)] backdrop-blur-sm sm:p-8">
 
           {/* VIEW: LOGIN */}
           {view === "login" && (
@@ -331,7 +331,7 @@ export default function LoginPage() {
                 {error && <div className="text-center text-sm font-medium text-red-600 bg-red-50 p-3 rounded-xl">{error}</div>}
                 {success && <div className="text-center text-sm font-medium text-green-600 bg-green-50 p-3 rounded-xl">{success}</div>}
 
-                <div className="flex justify-center gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-center sm:gap-4">
                   <button
                     type="button"
                     onClick={() => {
@@ -339,14 +339,14 @@ export default function LoginPage() {
                         setError("");
                         setSuccess("");
                     }}
-                    className="w-1/3 rounded-full border-2 border-[#7f5a34] py-2.5 text-xs font-bold text-[#6c4a2a] active:scale-95"
+                    className="w-full rounded-full border-2 border-[#7f5a34] py-3 text-xs font-bold text-[#6c4a2a] active:scale-95 sm:w-40"
                   >
                     BACK
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-1/2 rounded-full py-3.5 text-sm font-black uppercase tracking-wider text-[#3b2416] shadow-lg transition-transform active:scale-95 disabled:opacity-50"
+                    className="w-full rounded-full py-3.5 text-sm font-black uppercase tracking-wider text-[#3b2416] shadow-lg transition-transform active:scale-95 disabled:opacity-50 sm:w-60"
                     style={{ background: THEME_GOLD_GRADIENT }}
                   >
                     {isLoading ? "RESETTING..." : "RESET PASSWORD"}

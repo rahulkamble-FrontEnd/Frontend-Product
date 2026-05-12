@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -5,38 +6,18 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["400", "600"],
 });
 
-export default function CommonFooter() {
-  const companyLinks = [
-    "About us",
-    "Blogs",
-    "Contact us",
-    "FAQs",
-  ];
+type CommonFooterProps = {
+  hideNewsletter?: boolean;
+};
 
-  const categoryLinks = [
-    "Fabrics",
-    "Core Materials",
-    "Finishes",
-    "Handles",
-    "Wall Decorative",
-    "Counter Tops",
-    "Flooring & Tiles",
-    "Hardware",
-    "Ceiling",
-    "Lighting",
-    "Glass",
-    "Mirrors",
-  ];
+type FooterLink = { label: string; href?: string };
 
-  const productLinks = [
-    "Bed Room Design",
-    "Kitchen Design",
-    "Living Room Design",
-    "Dining Room Design",
-    "Puja Room Design",
-    "Partition Design",
-    "Study Room Design",
-    "Office Room Design",
+export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
+  const companyLinks: FooterLink[] = [
+    { label: "About us", href: "/about-us" },
+    // { label: "Blogs" },
+    { label: "Contact us", href: "/contact-us" },
+    { label: "FAQs", href: "/faqs" },
   ];
 
   const socialLinks = [
@@ -82,7 +63,7 @@ export default function CommonFooter() {
       }}
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
-        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_0.95fr_1.2fr]">
+        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_1.2fr]">
           <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
@@ -154,55 +135,46 @@ export default function CommonFooter() {
             </div>
             <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
               {companyLinks.map((link) => (
-                <li key={link}>{link}</li>
+                <li key={link.label}>
+                  {link.href ? (
+                    <Link
+                      href={link.href}
+                      className="transition-opacity hover:text-white hover:opacity-100"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    link.label
+                  )}
+                </li>
               ))}
             </ul>
           </div>
 
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Categories
+          {!hideNewsletter && (
+            <div className="border-white/25 md:-ml-12 md:border-l md:pl-6">
+              <p className="max-w-xs text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
+                Subscribe to our newsletter for the latest design trends, offers,
+                and updates!
+              </p>
+              <div className="mt-4 text-[20px] font-semibold leading-normal tracking-[0%]">
+                Newsletter
+              </div>
+              <div className="mt-3 flex max-w-xs items-center overflow-hidden rounded-md border border-white/40 bg-white/10">
+                <input
+                  type="email"
+                  placeholder="Enter your Email Here"
+                  className="w-full bg-transparent px-3 py-2 text-[14px] font-normal leading-7 tracking-[0%] text-white placeholder:text-white/70 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  className="bg-[#ef5a2b] px-3 py-2 text-[14px] font-semibold leading-7 tracking-[0%] text-white"
+                >
+                  Subscribe
+                </button>
+              </div>
             </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {categoryLinks.map((link) => (
-                <li key={link}>{link}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Products
-            </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {productLinks.map((link) => (
-                <li key={link}>{link}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="border-white/25 md:-ml-12 md:border-l md:pl-6">
-            <p className="max-w-xs text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              Subscribe to our newsletter for the latest design trends, offers,
-              and updates!
-            </p>
-            <div className="mt-4 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Newsletter
-            </div>
-            <div className="mt-3 flex max-w-xs items-center overflow-hidden rounded-md border border-white/40 bg-white/10">
-              <input
-                type="email"
-                placeholder="Enter your Email Here"
-                className="w-full bg-transparent px-3 py-2 text-[14px] font-normal leading-7 tracking-[0%] text-white placeholder:text-white/70 focus:outline-none"
-              />
-              <button
-                type="button"
-                className="bg-[#ef5a2b] px-3 py-2 text-[14px] font-semibold leading-7 tracking-[0%] text-white"
-              >
-                Subscribe
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">

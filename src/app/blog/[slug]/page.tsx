@@ -72,26 +72,26 @@ export default function BlogDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
-      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
+      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-3 py-4 sm:px-6 sm:py-5 lg:px-8">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 sm:gap-4">
           <button
             type="button"
             onClick={() => router.push("/blog")}
-            className="hidden rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+            className="rounded-md border border-[#d9d2ca] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] transition hover:bg-[#f7f4ef] sm:px-4 sm:text-[11px] sm:tracking-[0.14em]"
           >
             Back to Blog
           </button>
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+            className="rounded-md border border-[#d9d2ca] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] transition hover:bg-[#f7f4ef] sm:px-4 sm:text-[11px] sm:tracking-[0.14em]"
           >
             Dashboard
           </button>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-5xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
         {isLoading ? (
           <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             Loading blog...
@@ -102,21 +102,21 @@ export default function BlogDetailsPage() {
           </div>
         ) : (
           <article className="overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-            <div className="space-y-3 border-b border-[#eee8df] px-6 py-6 sm:px-8">
-              <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
+            <div className="space-y-2.5 border-b border-[#eee8df] px-4 py-4 sm:space-y-3 sm:px-8 sm:py-6">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#9b9088] sm:gap-3 sm:text-[11px] sm:tracking-[0.12em]">
                 <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                 <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[#7c716a]">{blog.status}</span>
               </div>
-              <h1 className="text-3xl font-semibold leading-tight tracking-tight text-[#302824]">{blog.title}</h1>
+              <h1 className="text-2xl font-semibold leading-[1.15] tracking-tight text-[#302824] sm:text-3xl sm:leading-tight">{blog.title}</h1>
               {blog.category?.name && (
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[#9d958d]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9d958d] sm:text-xs sm:tracking-[0.14em]">
                   Category: {blog.category.name}
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-6 sm:px-8">
-              <div className="relative mb-7 h-72 w-full overflow-hidden rounded-md bg-[#f1ede8] sm:h-96">
+            <div className="px-4 py-4 sm:px-8 sm:py-6">
+              <div className="relative mb-5 h-52 w-full overflow-hidden rounded-md bg-[#f1ede8] sm:mb-7 sm:h-96">
                 {canShowImage ? (
                   <Image
                     src={imageUrl!}
@@ -135,13 +135,13 @@ export default function BlogDetailsPage() {
               </div>
 
               <div
-                className="prose prose-sm max-w-none text-[#534a44] prose-p:leading-7 prose-headings:text-[#302824]"
+                className="prose prose-sm max-w-none text-[#534a44] prose-p:leading-6 prose-headings:text-[#302824] sm:prose-p:leading-7"
                 dangerouslySetInnerHTML={{ __html: blog.body }}
               />
 
               {relevantBlogs.length > 0 && (
-                <div className="mt-10 border-t border-[#eee8df] pt-8">
-                  <h2 className="text-2xl font-semibold tracking-tight text-[#302824]">
+                <div className="mt-7 border-t border-[#eee8df] pt-6 sm:mt-10 sm:pt-8">
+                  <h2 className="text-xl font-semibold tracking-tight text-[#302824] sm:text-2xl">
                     Relevant Articles
                   </h2>
                   <div className="mt-4 grid gap-3">
