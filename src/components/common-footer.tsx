@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -9,48 +10,48 @@ type CommonFooterProps = {
   hideNewsletter?: boolean;
 };
 
+type FooterLink = { label: string; href?: string };
+
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
-  const companyLinks = [
-    "About us",
-    "Blogs",
-    "Contact us",
-    "FAQs",
-  ];
-
-  const categoryLinks = [
-    "Fabrics",
-    "Core Materials",
-    "Finishes",
-    "Handles",
-    "Wall Decorative",
-    "Counter Tops",
-    "Flooring & Tiles",
-    "Hardware",
-    "Ceiling",
-    "Lighting",
-    "Glass",
-    "Mirrors",
-  ];
-
-  const productLinks = [
-    "Bed Room Design",
-    "Kitchen Design",
-    "Living Room Design",
-    "Dining Room Design",
-    "Puja Room Design",
-    "Partition Design",
-    "Study Room Design",
-    "Office Room Design",
+  const companyLinks: FooterLink[] = [
+    { label: "About us", href: "/about-us" },
+    // { label: "Blogs" },
+    { label: "Contact us", href: "/contact-us" },
+    { label: "FAQs", href: "/faqs" },
   ];
 
   const socialLinks = [
-    { id: "IG", label: "Instagram" },
-    { id: "FB", label: "Facebook" },
-    { id: "YT", label: "YouTube" },
-    { id: "LI", label: "LinkedIn" },
-    { id: "TW", label: "Twitter" },
-    { id: "PT", label: "Pinterest" },
-    { id: "WA", label: "WhatsApp" },
+    {
+      id: "IG",
+      label: "Instagram",
+      url: "https://www.instagram.com/customfurnish/",
+    },
+    {
+      id: "FB",
+      label: "Facebook",
+      url: "https://www.facebook.com/customfurnish",
+    },
+    {
+      id: "YT",
+      label: "YouTube",
+      url: "https://www.youtube.com/@Customfurnish",
+    },
+    {
+      id: "LI",
+      label: "LinkedIn",
+      url: "https://www.linkedin.com/company/customfurnish-official",
+    },
+    { id: "TW", label: "Twitter", url: "https://x.com/CustomFurnish1" },
+    {
+      id: "PT",
+      label: "Pinterest",
+      url: "https://in.pinterest.com/customfurnishin/",
+    },
+    {
+      id: "WA",
+      label: "WhatsApp",
+      url: "https://api.whatsapp.com/send/?phone=916301734646&text&type=phone_number&app_absent=0",
+    },
   ];
 
   return (
@@ -62,7 +63,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
       }}
     >
       <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
-        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_0.95fr_0.95fr_1.2fr]">
+        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_1.2fr]">
           <div className="space-y-8">
             <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
               CustomFurnish
@@ -73,10 +74,12 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </p>
             <div className="flex items-center gap-2">
               {socialLinks.map((item) => (
-                <button
+                <a
                   key={item.id}
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white"
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white transition-opacity hover:opacity-80"
                   aria-label={item.label}
                 >
                   {item.id === "IG" && (
@@ -121,7 +124,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
                       <path d="M9.7 9.4c.2-.3.5-.4.8-.2l1.1.8c.3.2.4.5.2.8l-.4.7c.5 1 1.3 1.8 2.3 2.3l.7-.4c.3-.2.6-.1.8.2l.8 1.1c.2.3.1.6-.2.8-.6.4-1.3.6-2 .5-2.7-.4-4.9-2.6-5.3-5.3-.1-.7.1-1.4.5-2z" />
                     </svg>
                   )}
-                </button>
+                </a>
               ))}
             </div>
           </div>
@@ -132,29 +135,18 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </div>
             <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
               {companyLinks.map((link) => (
-                <li key={link}>{link}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Categories
-            </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {categoryLinks.map((link) => (
-                <li key={link}>{link}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
-              Products
-            </div>
-            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-              {productLinks.map((link) => (
-                <li key={link}>{link}</li>
+                <li key={link.label}>
+                  {link.href ? (
+                    <Link
+                      href={link.href}
+                      className="transition-opacity hover:text-white hover:opacity-100"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    link.label
+                  )}
+                </li>
               ))}
             </ul>
           </div>
@@ -187,7 +179,15 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">
           <div>© 2026 CustomFurnish.com</div>
-          <div>Terms & Conditions | Privacy Policy</div>
+          <div className="flex items-center gap-1">
+            <Link href="/terms-and-conditions" className="hover:text-white hover:underline">
+              Terms & Conditions
+            </Link>
+            <span>|</span>
+            <Link href="/privacy-policy" className="hover:text-white hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

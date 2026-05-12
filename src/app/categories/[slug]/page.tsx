@@ -17,9 +17,67 @@ import { blogPublicPath } from "@/lib/blog-path";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
-const CATEGORY_BANNER_BY_SLUG: Record<string, string> = {
-  "handles-knobs": "/handle.jpg",
+
+/** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
+const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
+  finishes: "finishes2.webp",
+  finish: "finishes2.webp",
+  fabrics: "fabrics2.webp",
+  fabric: "fabrics2.webp",
+  glass: "glass.webp",
+  hardware: "hardware.webp",
+  mirrors: "Mirrors.webp",
+  mirror: "Mirrors.webp",
+  lighting: "ligting1.webp",
+  lights: "ligting1.webp",
+  handles: "Handels.webp",
+  "handles-knobs": "Handels.webp",
+  "handles-and-knobs": "Handels.webp",
+  knobs: "Handels.webp",
+  "wall-decorative": "wall panels1.webp",
+  "wall-decorative-panels": "wall panels1.webp",
+  "wall-panels": "wall panels1.webp",
+  "wall-panels-and-cladding": "wall panels1.webp",
+  "counter-tops": "Counter tops.webp",
+  countertops: "Counter tops.webp",
+  flooring: "Flooring1.webp",
+  "flooring-tiles": "Flooring1.webp",
+  "flooring-and-tiles": "Flooring1.webp",
+  tiles: "Flooring1.webp",
+  "core-materials": "Core material.webp",
+  "core-material": "Core material.webp",
+  core: "Core material.webp",
+  ceiling: "False celings1.webp",
+  ceilings: "False celings1.webp",
+  "false-ceiling": "False celings1.webp",
+  "false-ceilings": "False celings1.webp",
 };
+
+function normalizeCategoryBannerKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function categoryBannerS3Url(fileName: string) {
+  const path = ["category banner", "categories banner", fileName]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${BLOG_IMAGE_BASE_URL}/${path}`;
+}
+
+function resolveCategoryBannerUrl(slug: string, categoryName?: string | null) {
+  const keys = [slug, categoryName ?? ""].filter((v) => v.trim().length > 0).map(normalizeCategoryBannerKey);
+  for (const key of keys) {
+    const file = CATEGORY_BANNER_FILE_BY_KEY[key];
+    if (file) return categoryBannerS3Url(file);
+  }
+  return DEFAULT_CATEGORY_BANNER_URL;
+}
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -364,16 +422,15 @@ export default function CategoryProductsPage() {
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size;
-  const categoryBannerUrl =
-    CATEGORY_BANNER_BY_SLUG[slug] ?? DEFAULT_CATEGORY_BANNER_URL;
+  const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
       <CommonStoreHeader
-        pageTitle="CustomFurnish"
-        breadcrumbText={`Home  >  ${category?.name ?? "Category"}`}
+        pageTitle=""
+        breadcrumbText={`HOME  >  ${category?.name ?? "Category"}`}
         breadcrumbItems={[
-          { label: "Home", href: "/dashboard" },
+          { label: "HOME", href: "/dashboard" },
           { label: category?.name ?? "Category" },
         ]}
         userName={userName}
@@ -408,9 +465,6 @@ export default function CategoryProductsPage() {
           </div>
           <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">
             Filter
-          </div>
-          <div className="mt-1 text-[28px] font-black uppercase leading-none tracking-tight text-[#3d4f67]">
-            Finishes
           </div>
 
           {shouldShowBrand ? (
@@ -532,14 +586,20 @@ export default function CategoryProductsPage() {
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
           {categoryBannerUrl ? (
             <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
-              <div className="relative h-[220px] w-full sm:h-[300px]">
+              {/* Category banners have a natural ~3.84:1 aspect ratio (4489x1170).
+                  Below lg we keep fixed pixel heights so the banner doesn't get too
+                  short on phones/tablets; from lg upward we honour the image ratio so
+                  the full banner is visible on wide laptops and desktops (no top/bottom crop). */}
+              <div className="relative h-[220px] w-full sm:h-[300px] lg:h-auto lg:aspect-[4489/1170]">
                 <Image
                   src={categoryBannerUrl}
                   alt={`${category?.name ?? "Category"} banner`}
                   fill
                   unoptimized
                   sizes="(max-width: 1024px) 100vw, 1200px"
-                  className="object-fill"
+                  loading="eager"
+                  fetchPriority="high"
+                  className="object-cover object-center"
                 />
               </div>
             </div>

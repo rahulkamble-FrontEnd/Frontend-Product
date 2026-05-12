@@ -178,21 +178,21 @@ export default function SubcategoriesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      <header className="border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8 shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="border-b border-gray-200 bg-white px-3 py-4 sm:px-6 lg:px-8 shadow-sm">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button
               onClick={() => router.push("/dashboard")}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
-            <div>
-              <h1 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Sub-Category Management</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg font-black uppercase tracking-tight text-[#4d2c1e] sm:text-xl">Sub-Category Management</h1>
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Create · Update · Delete · Manage</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:flex-nowrap md:gap-3">
             <select
               value={typeFilter}
               onChange={(e) =>
@@ -224,7 +224,7 @@ export default function SubcategoriesPage() {
             </select>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="rounded-md bg-black px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#ffde59] shadow-md hover:opacity-90 transition-all"
+              className="rounded-md bg-black px-4 py-2 text-[10px] font-black uppercase tracking-wider text-[#ffde59] shadow-md transition-all hover:opacity-90 md:ml-auto"
             >
               Add Sub-Category
             </button>
@@ -232,43 +232,43 @@ export default function SubcategoriesPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
         {error && <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-bold text-red-600">{error}</div>}
         {message && <div className="mb-4 rounded-xl border border-green-100 bg-green-50 p-3 text-sm font-bold text-green-600">{message}</div>}
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[980px] text-left">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sub-Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Sub-Category ID</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Parent Category</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Type</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400">Slug</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 text-right">Actions</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Sub-Category</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Sub-Category ID</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Parent Category</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Type</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Slug</th>
+                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-sm text-gray-500">Loading...</td>
+                    <td colSpan={6} className="px-4 py-8 text-sm text-gray-500 sm:px-6">Loading...</td>
                   </tr>
                 ) : filteredSubcategories.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-sm text-gray-500">
+                    <td colSpan={6} className="px-4 py-8 text-sm text-gray-500 sm:px-6">
                       No sub-categories found for selected filter.
                     </td>
                   </tr>
                 ) : (
                   filteredSubcategories.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">{item.name}</td>
-                      <td className="px-6 py-4 text-xs font-mono text-gray-500">{item.id}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{item.parentName}</td>
-                      <td className="px-6 py-4 text-[11px] uppercase text-gray-600">{item.type}</td>
-                      <td className="px-6 py-4 text-xs font-mono text-gray-400">{item.slug}</td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-4 text-sm font-bold text-gray-900 sm:px-6">{item.name}</td>
+                      <td className="px-4 py-4 text-xs font-mono text-gray-500 sm:px-6">{item.id}</td>
+                      <td className="px-4 py-4 text-sm text-gray-700 sm:px-6">{item.parentName}</td>
+                      <td className="px-4 py-4 text-[11px] uppercase text-gray-600 sm:px-6">{item.type}</td>
+                      <td className="px-4 py-4 text-xs font-mono text-gray-400 sm:px-6">{item.slug}</td>
+                      <td className="px-4 py-4 text-right sm:px-6">
                         <div className="flex justify-end gap-3">
                           <button
                             className="text-[10px] font-black uppercase tracking-widest text-[#4d2c1e] hover:underline"
