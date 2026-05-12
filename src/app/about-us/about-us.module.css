@@ -1,0 +1,451 @@
+/* About Us layout ported from cf-angular-web/src/app/about-us/about-us.component.css.
+   Color tokens have been re-mapped to this project's light cream-and-gold theme
+   (matching common-store-header / common-footer). */
+
+.container {
+    --bg-primary: #F8F0E4;
+    --bg-secondary: #efe3cf;
+    --bg-black: #1f1f1f;
+    --text-primary: #1f1f1f;
+    --text-secondary: #6b7280;
+    --border-secondary-color: #d9cab5;
+    --brand-accent: #8A6A3A;
+    --brand-accent-strong: #7A5C2E;
+    --font-secondary: "Plus Jakarta Sans", "Inter", sans-serif;
+    --common-transition: all .2s ease-in-out;
+
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
+.container *,
+.container *::before,
+.container *::after {
+    box-sizing: border-box;
+}
+
+.headerContainer {
+    width: 100%;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-secondary-color);
+}
+
+.header {
+    font-size: 16px;
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 0;
+    color: var(--bg-black);
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    background: var(--bg-primary);
+    gap: 14px;
+    font-family: var(--font-secondary) !important;
+}
+
+.headerText {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-family: var(--font-secondary) !important;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: normal;
+    transition: var(--common-transition);
+}
+
+.headerText:hover {
+    color: var(--text-primary);
+}
+
+.activePath {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+}
+
+.aboutSection {
+    display: flex;
+    align-items: flex-start;
+    gap: 72px;
+    padding-top: 80px;
+    padding-bottom: 60px;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+}
+
+.aboutContent {
+    display: flex;
+    flex-direction: column;
+    width: 40%;
+}
+
+.aboutHeadingTxt {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 28px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    margin-bottom: 36px !important;
+}
+
+.aboutContentTxt {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    margin-bottom: 24px;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+.aboutImage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50%;
+}
+
+.aboutImage img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    max-height: 500px;
+}
+
+.discoverSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 96px;
+    text-align: center;
+    padding: 60px 0;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    background: var(--bg-primary);
+}
+
+.excellenceSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 96px;
+    text-align: center;
+    padding: 60px 0;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+}
+
+.discoverSectionHeader {
+    color: var(--text-primary);
+    text-align: center;
+    font-family: "Montserrat", sans-serif;
+    font-size: 40px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    letter-spacing: -1.2px;
+    margin: 0;
+}
+
+.discoverContainer {
+    display: flex;
+    justify-content: space-between;
+    gap: 72px;
+    width: 100%;
+}
+
+.reverse {
+    flex-direction: row-reverse;
+}
+
+.youtubeCard {
+    aspect-ratio: 1.77;
+    background-color: var(--bg-secondary);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50%;
+}
+
+.youtubeCard iframe {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 1.77;
+    border: 0;
+    display: block;
+}
+
+.mydezinerImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.discoverContent {
+    width: 50%;
+    text-align: left;
+}
+
+.discoverContentTxt {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 400;
+    line-height: 28px;
+    margin-bottom: 16px;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+.achievementsSection {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    gap: 96px;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    background: var(--bg-primary);
+}
+
+.achievementsHeader {
+    color: var(--text-primary);
+    font-family: "Montserrat", sans-serif;
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: -1.2px;
+    margin: 0 0 100px;
+}
+
+.achievementsImage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 45px;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.achievementsImage img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+@media (min-width: 1920px) {
+    .aboutSection {
+        width: 1680px;
+        padding-top: 80px;
+        padding-bottom: 75px;
+    }
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 1680px;
+        padding: 75px 0;
+        gap: 96px;
+    }
+    .header {
+        width: 1680px;
+    }
+}
+
+@media (max-width: 1919px) {
+    .aboutSection {
+        width: 1440px;
+        padding-top: 72px;
+        padding-bottom: 60px;
+    }
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 1440px;
+        padding: 60px 0;
+        gap: 72px;
+    }
+    .header {
+        width: 1440px;
+    }
+}
+
+@media (max-width: 1679px) {
+    .aboutSection {
+        width: 1280px;
+        padding-top: 64px;
+        padding-bottom: 50px;
+    }
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 1280px;
+        padding: 50px 0;
+        gap: 64px;
+    }
+    .header {
+        width: 1280px;
+    }
+}
+
+@media (max-width: 1439px) {
+    .aboutSection {
+        width: 90%;
+        padding-top: 64px;
+        padding-bottom: 50px;
+    }
+    .aboutSection,
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 90%;
+        padding: 50px 0;
+    }
+    .header {
+        width: 90%;
+    }
+    .aboutSection,
+    .discoverContainer {
+        gap: 56px;
+    }
+}
+
+@media (min-width: 1100px) {
+    .achievementsImage {
+        padding: 0 10%;
+    }
+}
+
+@media (max-width: 1100px) {
+    .discoverSection,
+    .excellenceSection {
+        gap: 40px;
+    }
+    .aboutSection {
+        flex-direction: column;
+        gap: 20px;
+    }
+    .discoverContainer {
+        gap: 40px;
+        padding: 0;
+    }
+    .aboutContent {
+        width: 100%;
+        padding: 0;
+    }
+    .aboutImage,
+    .youtubeCard,
+    .discoverContent {
+        width: 100%;
+    }
+    .discoverContainer {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 674px) {
+    .aboutSection {
+        width: 100%;
+        padding: 80px 24px 40px 24px;
+    }
+    .aboutSection,
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 100%;
+        padding: 40px 24px;
+    }
+    .achievementsImage {
+        grid-template-columns: 1fr;
+    }
+    .discoverSectionHeader,
+    .achievementsHeader {
+        font-size: 28px;
+        letter-spacing: -0.6px;
+    }
+    .achievementsHeader {
+        margin-bottom: 40px;
+    }
+}
+
+/* Lightbox (achievements popup) */
+.lightboxOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    cursor: zoom-out;
+}
+
+.lightboxImg {
+    max-width: 92vw;
+    max-height: 88vh;
+    object-fit: contain;
+    cursor: default;
+    user-select: none;
+}
+
+.lightboxClose,
+.lightboxNav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease-in-out;
+}
+
+.lightboxNav:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.lightboxPrev {
+    left: 24px;
+}
+
+.lightboxNext {
+    right: 24px;
+}
+
+.lightboxClose {
+    top: 24px;
+    right: 24px;
+    transform: none;
+    font-size: 26px;
+}
+
+@media (max-width: 674px) {
+    .lightboxPrev {
+        left: 8px;
+    }
+    .lightboxNext {
+        right: 8px;
+    }
+    .lightboxClose {
+        top: 12px;
+        right: 12px;
+    }
+}

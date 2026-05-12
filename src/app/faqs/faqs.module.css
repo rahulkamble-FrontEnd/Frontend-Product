@@ -1,0 +1,314 @@
+/* FAQs layout ported from
+   cf-angular-web/src/app/home/components/frequently-asked-questions/frequently-asked-questions.component.css.
+   Colors re-mapped to this project's light cream-and-gold theme. */
+
+.container {
+    --bg-primary: #F8F0E4;
+    --bg-secondary: #efe3cf;
+    --bg-black: #1f1f1f;
+    --text-primary: #1f1f1f;
+    --text-secondary: #6b7280;
+    --border-secondary-color: #d9cab5;
+    --panel-border: #d9cab5;
+    --panel-hover: #f1e6d3;
+    --brand-accent: #8A6A3A;
+    --brand-accent-strong: #7A5C2E;
+    --font-secondary: "Plus Jakarta Sans", "Inter", sans-serif;
+    --common-transition: all .2s ease-in-out;
+
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-sizing: border-box;
+}
+
+.container *,
+.container *::before,
+.container *::after {
+    box-sizing: border-box;
+}
+
+.headerContainer {
+    width: 100%;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-secondary-color);
+}
+
+.header {
+    font-size: 16px;
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 0;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+    background: var(--bg-primary);
+    gap: 14px;
+    font-family: var(--font-secondary) !important;
+}
+
+.headerText {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-family: var(--font-secondary) !important;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: normal;
+    transition: var(--common-transition);
+}
+
+.headerText:hover {
+    color: var(--text-primary);
+}
+
+.sub {
+    background: var(--bg-primary);
+    padding: 150px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 96px;
+    width: calc(min(1440px, 100vw) - (min(100vw, 1440px) / 4));
+    margin: auto;
+}
+
+.mainHeading {
+    margin: 0 0 24px;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 48px;
+    font-weight: 600;
+    line-height: normal;
+    text-align: left;
+}
+
+.contentWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+}
+
+.panel {
+    margin: 0;
+    background: var(--bg-primary);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.2s ease-in-out;
+}
+
+.panel:hover {
+    border-color: var(--brand-accent);
+}
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    width: 100%;
+    padding: 20px;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.panelHeader:hover {
+    background: var(--panel-hover);
+}
+
+.panelHeader:active {
+    transform: scale(0.997);
+}
+
+.headerSec {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+}
+
+.number {
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 18px;
+    line-height: normal;
+    flex-shrink: 0;
+}
+
+.heading {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.inactiveHeading {
+    color: var(--text-secondary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: normal;
+}
+
+.numberActive {
+    color: var(--brand-accent);
+    font-weight: 600;
+}
+
+.numberInactive {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.toggleIcon {
+    color: var(--text-primary);
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 24px;
+    text-align: center;
+    user-select: none;
+}
+
+.toggleIconInactive {
+    color: var(--text-secondary);
+}
+
+.panelBody {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+    padding: 0 20px;
+    background: var(--bg-primary);
+}
+
+.panelBodyOpen {
+    max-height: 1200px;
+    padding: 0 20px 20px;
+}
+
+.panelBody p {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+}
+
+.panelBody strong {
+    display: block;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 28px;
+}
+
+.panelBody ul {
+    margin: 0;
+    padding-left: 24px;
+    line-height: 2.2;
+}
+
+.panelBody li {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+@media (min-width: 1920px) {
+    .header {
+        width: 1680px;
+    }
+    .sub {
+        width: 1680px;
+        padding: 100px 0;
+        gap: 64px;
+    }
+    .mainHeading {
+        font-size: 48px;
+    }
+}
+
+@media (max-width: 1919px) {
+    .header {
+        width: 1440px;
+    }
+    .sub {
+        width: 1440px;
+        padding: 90px 0;
+        gap: 56px;
+    }
+}
+
+@media (max-width: 1679px) {
+    .header {
+        width: 1280px;
+    }
+    .sub {
+        width: 1280px;
+        padding: 80px 0;
+        gap: 48px;
+    }
+}
+
+@media (max-width: 1439px) {
+    .header {
+        width: 90%;
+    }
+    .sub {
+        width: 90%;
+        padding: 72px 0;
+        gap: 40px;
+    }
+}
+
+@media (max-width: 936px) {
+    .sub {
+        padding: 56px 0;
+        gap: 32px;
+    }
+    .mainHeading {
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+    .heading,
+    .inactiveHeading {
+        font-size: 16px;
+    }
+    .number {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 510px) {
+    .panelHeader {
+        padding: 18px 16px;
+        gap: 12px;
+    }
+    .panelBody {
+        padding: 0 16px;
+    }
+    .panelBodyOpen {
+        padding: 0 16px 18px;
+    }
+    .headerSec {
+        gap: 12px;
+    }
+    .mainHeading {
+        font-size: 28px;
+    }
+    .toggleIcon {
+        font-size: 26px;
+    }
+}

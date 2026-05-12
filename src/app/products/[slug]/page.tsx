@@ -470,10 +470,10 @@ export default function ProductDetailsPage() {
   return (
     <div className="min-h-screen bg-[#f3eee5] font-sans text-gray-900">
       <CommonStoreHeader
-        pageTitle="CustomFurnish"
-        breadcrumbText={`Home  >  ${product?.name ?? "Product Details"}`}
+        pageTitle=""
+        breadcrumbText={`HOME  >  ${product?.name ?? "Product Details"}`}
         breadcrumbItems={[
-          { label: "Home", href: "/dashboard" },
+          { label: "HOME", href: "/dashboard" },
           ...(product?.categories?.[0]?.slug
             ? [
                 {
