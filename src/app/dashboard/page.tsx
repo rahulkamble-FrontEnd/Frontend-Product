@@ -176,6 +176,9 @@ export default function DashboardPage() {
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
+  const latestProductsScrollRef = useRef<HTMLDivElement | null>(null);
+  const showcaseDesignsScrollRef = useRef<HTMLDivElement | null>(null);
+  const relevantArticlesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [isBindCategoriesOpen, setIsBindCategoriesOpen] = useState(false);
   const [bindProductId, setBindProductId] = useState("");
@@ -454,13 +457,13 @@ export default function DashboardPage() {
     ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
   ].slice(0, 4);
   const latestProductCards: Array<ProductListItem | null> = [
-    ...latestProducts.slice(0, 4),
-    ...Array.from({ length: Math.max(0, 4 - latestProducts.length) }, () => null),
-  ].slice(0, 4);
+    ...latestProducts.slice(0, 8),
+    ...Array.from({ length: Math.max(0, 8 - latestProducts.length) }, () => null),
+  ].slice(0, 8);
   const showcaseDesignCards: Array<DesignCfEntry | null> = [
-    ...designCfEntries.slice(0, 5),
-    ...Array.from({ length: Math.max(0, 5 - designCfEntries.length) }, () => null),
-  ].slice(0, 5);
+    ...designCfEntries.slice(0, 8),
+    ...Array.from({ length: Math.max(0, 8 - designCfEntries.length) }, () => null),
+  ].slice(0, 8);
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length < 2) {
@@ -851,7 +854,7 @@ export default function DashboardPage() {
     try {
       const res = await getProducts({
         page: 1,
-        limit: 4,
+        limit: 8,
         includeImages: true,
         includeCategories: true,
       });
@@ -861,7 +864,7 @@ export default function DashboardPage() {
         const bTime = new Date(b.createdAt || "").getTime();
         return bTime - aTime;
       });
-      setLatestProducts(sortedByNewest.slice(0, 4));
+      setLatestProducts(sortedByNewest.slice(0, 8));
     } catch {
       setLatestProducts([]);
     } finally {
@@ -888,7 +891,7 @@ export default function DashboardPage() {
         const bTime = new Date(b.createdAt || "").getTime();
         return bTime - aTime;
       });
-      setLatestBlogs(sortedByNewest.slice(0, 4));
+      setLatestBlogs(sortedByNewest.slice(0, 8));
     } catch (err: unknown) {
       setLatestBlogs([]);
       setLatestBlogsError(err instanceof Error ? err.message : "Failed to load latest blogs.");
@@ -2002,7 +2005,7 @@ export default function DashboardPage() {
       try {
         const data = await getDesignCfEntries();
         if (isMounted) {
-          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 5) : []);
+          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 8) : []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -2266,6 +2269,30 @@ export default function DashboardPage() {
   const scrollCategoryTiles = (direction: "left" | "right") => {
     if (!categoryTilesScrollRef.current) return;
     categoryTilesScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollLatestProducts = (direction: "left" | "right") => {
+    if (!latestProductsScrollRef.current) return;
+    latestProductsScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollShowcaseDesigns = (direction: "left" | "right") => {
+    if (!showcaseDesignsScrollRef.current) return;
+    showcaseDesignsScrollRef.current.scrollBy({
+      left: direction === "left" ? -420 : 420,
+      behavior: "smooth",
+    });
+  };
+
+  const scrollRelevantArticles = (direction: "left" | "right") => {
+    if (!relevantArticlesScrollRef.current) return;
+    relevantArticlesScrollRef.current.scrollBy({
       left: direction === "left" ? -420 : 420,
       behavior: "smooth",
     });
@@ -3595,13 +3622,24 @@ export default function DashboardPage() {
                 View the latest products launch recently
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => router.push("/products")}
-              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
-            >
-              View All Products
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => scrollLatestProducts("left")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll latest products left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollLatestProducts("right")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll latest products right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
 
           {isLoadingLatestProducts ? (
@@ -3609,7 +3647,10 @@ export default function DashboardPage() {
               Loading latest products...
             </div>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:justify-items-center sm:gap-3 sm:overflow-visible lg:grid-cols-4 lg:gap-4">
+            <div
+              ref={latestProductsScrollRef}
+              className="flex gap-3 overflow-x-auto pb-4 pr-2 scrollbar-hide sm:gap-4"
+            >
               {latestProductCards.map((product, idx) => {
                 const imageUrl =
                   (product ? inlineProductImageUrl(product) : null) ||
@@ -3633,11 +3674,11 @@ export default function DashboardPage() {
                         router.push(`/products/${product.slug}`);
                       }
                     }}
-                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[410px] sm:w-full sm:max-w-[340px] sm:rounded-2xl sm:p-2.5 ${
+                    className={`min-h-[280px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:min-h-[380px] sm:w-[280px] sm:rounded-2xl sm:p-2.5 ${
                       product?.slug ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#8A6A3A] focus:ring-offset-2" : ""
                     }`}
                   >
-                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[296px] sm:rounded-[14px]">
+                    <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[260px] sm:rounded-[14px]">
                       <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
                     </div>
                     <div className="mt-2 rounded-[10px] bg-[#e8dfd0] px-2.5 py-2 sm:rounded-[14px] sm:px-3">
@@ -3658,20 +3699,45 @@ export default function DashboardPage() {
 
       <section className="bg-[#F8F0E4] py-10 sm:py-12">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
-          <div className="mx-auto max-w-[1449px] text-center">
-          <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">Designs done by CustomFurnish</h3>
-          <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
-            See how we transform spaces into beautiful homes.
-          </p>
+          <div className="relative mb-6">
+            <div className="mx-auto max-w-[1449px] text-center">
+              <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
+                Designs done by CustomFurnish
+              </h3>
+              <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
+                See how we transform spaces into beautiful homes.
+              </p>
+            </div>
+            <div className="absolute bottom-0 right-0 flex items-center gap-2 sm:top-1/2 sm:-translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("left")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("right")}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
           {designCfEntriesError && (
             <div className="mx-auto mt-4 max-w-[1449px] rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
               {designCfEntriesError}
             </div>
           )}
-          <div className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-8 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible lg:flex-nowrap">
+          <div
+            ref={showcaseDesignsScrollRef}
+            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-8 sm:gap-5"
+          >
           {isLoadingDesignCfEntries ? (
-            Array.from({ length: 5 }).map((_, idx) => (
+            Array.from({ length: 8 }).map((_, idx) => (
               <div
                 key={`design-cf-loading-${idx}`}
                 className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
@@ -3686,6 +3752,9 @@ export default function DashboardPage() {
               "Living Room Design",
               "Dining Room Design",
               "Puja Room Design",
+              "Balcony Design",
+              "Guest Room Design",
+              "Study Room Design",
             ] as const;
             const label = (product?.title || showcaseLabels[idx] || "Design").trim();
             const cardImageUrl = product?.coverImageUrl || imageUrl;
@@ -3713,39 +3782,44 @@ export default function DashboardPage() {
       </section>
 
       <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
-        <div className={`${dashboardShellClass} px-4 sm:px-0`}>
-          <div className="flex items-center justify-between">
-            <h3 className="ml-0 text-[24px] font-bold leading-[30px] text-[#977543] sm:ml-[60px] sm:text-[36px] sm:leading-[40px]">
+        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
+          <div className="relative mx-auto flex max-w-[1449px] items-center justify-between">
+            <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
               Relevant Articles
             </h3>
-            <div className="mr-[80px] hidden items-center gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                onClick={() => scrollRelevantArticles("left")}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Previous relevant article"
               >
-                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="m15 18-6-6 6-6" />
                 </svg>
               </button>
               <button
                 type="button"
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-[#AE8953] text-white"
+                onClick={() => scrollRelevantArticles("right")}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Next relevant article"
               >
-                <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
               </button>
             </div>
           </div>
 
-          <div className="mt-6 flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:mt-12 sm:flex-wrap sm:justify-center sm:gap-5 sm:overflow-visible">
+          <div 
+            ref={relevantArticlesScrollRef}
+            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-12 sm:gap-5"
+          >
             {isLoadingLatestBlogs ? (
-              Array.from({ length: 4 }).map((_, idx) => (
+              Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-full sm:max-w-[280px] sm:rounded-[18px]"
+                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
