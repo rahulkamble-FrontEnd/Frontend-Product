@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -9,12 +10,14 @@ type CommonFooterProps = {
   hideNewsletter?: boolean;
 };
 
+type FooterLink = { label: string; href?: string };
+
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
-  const companyLinks = [
-    "About us",
-    "Blogs",
-    "Contact us",
-    "FAQs",
+  const companyLinks: FooterLink[] = [
+    { label: "About us", href: "/about-us" },
+    { label: "Blogs" },
+    { label: "Contact us" },
+    { label: "FAQs" },
   ];
 
   const categoryLinks = [
@@ -132,7 +135,18 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </div>
             <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
               {companyLinks.map((link) => (
-                <li key={link}>{link}</li>
+                <li key={link.label}>
+                  {link.href ? (
+                    <Link
+                      href={link.href}
+                      className="transition-opacity hover:text-white hover:opacity-100"
+                    >
+                      {link.label}
+                    </Link>
+                  ) : (
+                    link.label
+                  )}
+                </li>
               ))}
             </ul>
           </div>
