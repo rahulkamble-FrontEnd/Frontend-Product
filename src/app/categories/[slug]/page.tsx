@@ -588,13 +588,19 @@ export default function CategoryProductsPage() {
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
           {categoryBannerUrl ? (
             <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
-              <div className="relative h-[220px] w-full sm:h-[300px]">
+              {/* Category banners have a natural ~3.84:1 aspect ratio (4489x1170).
+                  Below lg we keep fixed pixel heights so the banner doesn't get too
+                  short on phones/tablets; from lg upward we honour the image ratio so
+                  the full banner is visible on wide laptops and desktops (no top/bottom crop). */}
+              <div className="relative h-[220px] w-full sm:h-[300px] lg:h-auto lg:aspect-[4489/1170]">
                 <Image
                   src={categoryBannerUrl}
                   alt={`${category?.name ?? "Category"} banner`}
                   fill
                   unoptimized
                   sizes="(max-width: 1024px) 100vw, 1200px"
+                  loading="eager"
+                  fetchPriority="high"
                   className="object-cover object-center"
                 />
               </div>
