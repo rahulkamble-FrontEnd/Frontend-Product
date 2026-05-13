@@ -996,6 +996,23 @@ export type DeleteProductCategoryResponse = {
   message: string;
 };
 
+export async function subscribeNewsletter(email: string) {
+  const response = await fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Subscription failed');
+  }
+
+  return response.json();
+}
+
 export async function deleteProductCategory(productId: string, categoryId: string) {
   const pid = productId.trim();
   const cid = categoryId.trim();

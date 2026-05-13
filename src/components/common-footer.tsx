@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { useState } from "react";
+import { subscribeNewsletter } from "@/lib/api";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -13,6 +17,41 @@ type CommonFooterProps = {
 type FooterLink = { label: string; href?: string };
 
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      setStatus("error");
+      setMessage("email is required");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setStatus("error");
+      setMessage("please enter valid email");
+      return;
+    }
+
+    setStatus("loading");
+    setMessage("");
+
+    try {
+      await subscribeNewsletter(email);
+      setStatus("success");
+      setMessage("Thank you for subscribing!");
+      setEmail("");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      setStatus("error");
+      setMessage(errorMessage);
+    }
+  };
+
   const companyLinks: FooterLink[] = [
     { label: "About us", href: "/about-us" },
     // { label: "Blogs" },
@@ -160,19 +199,33 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
               <div className="mt-4 text-[20px] font-semibold leading-normal tracking-[0%]">
                 Newsletter
               </div>
-              <div className="mt-3 flex max-w-xs items-center overflow-hidden rounded-md border border-white/40 bg-white/10">
+              <form onSubmit={handleSubscribe} className="mt-3 flex max-w-xs items-center overflow-hidden rounded-md border border-white/40 bg-white/10">
                 <input
                   type="email"
                   placeholder="Enter your Email Here"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-transparent px-3 py-2 text-[14px] font-normal leading-7 tracking-[0%] text-white placeholder:text-white/70 focus:outline-none"
+                  disabled={status === "loading"}
                 />
                 <button
-                  type="button"
-                  className="bg-[#ef5a2b] px-3 py-2 text-[14px] font-semibold leading-7 tracking-[0%] text-white"
+                  type="submit"
+                  disabled={status === "loading"}
+                  className="bg-[#ef5a2b] px-3 py-2 text-[14px] font-semibold leading-7 tracking-[0%] text-white disabled:opacity-50"
                 >
-                  Subscribe
+                  {status === "loading" ? "..." : "Subscribe"}
                 </button>
-              </div>
+              </form>
+              {status === "error" && (
+                <div style={{ color: "red", marginTop: "10px", fontSize: "14px" }}>
+                  {message}
+                </div>
+              )}
+              {status === "success" && (
+                <div style={{ color: "#4BB543", marginTop: "10px", fontSize: "14px" }}>
+                  {message}
+                </div>
+              )}
             </div>
           )}
         </div>
