@@ -790,10 +790,14 @@ export async function updateProductStatus(productId: string, payload: UpdateProd
 }
 
 export type UpdateProductPayload = {
+  imsId?: string;
   name: string;
   sku: string;
   brand: string;
   description: string;
+  bookName?: string | null;
+  pageNumber?: string | null;
+  application?: string | null;
   materialType: string;
   finishType: string | null;
   colorName: string;
