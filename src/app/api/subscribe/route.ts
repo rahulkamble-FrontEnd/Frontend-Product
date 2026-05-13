@@ -58,17 +58,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Hardcoded headers to match the working curl request to customfurnish.com
     const response = await fetch(SUBSCRIBE_ENDPOINT, {
       method: "POST",
       headers: {
+        Accept: "application/json, text/plain, */*",
         "Content-Type": "application/json",
-        "Accept": "application/json, text/plain, */*",
         "User-Agent": BROWSER_UA,
-        "Referer": `${PYTHON_API_HOST}/`,
-        "Origin": PYTHON_API_HOST,
+        Referer: "https://www.customfurnish.com/",
+        "sec-ch-ua":
+          '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"Windows"',
       },
       body: JSON.stringify({ email }),
       cache: "no-store",
+      redirect: "follow",
     });
 
     const text = await response.text();
@@ -89,12 +94,19 @@ export async function POST(request: Request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error("Newsletter Proxy Error:", error);
+    const err = error as unknown as { message?: string; cause?: unknown };
     return NextResponse.json(
       {
         message: "Internal server error",
         // Helps confirm which upstream URL was attempted during debugging.
         upstreamUrl: SUBSCRIBE_ENDPOINT,
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          error instanceof Error
+            ? error.message
+            : err?.message
+              ? String(err.message)
+              : String(error),
+        cause: err?.cause ?? null,
       },
       { status: 500 }
     );
