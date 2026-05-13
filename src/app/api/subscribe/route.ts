@@ -8,6 +8,8 @@ const PYTHON_API_HOST =
   process.env.NEXT_PUBLIC_PYTHON_API_HOST ||
   "https://www.customfurnish.com";
 
+// Production subscribe endpoint (Java backend):
+// https://www.customfurnish.com/java/api/subscribe/create
 const SUBSCRIBE_ENDPOINT = `${PYTHON_API_HOST}/java/api/subscribe/create`;
 
 export async function POST(request: Request) {
