@@ -357,6 +357,8 @@ export async function getProducts(params?: {
   colorName?: string;
   includeImages?: boolean;
   includeCategories?: boolean;
+  sortBy?: "createdAt" | "updatedAt" | "name";
+  sortOrder?: "asc" | "desc";
 }) {
   const url = new URL(`${BASE_URL.replace('/auth', '')}/products`);
   if (params?.page) url.searchParams.set('page', String(params.page));
@@ -370,6 +372,8 @@ export async function getProducts(params?: {
   if (params?.colorName) url.searchParams.set('colorName', params.colorName);
   if (typeof params?.includeImages === 'boolean') url.searchParams.set('includeImages', String(params.includeImages));
   if (typeof params?.includeCategories === 'boolean') url.searchParams.set('includeCategories', String(params.includeCategories));
+  if (params?.sortBy) url.searchParams.set('sortBy', params.sortBy);
+  if (params?.sortOrder) url.searchParams.set('sortOrder', params.sortOrder);
 
   const response = await fetch(url.toString(), {
     method: 'GET',
