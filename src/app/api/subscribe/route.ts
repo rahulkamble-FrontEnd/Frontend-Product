@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import https from "node:https";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,44 @@ const PYTHON_API_HOST =
 // Production subscribe endpoint (Java backend):
 // https://www.customfurnish.com/java/api/subscribe/create
 const SUBSCRIBE_ENDPOINT = `${PYTHON_API_HOST.replace(/\/$/, "")}/java/api/subscribe/create`;
+
+const insecureHttpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+async function postJsonInsecure(url: string, body: unknown, headers: Record<string, string>) {
+  return new Promise<{ statusCode: number; statusMessage: string; headers: Record<string, string | string[] | undefined>; text: string }>(
+    (resolve, reject) => {
+      const u = new URL(url);
+      const req = https.request(
+        {
+          protocol: u.protocol,
+          hostname: u.hostname,
+          port: u.port || 443,
+          path: `${u.pathname}${u.search}`,
+          method: "POST",
+          headers,
+          agent: insecureHttpsAgent,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on("data", (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+          res.on("end", () => {
+            const text = Buffer.concat(chunks).toString("utf8");
+            resolve({
+              statusCode: res.statusCode ?? 0,
+              statusMessage: res.statusMessage ?? "",
+              headers: res.headers as Record<string, string | string[] | undefined>,
+              text,
+            });
+          });
+        }
+      );
+
+      req.on("error", reject);
+      req.write(JSON.stringify(body));
+      req.end();
+    }
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -59,9 +98,10 @@ export async function POST(request: Request) {
     }
 
     // Hardcoded headers to match the working curl request to customfurnish.com
-    const response = await fetch(SUBSCRIBE_ENDPOINT, {
-      method: "POST",
-      headers: {
+    const upstream = await postJsonInsecure(
+      SUBSCRIBE_ENDPOINT,
+      { email },
+      {
         Accept: "application/json, text/plain, */*",
         "Content-Type": "application/json",
         "User-Agent": BROWSER_UA,
@@ -70,13 +110,10 @@ export async function POST(request: Request) {
           '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
         "sec-ch-ua-mobile": "?0",
         "sec-ch-ua-platform": '"Windows"',
-      },
-      body: JSON.stringify({ email }),
-      cache: "no-store",
-      redirect: "follow",
-    });
+      }
+    );
 
-    const text = await response.text();
+    const text = upstream.text;
     let data;
     try {
       data = JSON.parse(text);
@@ -84,10 +121,10 @@ export async function POST(request: Request) {
       data = { message: text };
     }
 
-    if (!response.ok) {
+    if (upstream.statusCode < 200 || upstream.statusCode >= 300) {
       return NextResponse.json(
         { message: data.message || "Subscription failed on external server" },
-        { status: response.status }
+        { status: upstream.statusCode || 502 }
       );
     }
 
