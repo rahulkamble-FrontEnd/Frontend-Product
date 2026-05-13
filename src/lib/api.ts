@@ -816,6 +816,74 @@ export type UpdateProductResponse = ProductListItem & {
   deletedAt: string | null;
 };
 
+export type BulkUpdateProductsPayload = {
+  productIds: string[];
+  status?: "draft" | "active" | "archived" | "published";
+  brand?: string;
+  materialType?: string;
+  finishType?: string;
+  colorName?: string;
+  thickness?: string;
+  dimensions?: string;
+  performanceRating?: number;
+  durabilityRating?: number;
+  maintenanceRating?: number;
+};
+
+export type BulkUpdateProductsResponse = {
+  matchedCount: number;
+  updatedCount: number;
+};
+
+export async function bulkUpdateProducts(payload: BulkUpdateProductsPayload) {
+  const ids = Array.from(
+    new Set((payload?.productIds ?? []).map((id) => id?.trim()).filter(Boolean)),
+  );
+  if (ids.length === 0) throw new Error("At least one product id is required");
+
+  const body: Record<string, unknown> = { productIds: ids };
+  const stringKeys: Array<keyof Omit<BulkUpdateProductsPayload, "productIds" | "status">> = [
+    "brand",
+    "materialType",
+    "finishType",
+    "colorName",
+    "thickness",
+    "dimensions",
+  ];
+  for (const key of stringKeys) {
+    const raw = payload[key];
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (trimmed) body[key] = trimmed;
+  }
+  if (payload.status) body.status = payload.status;
+  if (typeof payload.performanceRating === "number" && Number.isFinite(payload.performanceRating)) {
+    body.performanceRating = payload.performanceRating;
+  }
+  if (typeof payload.durabilityRating === "number" && Number.isFinite(payload.durabilityRating)) {
+    body.durabilityRating = payload.durabilityRating;
+  }
+  if (typeof payload.maintenanceRating === "number" && Number.isFinite(payload.maintenanceRating)) {
+    body.maintenanceRating = payload.maintenanceRating;
+  }
+
+  if (Object.keys(body).length <= 1) {
+    throw new Error("At least one update field is required");
+  }
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-update`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to bulk update products");
+  }
+  return response.json() as Promise<BulkUpdateProductsResponse>;
+}
+
 export async function updateProduct(productId: string, payload: UpdateProductPayload) {
   const id = productId.trim();
   if (!id) throw new Error("Product id is required");
