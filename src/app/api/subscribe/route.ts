@@ -25,8 +25,31 @@ const SUBSCRIBE_ENDPOINT = `${PYTHON_API_HOST.replace(/\/$/, "")}/java/api/subsc
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email } = body;
+    // Be defensive: some clients/proxies may send an empty body or invalid JSON.
+    // Never 500 on bad input; return 400 instead.
+    let bodyText = "";
+    try {
+      bodyText = await request.text();
+    } catch {
+      bodyText = "";
+    }
+
+    let body: unknown = {};
+    if (bodyText) {
+      try {
+        body = JSON.parse(bodyText);
+      } catch {
+        return NextResponse.json(
+          { message: "Invalid JSON body" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const email =
+      typeof (body as { email?: unknown })?.email === "string"
+        ? (body as { email: string }).email
+        : "";
 
     if (!email) {
       return NextResponse.json(
@@ -45,6 +68,7 @@ export async function POST(request: Request) {
         "Origin": PYTHON_API_HOST,
       },
       body: JSON.stringify({ email }),
+      cache: "no-store",
     });
 
     const text = await response.text();
