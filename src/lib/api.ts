@@ -810,43 +810,165 @@ export type UpdateProductPayload = {
   status: "draft" | "active" | "archived" | "published";
 };
 
+export type UpdateProductPatchPayload = Partial<UpdateProductPayload>;
+
 export type UpdateProductResponse = ProductListItem & {
   deletedAt: string | null;
 };
+
+export type BulkUpdateProductsPayload = {
+  productIds: string[];
+  status?: "draft" | "active" | "archived" | "published";
+  brand?: string;
+  materialType?: string;
+  finishType?: string;
+  colorName?: string;
+  thickness?: string;
+  dimensions?: string;
+  performanceRating?: number;
+  durabilityRating?: number;
+  maintenanceRating?: number;
+};
+
+export type BulkUpdateProductsResponse = {
+  matchedCount: number;
+  updatedCount: number;
+};
+
+export async function bulkUpdateProducts(payload: BulkUpdateProductsPayload) {
+  const ids = Array.from(
+    new Set((payload?.productIds ?? []).map((id) => id?.trim()).filter(Boolean)),
+  );
+  if (ids.length === 0) throw new Error("At least one product id is required");
+
+  const body: Record<string, unknown> = { productIds: ids };
+  const stringKeys: Array<keyof Omit<BulkUpdateProductsPayload, "productIds" | "status">> = [
+    "brand",
+    "materialType",
+    "finishType",
+    "colorName",
+    "thickness",
+    "dimensions",
+  ];
+  for (const key of stringKeys) {
+    const raw = payload[key];
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (trimmed) body[key] = trimmed;
+  }
+  if (payload.status) body.status = payload.status;
+  if (typeof payload.performanceRating === "number" && Number.isFinite(payload.performanceRating)) {
+    body.performanceRating = payload.performanceRating;
+  }
+  if (typeof payload.durabilityRating === "number" && Number.isFinite(payload.durabilityRating)) {
+    body.durabilityRating = payload.durabilityRating;
+  }
+  if (typeof payload.maintenanceRating === "number" && Number.isFinite(payload.maintenanceRating)) {
+    body.maintenanceRating = payload.maintenanceRating;
+  }
+
+  if (Object.keys(body).length <= 1) {
+    throw new Error("At least one update field is required");
+  }
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-update`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to bulk update products");
+  }
+  return response.json() as Promise<BulkUpdateProductsResponse>;
+}
 
 export async function updateProduct(productId: string, payload: UpdateProductPayload) {
   const id = productId.trim();
   if (!id) throw new Error("Product id is required");
 
   if (!payload || typeof payload !== "object") throw new Error("Payload is required");
-  if (!payload.name?.trim()) throw new Error("name must be a non-empty string");
-  if (!payload.sku?.trim()) throw new Error("sku must be a non-empty string");
-  if (!payload.brand?.trim()) throw new Error("brand must be a non-empty string");
-  if (!payload.description?.trim()) throw new Error("description must be a non-empty string");
-  if (!payload.materialType?.trim()) throw new Error("materialType must be a non-empty string");
-  if (!payload.colorName?.trim()) throw new Error("colorName must be a non-empty string");
-  if (!payload.dimensions?.trim()) throw new Error("dimensions must be a non-empty string");
 
-  if (typeof payload.performanceRating !== "number") throw new Error("performanceRating must be a number");
-  if (typeof payload.durabilityRating !== "number") throw new Error("durabilityRating must be a number");
-  if (typeof payload.priceCategory !== "number") throw new Error("priceCategory must be a number");
-  if (typeof payload.maintenanceRating !== "number") throw new Error("maintenanceRating must be a number");
+  // Backend supports partial updates via UpdateProductDto (all fields optional).
+  // We intentionally send only the fields provided here.
+  const clean: Record<string, unknown> = {};
+  const setIfDefined = (key: string, value: unknown) => {
+    if (value !== undefined) clean[key] = value;
+  };
 
-  if (payload.bestUsedFor !== null && !Array.isArray(payload.bestUsedFor)) throw new Error("bestUsedFor must be an array of strings or null");
-  if (!Array.isArray(payload.pros)) throw new Error("pros must be an array of strings");
-  if (!Array.isArray(payload.cons)) throw new Error("cons must be an array of strings");
-  if (
-    (Array.isArray(payload.bestUsedFor) && payload.bestUsedFor.some((v) => typeof v !== "string")) ||
-    payload.pros.some((v) => typeof v !== "string") ||
-    payload.cons.some((v) => typeof v !== "string")
-  ) {
-    throw new Error("Arrays must contain only strings");
+  const trimOrUndef = (value: unknown) => {
+    if (typeof value !== "string") return undefined;
+    const t = value.trim();
+    return t ? t : undefined;
+  };
+
+  const toCleanStringArrayOrUndef = (value: unknown) => {
+    if (!Array.isArray(value)) return undefined;
+    const cleaned = value
+      .filter((v) => typeof v === "string")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return cleaned;
+  };
+
+  // Strings
+  setIfDefined("imsId", trimOrUndef((payload as UpdateProductPatchPayload).imsId));
+  setIfDefined("name", trimOrUndef((payload as UpdateProductPatchPayload).name));
+  setIfDefined("sku", trimOrUndef((payload as UpdateProductPatchPayload).sku));
+  setIfDefined("brand", trimOrUndef((payload as UpdateProductPatchPayload).brand));
+  setIfDefined("description", trimOrUndef((payload as UpdateProductPatchPayload).description));
+  setIfDefined("bookName", trimOrUndef((payload as UpdateProductPatchPayload).bookName));
+  setIfDefined("pageNumber", trimOrUndef((payload as UpdateProductPatchPayload).pageNumber));
+  setIfDefined("application", trimOrUndef((payload as UpdateProductPatchPayload).application));
+  setIfDefined("materialType", trimOrUndef((payload as UpdateProductPatchPayload).materialType));
+  setIfDefined("finishType", trimOrUndef((payload as UpdateProductPatchPayload).finishType));
+  setIfDefined("colorName", trimOrUndef((payload as UpdateProductPatchPayload).colorName));
+  setIfDefined("colorHex", trimOrUndef((payload as UpdateProductPatchPayload).colorHex));
+  setIfDefined("thickness", trimOrUndef((payload as UpdateProductPatchPayload).thickness));
+  setIfDefined("dimensions", trimOrUndef((payload as UpdateProductPatchPayload).dimensions));
+
+  // Numbers
+  const numericKeys: Array<keyof UpdateProductPayload> = [
+    "performanceRating",
+    "durabilityRating",
+    "priceCategory",
+    "maintenanceRating",
+  ];
+  for (const key of numericKeys) {
+    const value = (payload as UpdateProductPatchPayload)[key];
+    if (value === undefined) continue;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new Error(`${String(key)} must be a finite number`);
+    }
+    clean[String(key)] = value;
+  }
+
+  // Arrays (NOTE: Backend DTO expects arrays (no nulls), so we omit when not provided.
+  const bestUsedFor = toCleanStringArrayOrUndef((payload as UpdateProductPatchPayload).bestUsedFor);
+  if (Array.isArray(bestUsedFor)) clean.bestUsedFor = bestUsedFor;
+  const pros = toCleanStringArrayOrUndef((payload as UpdateProductPatchPayload).pros);
+  if (Array.isArray(pros)) clean.pros = pros;
+  const cons = toCleanStringArrayOrUndef((payload as UpdateProductPatchPayload).cons);
+  if (Array.isArray(cons)) clean.cons = cons;
+
+  // Status
+  if ((payload as UpdateProductPatchPayload).status !== undefined) {
+    clean.status = (payload as UpdateProductPatchPayload).status;
+  }
+
+  // Remove undefineds (if any slipped through)
+  for (const [key, value] of Object.entries(clean)) {
+    if (value === undefined) delete clean[key];
+  }
+  if (Object.keys(clean).length === 0) {
+    throw new Error("At least one field is required to update");
   }
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: authHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify(clean),
     credentials: "include",
   });
   if (!response.ok) {
