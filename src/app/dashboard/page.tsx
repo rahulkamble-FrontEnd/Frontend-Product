@@ -21,6 +21,7 @@ import {
   getTags,
   getProductTags,
   deleteProduct,
+  updateProduct,
   updateProductStatus,
   getCategoryMenu,
   getShortlist,
@@ -281,6 +282,26 @@ export default function DashboardPage() {
   const [bulkTagId, setBulkTagId] = useState("");
   const [bulkTagMsg, setBulkTagMsg] = useState("");
   const [bulkTagError, setBulkTagError] = useState("");
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [isBulkEditing, setIsBulkEditing] = useState(false);
+  const [bulkEditMsg, setBulkEditMsg] = useState("");
+  const [bulkEditError, setBulkEditError] = useState("");
+  const [bulkEditForm, setBulkEditForm] = useState({
+    statusEnabled: false,
+    status: "draft",
+    brandEnabled: false,
+    brand: "",
+    materialTypeEnabled: false,
+    materialType: "",
+    finishTypeEnabled: false,
+    finishType: "",
+    colorNameEnabled: false,
+    colorName: "",
+    thicknessEnabled: false,
+    thickness: "",
+    dimensionsEnabled: false,
+    dimensions: "",
+  });
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
   const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
@@ -531,6 +552,126 @@ export default function DashboardPage() {
       else next.add(id);
       return next;
     });
+  };
+
+  const openBulkEdit = () => {
+    setBulkEditMsg("");
+    setBulkEditError("");
+    if (!canManageProductData) return;
+    if (bulkTagSelectedIds.size === 0) {
+      setBulkEditError("Select at least one product.");
+      return;
+    }
+    setIsBulkEditOpen(true);
+  };
+
+  const closeBulkEdit = () => {
+    setIsBulkEditOpen(false);
+    setIsBulkEditing(false);
+  };
+
+  const runWithConcurrency = async <T,>(
+    items: T[],
+    limit: number,
+    worker: (item: T) => Promise<void>,
+  ) => {
+    const concurrency = Math.max(1, Math.min(25, Math.floor(limit || 8)));
+    const queue = [...items];
+    const runners = Array.from(
+      { length: Math.min(concurrency, queue.length) },
+      async () => {
+        while (queue.length > 0) {
+          const next = queue.shift();
+          if (next === undefined) return;
+          await worker(next);
+        }
+      },
+    );
+    await Promise.all(runners);
+  };
+
+  const handleBulkEditApply = async () => {
+    setBulkEditMsg("");
+    setBulkEditError("");
+    setBulkTagMsg("");
+    setBulkTagError("");
+
+    if (!canManageProductData) {
+      setBulkEditError("Only dataadmin and admin can bulk edit products.");
+      return;
+    }
+
+    const selectedIds = Array.from(bulkTagSelectedIds).filter(Boolean);
+    if (selectedIds.length === 0) {
+      setBulkEditError("Select at least one product.");
+      return;
+    }
+
+    const updates: Record<string, unknown> = {};
+    const safeTrim = (v: string) => v.trim();
+
+    if (bulkEditForm.statusEnabled) updates.status = bulkEditForm.status;
+    if (bulkEditForm.brandEnabled) {
+      const value = safeTrim(bulkEditForm.brand);
+      if (!value) return setBulkEditError("Brand cannot be empty.");
+      updates.brand = value;
+    }
+    if (bulkEditForm.materialTypeEnabled) {
+      const value = safeTrim(bulkEditForm.materialType);
+      if (!value) return setBulkEditError("Material type cannot be empty.");
+      updates.materialType = value;
+    }
+    if (bulkEditForm.finishTypeEnabled) {
+      const value = safeTrim(bulkEditForm.finishType);
+      if (!value) return setBulkEditError("Finish type cannot be empty.");
+      updates.finishType = value;
+    }
+    if (bulkEditForm.colorNameEnabled) {
+      const value = safeTrim(bulkEditForm.colorName);
+      if (!value) return setBulkEditError("Color name cannot be empty.");
+      updates.colorName = value;
+    }
+    if (bulkEditForm.thicknessEnabled) {
+      const value = safeTrim(bulkEditForm.thickness);
+      if (!value) return setBulkEditError("Thickness cannot be empty.");
+      updates.thickness = value;
+    }
+    if (bulkEditForm.dimensionsEnabled) {
+      const value = safeTrim(bulkEditForm.dimensions);
+      if (!value) return setBulkEditError("Dimensions cannot be empty.");
+      updates.dimensions = value;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      setBulkEditError("Enable at least one field to update.");
+      return;
+    }
+
+    setIsBulkEditing(true);
+    let okCount = 0;
+    let failCount = 0;
+    try {
+      await runWithConcurrency(selectedIds, 8, async (id) => {
+        try {
+          await updateProduct(id, updates as any);
+          okCount += 1;
+        } catch {
+          failCount += 1;
+        }
+      });
+
+      setBulkEditMsg(`Bulk edit done. Updated: ${okCount}. Failed: ${failCount}.`);
+      if (failCount > 0) {
+        setBulkEditError(`${failCount} product(s) failed to update.`);
+      }
+
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+      closeBulkEdit();
+    } catch (err: unknown) {
+      setBulkEditError(err instanceof Error ? err.message : "Failed to bulk edit products.");
+    } finally {
+      setIsBulkEditing(false);
+    }
   };
 
   const clearBulkTagSelection = () => {
@@ -4381,6 +4522,14 @@ export default function DashboardPage() {
               >
                 {isBulkTagging ? "Tagging..." : "Apply Selected Tag"}
               </button>
+              <button
+                type="button"
+                disabled={bulkTagSelectedList.length === 0}
+                onClick={openBulkEdit}
+                className="col-span-2 rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm disabled:opacity-50 sm:col-auto sm:text-[11px]"
+              >
+                Bulk Edit
+              </button>
               {userRole === "admin" && (
                 <button
                   type="button"
@@ -4412,9 +4561,181 @@ export default function DashboardPage() {
             {bulkTagMsg}
           </div>
         )}
+        {bulkEditError && (
+          <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {bulkEditError}
+          </div>
+        )}
+        {bulkEditMsg && (
+          <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {bulkEditMsg}
+          </div>
+        )}
         {deleteProductMsg && (
           <div className="mt-3 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
             {deleteProductMsg}
+          </div>
+        )}
+
+        {isBulkEditOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={closeBulkEdit}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-xl sm:p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-black uppercase tracking-widest text-gray-800">
+                    Bulk Edit Products
+                  </div>
+                  <div className="mt-1 text-xs font-bold text-gray-500">
+                    Selected: {bulkTagSelectedList.length}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeBulkEdit}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="rounded-xl border border-gray-100 bg-[#faf7f1] p-3">
+                  <label className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-widest text-gray-700">
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={bulkEditForm.statusEnabled}
+                        onChange={(e) =>
+                          setBulkEditForm((prev) => ({
+                            ...prev,
+                            statusEnabled: e.target.checked,
+                          }))
+                        }
+                        className="h-4 w-4 accent-[#A9844F]"
+                      />
+                      Status
+                    </span>
+                    <select
+                      value={bulkEditForm.status}
+                      disabled={!bulkEditForm.statusEnabled}
+                      onChange={(e) =>
+                        setBulkEditForm((prev) => ({ ...prev, status: e.target.value }))
+                      }
+                      className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 disabled:opacity-50"
+                    >
+                      {allowedStatuses.map((s) => (
+                        <option key={s} value={s}>
+                          {s === "draft" ? "unactive" : s}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {[
+                  {
+                    key: "brand",
+                    label: "Brand",
+                    enabledKey: "brandEnabled",
+                    valueKey: "brand",
+                    placeholder: "Enter brand",
+                  },
+                  {
+                    key: "materialType",
+                    label: "Material Type",
+                    enabledKey: "materialTypeEnabled",
+                    valueKey: "materialType",
+                    placeholder: "Enter material type",
+                  },
+                  {
+                    key: "finishType",
+                    label: "Finish Type",
+                    enabledKey: "finishTypeEnabled",
+                    valueKey: "finishType",
+                    placeholder: "Enter finish type",
+                  },
+                  {
+                    key: "colorName",
+                    label: "Color Name",
+                    enabledKey: "colorNameEnabled",
+                    valueKey: "colorName",
+                    placeholder: "Enter color name",
+                  },
+                  {
+                    key: "thickness",
+                    label: "Thickness",
+                    enabledKey: "thicknessEnabled",
+                    valueKey: "thickness",
+                    placeholder: "Enter thickness",
+                  },
+                  {
+                    key: "dimensions",
+                    label: "Dimensions",
+                    enabledKey: "dimensionsEnabled",
+                    valueKey: "dimensions",
+                    placeholder: "Enter dimensions",
+                  },
+                ].map((row) => (
+                  <div key={row.key} className="rounded-xl border border-gray-100 bg-white p-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={(bulkEditForm as any)[row.enabledKey]}
+                          onChange={(e) =>
+                            setBulkEditForm((prev) => ({
+                              ...prev,
+                              [row.enabledKey]: e.target.checked,
+                            }))
+                          }
+                          className="h-4 w-4 accent-[#A9844F]"
+                        />
+                        {row.label}
+                      </label>
+                      <input
+                        value={(bulkEditForm as any)[row.valueKey]}
+                        disabled={!(bulkEditForm as any)[row.enabledKey]}
+                        onChange={(e) =>
+                          setBulkEditForm((prev) => ({
+                            ...prev,
+                            [row.valueKey]: e.target.value,
+                          }))
+                        }
+                        placeholder={row.placeholder}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-900 placeholder:text-gray-400 disabled:opacity-50 sm:max-w-[320px]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={closeBulkEdit}
+                  className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm"
+                  disabled={isBulkEditing}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkEditApply}
+                  disabled={isBulkEditing}
+                  className="rounded-full bg-[#1f2a3d] px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#151d2b] disabled:opacity-50"
+                >
+                  {isBulkEditing ? "Updating..." : "Apply Bulk Edit"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
