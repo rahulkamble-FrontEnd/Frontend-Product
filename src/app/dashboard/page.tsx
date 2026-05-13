@@ -21,7 +21,6 @@ import {
   getTags,
   getProductTags,
   deleteProduct,
-  bulkUpdateProducts,
   updateProductStatus,
   getCategoryMenu,
   getShortlist,
@@ -56,6 +55,7 @@ import {
   type TagItem,
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
+import { BulkEditProductsModal } from "@/components/bulk-edit-products-modal";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -284,31 +284,8 @@ export default function DashboardPage() {
   const [bulkTagMsg, setBulkTagMsg] = useState("");
   const [bulkTagError, setBulkTagError] = useState("");
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
-  const [isBulkEditing, setIsBulkEditing] = useState(false);
   const [bulkEditMsg, setBulkEditMsg] = useState("");
   const [bulkEditError, setBulkEditError] = useState("");
-  const [bulkEditForm, setBulkEditForm] = useState({
-    statusEnabled: false,
-    status: "draft",
-    brandEnabled: false,
-    brand: "",
-    materialTypeEnabled: false,
-    materialType: "",
-    finishTypeEnabled: false,
-    finishType: "",
-    colorNameEnabled: false,
-    colorName: "",
-    thicknessEnabled: false,
-    thickness: "",
-    dimensionsEnabled: false,
-    dimensions: "",
-    performanceEnabled: false,
-    performance: "",
-    durabilityEnabled: false,
-    durability: "",
-    maintenanceEnabled: false,
-    maintenance: "",
-  });
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
   const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
   const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
@@ -574,231 +551,7 @@ export default function DashboardPage() {
 
   const closeBulkEdit = () => {
     setIsBulkEditOpen(false);
-    setIsBulkEditing(false);
   };
-
-  const handleBulkEditApply = async () => {
-    setBulkEditMsg("");
-    setBulkEditError("");
-    setBulkTagMsg("");
-    setBulkTagError("");
-
-    if (!canManageProductData) {
-      setBulkEditError("Only dataadmin and admin can bulk edit products.");
-      return;
-    }
-
-    const selectedIds = Array.from(bulkTagSelectedIds).filter(Boolean);
-    if (selectedIds.length === 0) {
-      setBulkEditError("Select at least one product.");
-      return;
-    }
-
-    const updates: Record<string, string> = {};
-    const safeTrim = (v: string) => v.trim();
-
-    let statusToUpdate: "draft" | "active" | "archived" | "published" | undefined;
-    if (bulkEditForm.statusEnabled) {
-      statusToUpdate = bulkEditForm.status as "draft" | "active" | "archived" | "published";
-    }
-    if (bulkEditForm.brandEnabled) {
-      const value = safeTrim(bulkEditForm.brand);
-      if (!value) return setBulkEditError("Brand cannot be empty.");
-      updates.brand = value;
-    }
-    if (bulkEditForm.materialTypeEnabled) {
-      const value = safeTrim(bulkEditForm.materialType);
-      if (!value) return setBulkEditError("Material type cannot be empty.");
-      updates.materialType = value;
-    }
-    if (bulkEditForm.finishTypeEnabled) {
-      const value = safeTrim(bulkEditForm.finishType);
-      if (!value) return setBulkEditError("Finish type cannot be empty.");
-      updates.finishType = value;
-    }
-    if (bulkEditForm.colorNameEnabled) {
-      const value = safeTrim(bulkEditForm.colorName);
-      if (!value) return setBulkEditError("Color name cannot be empty.");
-      updates.colorName = value;
-    }
-    if (bulkEditForm.thicknessEnabled) {
-      const value = safeTrim(bulkEditForm.thickness);
-      if (!value) return setBulkEditError("Thickness cannot be empty.");
-      updates.thickness = value;
-    }
-    if (bulkEditForm.dimensionsEnabled) {
-      const value = safeTrim(bulkEditForm.dimensions);
-      if (!value) return setBulkEditError("Dimensions cannot be empty.");
-      updates.dimensions = value;
-    }
-    if (bulkEditForm.performanceEnabled) {
-      const num = Number(bulkEditForm.performance);
-      if (!Number.isFinite(num)) {
-        return setBulkEditError("Performance must be a valid number.");
-      }
-      if (num < 0 || num > 10) {
-        return setBulkEditError("Performance should be between 0 and 10.");
-      }
-      updates.performanceRating = String(num);
-    }
-    if (bulkEditForm.durabilityEnabled) {
-      const num = Number(bulkEditForm.durability);
-      if (!Number.isFinite(num)) {
-        return setBulkEditError("Durability must be a valid number.");
-      }
-      if (num < 0 || num > 10) {
-        return setBulkEditError("Durability should be between 0 and 10.");
-      }
-      updates.durabilityRating = String(num);
-    }
-    if (bulkEditForm.maintenanceEnabled) {
-      const num = Number(bulkEditForm.maintenance);
-      if (!Number.isFinite(num)) {
-        return setBulkEditError("Maintenance must be a valid number.");
-      }
-      if (num < 0 || num > 10) {
-        return setBulkEditError("Maintenance should be between 0 and 10.");
-      }
-      updates.maintenanceRating = String(num);
-    }
-
-    if (Object.keys(updates).length === 0 && !statusToUpdate) {
-      setBulkEditError("Enable at least one field to update.");
-      return;
-    }
-
-    setIsBulkEditing(true);
-    try {
-      const result = await bulkUpdateProducts({
-        productIds: selectedIds,
-        ...(statusToUpdate ? { status: statusToUpdate } : {}),
-        ...(updates.brand ? { brand: updates.brand } : {}),
-        ...(updates.materialType ? { materialType: updates.materialType } : {}),
-        ...(updates.finishType ? { finishType: updates.finishType } : {}),
-        ...(updates.colorName ? { colorName: updates.colorName } : {}),
-        ...(updates.thickness ? { thickness: updates.thickness } : {}),
-        ...(updates.dimensions ? { dimensions: updates.dimensions } : {}),
-        ...(updates.performanceRating
-          ? { performanceRating: Number(updates.performanceRating) }
-          : {}),
-        ...(updates.durabilityRating
-          ? { durabilityRating: Number(updates.durabilityRating) }
-          : {}),
-        ...(updates.maintenanceRating
-          ? { maintenanceRating: Number(updates.maintenanceRating) }
-          : {}),
-      });
-
-      const failCount = Math.max(
-        0,
-        selectedIds.length - (result.updatedCount ?? result.matchedCount ?? 0),
-      );
-      setBulkEditMsg(
-        `Bulk edit done. Updated: ${result.updatedCount ?? 0}. Failed: ${failCount}.`,
-      );
-      if (failCount > 0) setBulkEditError(`${failCount} product(s) failed to update.`);
-
-      await Promise.all([loadProducts(), loadLatestProducts()]);
-      closeBulkEdit();
-    } catch (err: unknown) {
-      setBulkEditError(err instanceof Error ? err.message : "Failed to bulk edit products.");
-    } finally {
-      setIsBulkEditing(false);
-    }
-  };
-
-  type BulkEditEnabledKey =
-    | "brandEnabled"
-    | "materialTypeEnabled"
-    | "finishTypeEnabled"
-    | "colorNameEnabled"
-    | "thicknessEnabled"
-    | "dimensionsEnabled"
-    | "performanceEnabled"
-    | "durabilityEnabled"
-    | "maintenanceEnabled";
-  type BulkEditValueKey =
-    | "brand"
-    | "materialType"
-    | "finishType"
-    | "colorName"
-    | "thickness"
-    | "dimensions"
-    | "performance"
-    | "durability"
-    | "maintenance";
-
-  const bulkEditFieldRows: Array<{
-    key: string;
-    label: string;
-    enabledKey: BulkEditEnabledKey;
-    valueKey: BulkEditValueKey;
-    placeholder: string;
-  }> = [
-    {
-      key: "brand",
-      label: "Brand",
-      enabledKey: "brandEnabled",
-      valueKey: "brand",
-      placeholder: "Enter brand",
-    },
-    {
-      key: "materialType",
-      label: "Material Type",
-      enabledKey: "materialTypeEnabled",
-      valueKey: "materialType",
-      placeholder: "Enter material type",
-    },
-    {
-      key: "finishType",
-      label: "Finish Type",
-      enabledKey: "finishTypeEnabled",
-      valueKey: "finishType",
-      placeholder: "Enter finish type",
-    },
-    {
-      key: "colorName",
-      label: "Color Name",
-      enabledKey: "colorNameEnabled",
-      valueKey: "colorName",
-      placeholder: "Enter color name",
-    },
-    {
-      key: "thickness",
-      label: "Thickness",
-      enabledKey: "thicknessEnabled",
-      valueKey: "thickness",
-      placeholder: "Enter thickness",
-    },
-    {
-      key: "dimensions",
-      label: "Dimensions",
-      enabledKey: "dimensionsEnabled",
-      valueKey: "dimensions",
-      placeholder: "Enter dimensions",
-    },
-    {
-      key: "performance",
-      label: "Performance",
-      enabledKey: "performanceEnabled",
-      valueKey: "performance",
-      placeholder: "0-10",
-    },
-    {
-      key: "durability",
-      label: "Durability",
-      enabledKey: "durabilityEnabled",
-      valueKey: "durability",
-      placeholder: "0-10",
-    },
-    {
-      key: "maintenance",
-      label: "Maintenance",
-      enabledKey: "maintenanceEnabled",
-      valueKey: "maintenance",
-      placeholder: "0-10",
-    },
-  ];
 
   const clearBulkTagSelection = () => {
     setBulkTagSelectedIds(new Set());
@@ -2954,6 +2707,16 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsProductsMenuOpen(false);
+                            router.push("/products/manage");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Product
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
                             closeAdminActionModals();
                             setIsUploadImageModalOpen(true);
                           }}
@@ -3417,6 +3180,16 @@ export default function DashboardPage() {
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     Create Product
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      router.push("/products/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Product
                   </button>
                   <button
                     type="button"
@@ -4703,152 +4476,17 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {isBulkEditOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4 py-8 sm:py-10"
-            onClick={closeBulkEdit}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div
-              className="flex max-h-[min(90dvh,calc(100vh-2rem))] w-full max-w-xl flex-col rounded-2xl bg-white p-4 shadow-xl sm:max-h-[min(85dvh,calc(100vh-3rem))] sm:p-6"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex shrink-0 items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-black uppercase tracking-widest text-gray-800">
-                    Bulk Edit Products
-                  </div>
-                  <div className="mt-1 text-xs font-bold text-gray-500">
-                    Selected: {bulkTagSelectedList.length}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeBulkEdit}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm"
-                >
-                  Close
-                </button>
-              </div>
-
-              <div className="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]">
-                <div className="rounded-xl border border-gray-100 bg-[#faf7f1] p-3">
-                  <label className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-widest text-gray-700">
-                    <span className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={bulkEditForm.statusEnabled}
-                        onChange={(e) =>
-                          setBulkEditForm((prev) => ({
-                            ...prev,
-                            statusEnabled: e.target.checked,
-                          }))
-                        }
-                        className="h-4 w-4 accent-[#A9844F]"
-                      />
-                      Status
-                    </span>
-                    <select
-                      value={bulkEditForm.status}
-                      disabled={!bulkEditForm.statusEnabled}
-                      onChange={(e) =>
-                        setBulkEditForm((prev) => ({ ...prev, status: e.target.value }))
-                      }
-                      className="rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 disabled:opacity-50"
-                    >
-                      {allowedStatuses.map((s) => (
-                        <option key={s} value={s}>
-                          {s === "draft" ? "unactive" : s}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-
-                {bulkEditFieldRows.map((row) => (
-                  <div key={row.key} className="rounded-xl border border-gray-100 bg-white p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-700">
-                        <input
-                          type="checkbox"
-                          checked={bulkEditForm[row.enabledKey]}
-                          onChange={(e) =>
-                            setBulkEditForm((prev) => ({
-                              ...prev,
-                              [row.enabledKey]: e.target.checked,
-                            }))
-                          }
-                          className="h-4 w-4 accent-[#A9844F]"
-                        />
-                        {row.label}
-                      </label>
-                      <input
-                        type={
-                          row.key === "performance" ||
-                          row.key === "durability" ||
-                          row.key === "maintenance"
-                            ? "number"
-                            : "text"
-                        }
-                        min={
-                          row.key === "performance" ||
-                          row.key === "durability" ||
-                          row.key === "maintenance"
-                            ? 0
-                            : undefined
-                        }
-                        max={
-                          row.key === "performance" ||
-                          row.key === "durability" ||
-                          row.key === "maintenance"
-                            ? 10
-                            : undefined
-                        }
-                        step={
-                          row.key === "performance" ||
-                          row.key === "durability" ||
-                          row.key === "maintenance"
-                            ? "0.1"
-                            : undefined
-                        }
-                        value={bulkEditForm[row.valueKey]}
-                        disabled={!bulkEditForm[row.enabledKey]}
-                        onChange={(e) =>
-                          setBulkEditForm((prev) => ({
-                            ...prev,
-                            [row.valueKey]: e.target.value,
-                          }))
-                        }
-                        placeholder={row.placeholder}
-                        className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-bold text-gray-900 placeholder:text-gray-400 disabled:opacity-50 sm:max-w-[320px]"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 grid shrink-0 grid-cols-2 gap-2 border-t border-gray-100 pt-4">
-                <button
-                  type="button"
-                  onClick={closeBulkEdit}
-                  className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-800 shadow-sm"
-                  disabled={isBulkEditing}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleBulkEditApply}
-                  disabled={isBulkEditing}
-                  className="rounded-full bg-[#1f2a3d] px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-sm transition hover:bg-[#151d2b] disabled:opacity-50"
-                >
-                  {isBulkEditing ? "Updating..." : "Apply Bulk Edit"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        <BulkEditProductsModal
+          open={isBulkEditOpen}
+          onClose={closeBulkEdit}
+          productIds={bulkTagSelectedList}
+          onApplied={async ({ updated, failed }) => {
+            setBulkEditMsg(`Bulk edit done. Updated: ${updated}. Failed: ${failed}.`);
+            if (failed > 0) setBulkEditError(`${failed} product(s) failed to update.`);
+            else setBulkEditError("");
+            await Promise.all([loadProducts(), loadLatestProducts()]);
+          }}
+        />
 
         {updateProductStatusError && (
           <div className="mt-3 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
