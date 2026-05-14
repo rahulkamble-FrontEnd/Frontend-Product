@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Contact Us | CustomFurnish",
   description:
-    "Get in touch with CustomFurnish \u2014 reach our customer support, business partnerships, or careers teams, or visit our experience center in Serilingampalle, Hyderabad.",
+    "Contact CustomFurnish Materials for interior material guidance, visit our Hyderabad experience centre, or reach support@customfurnish.com. Monday\u2013Saturday, 10:00 AM\u20137:00 PM.",
 };
 
 export default function ContactUsLayout({

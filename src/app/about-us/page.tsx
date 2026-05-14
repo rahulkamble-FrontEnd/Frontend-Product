@@ -84,17 +84,33 @@ export default function AboutUsPage() {
         <div className={styles.aboutSection}>
           <div className={styles.aboutContent}>
             <h3 className={styles.aboutHeadingTxt}>About Us</h3>
+            <p className={styles.aboutTagline}>
+              Redefining Modern Interior Material Selection
+            </p>
             <p className={styles.aboutContentTxt}>
-              At <span style={{ fontWeight: 700 }}>CustomFurnish</span>, we are
-              dedicated to transforming your living spaces with our
-              comprehensive range of interior solutions. Our offerings include
-              full house interiors, modular kitchens, wardrobes, retrofit
-              kitchens, and false ceilings, all designed to meet your unique
-              style and functional needs. We also provide services such as
-              wooden flooring and wallpapers to add the perfect finishing
-              touches to your home. Our commitment to quality and customer
-              satisfaction is evident in every project we undertake, ensuring
-              that your home reflects your personal taste and lifestyle.
+              <span style={{ fontWeight: 700 }}>CustomFurnish Materials</span>{" "}
+              is a curated platform designed to help homeowners explore premium
+              interior materials, finishes, and modern design solutions for
+              customized home interiors.
+            </p>
+            <p className={styles.aboutContentTxt}>
+              From laminates, wall decorative panels, flooring, lighting, glass,
+              mirrors, hardware, and premium finishes to modern decorative
+              solutions, we showcase carefully selected interior materials
+              suitable for contemporary and luxury living spaces.
+            </p>
+            <p className={styles.aboutContentTxt}>
+              Our platform simplifies the material selection process by helping
+              customers discover, compare, and shortlist materials for their
+              dream home interiors. Once materials are selected, our interior
+              design team assists in integrating them into the final interior
+              design quotation and execution process.
+            </p>
+            <p className={styles.aboutContentTxt}>
+              At CustomFurnish, we believe the right materials play a major role
+              in creating elegant, functional, and timeless interiors. Every
+              collection is selected with a focus on quality, aesthetics,
+              durability, and modern design trends.
             </p>
           </div>
           <div className={styles.aboutImage}>
@@ -112,39 +128,41 @@ export default function AboutUsPage() {
           <h1
             className={`${montserrat.className} ${styles.discoverSectionHeader}`}
           >
-            Crafting Excellence: A Look Inside Our Factory
+            Our Manufacturing Facility
           </h1>
           <div className={`${styles.discoverContainer} ${styles.reverse}`}>
             <div className={styles.discoverContent}>
               <p className={styles.discoverContentTxt}>
-                At <span style={{ fontWeight: 700 }}>CustomFurnish</span>, we
-                are among the few interior design firms with an{" "}
-                <span style={{ fontWeight: 700 }}>
-                  in-house manufacturing facility
-                </span>
-                , ensuring superior quality and faster delivery. Unlike others
-                who outsource, we control every step of production.{" "}
-                <span style={{ fontWeight: 700 }}>
-                  For Hyderabad customers, we offer some of the lowest prices
-                </span>
-                , thanks to reduced transportation costs from our local
-                factory. Plus, we use{" "}
-                <span style={{ fontWeight: 700 }}>
-                  premium BWP (Boiling Water Proof) plywood
-                </span>
-                , ensuring durability and water resistance—something most
-                competitors don&rsquo;t offer.{" "}
-                <span style={{ fontWeight: 700 }}>
-                  Watch our factory video
-                </span>{" "}
-                to see how we bring your interiors to life with cutting-edge
-                technology and craftsmanship.
+                One of the biggest strengths of CustomFurnish is our in-house
+                manufacturing capability. Our factory infrastructure helps us
+                maintain better quality control, customized production, and
+                seamless execution for interior projects.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                With advanced manufacturing processes and skilled craftsmanship,
+                we ensure that every interior element is developed with
+                precision, consistency, and premium finishing standards.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                Our manufacturing support allows us to:
+              </p>
+              <ul className={styles.contentList}>
+                <li>Deliver customized interior solutions</li>
+                <li>Maintain premium quality standards</li>
+                <li>Ensure better material finishing</li>
+                <li>Reduce execution delays</li>
+                <li>Provide design flexibility for customers</li>
+              </ul>
+              <p className={styles.discoverContentTxt}>
+                This combination of design expertise and manufacturing capability
+                helps us deliver interiors that are modern, functional, and
+                personalized to customer requirements.
               </p>
             </div>
             <div className={styles.youtubeCard}>
               <iframe
                 src="https://www.youtube.com/embed/koMk-HIOYYE"
-                title="A Look Inside Our Factory"
+                title="Our manufacturing facility"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
@@ -158,7 +176,7 @@ export default function AboutUsPage() {
           <h1
             className={`${montserrat.className} ${styles.discoverSectionHeader}`}
           >
-            Discover MyDeziner
+            What We Offer
           </h1>
           <div className={`${styles.discoverContainer} ${styles.reverse}`}>
             <div className={styles.youtubeCard}>
@@ -170,18 +188,57 @@ export default function AboutUsPage() {
               />
             </div>
             <div className={styles.discoverContent}>
+              <ul className={styles.contentList}>
+                <li>Premium interior material collections</li>
+                <li>Modern finishes and decorative solutions</li>
+                <li>Flooring and wall decorative materials</li>
+                <li>Lighting, glass, and mirror collections</li>
+                <li>Hardware and interior accessories</li>
+                <li>Material inspiration for modern homes</li>
+                <li>Customized material selection assistance</li>
+                <li>End-to-end interior execution support</li>
+              </ul>
+              <h2 className={styles.discoverSubheading}>
+                Why Choose CustomFurnish
+              </h2>
               <p className={styles.discoverContentTxt}>
-                Imagine designing your interiors with just a few clicks!{" "}
-                <span style={{ fontWeight: 700 }}>MyDeziner</span> is our
-                revolutionary <span style={{ fontWeight: 700 }}>3D</span>{" "}
-                design platform that empowers you to visualize and customize
-                your space in real time. Whether you&rsquo;re selecting
-                furniture, experimenting with color combinations, or arranging
-                layouts, MyDeziner offers an intuitive and immersive
-                experience. With a vast library of designs and customization
-                options, you can see your dream space take shape before making
-                a purchase. Say goodbye to guesswork and hello to confident,
-                hassle-free home design!
+                <span className={styles.reasonTitle}>
+                  Premium Material Collections
+                </span>
+                We showcase carefully curated interior materials designed for
+                modern and luxury homes.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                <span className={styles.reasonTitle}>Expert Design Guidance</span>
+                Our experienced interior designers help customers choose suitable
+                materials based on design style, functionality, and budget.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                <span className={styles.reasonTitle}>Customized Solutions</span>
+                Every home is unique, and we focus on providing personalized
+                material and design recommendations.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                <span className={styles.reasonTitle}>Modern Design Approach</span>
+                We stay updated with evolving interior trends, finishes, and
+                contemporary material innovations.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                <span className={styles.reasonTitle}>Seamless Execution</span>
+                From material selection to final execution, our team ensures a
+                smooth and organized interior journey.
+              </p>
+              <h2 className={styles.discoverSubheading}>Our Vision</h2>
+              <p className={styles.discoverContentTxt}>
+                Our vision is to simplify interior material discovery and help
+                homeowners create beautiful living spaces with the right
+                combination of premium materials, thoughtful design, and expert
+                craftsmanship.
+              </p>
+              <p className={styles.discoverContentTxt}>
+                We aim to make modern interior solutions more accessible,
+                inspiring, and customer-focused through innovation, quality, and
+                design excellence.
               </p>
             </div>
           </div>

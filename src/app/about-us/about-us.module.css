@@ -87,7 +87,16 @@
     font-style: normal;
     font-weight: 600;
     line-height: normal;
-    margin-bottom: 36px !important;
+    margin-bottom: 16px !important;
+}
+
+.aboutTagline {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 0 0 28px;
 }
 
 .aboutContentTxt {
@@ -204,6 +213,40 @@
     margin-bottom: 16px;
     text-align: justify;
     text-justify: inter-word;
+}
+
+.discoverSubheading {
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: normal;
+    margin: 32px 0 16px;
+}
+
+.contentList {
+    margin: 0 0 16px;
+    padding-left: 1.5rem;
+    list-style-type: disc;
+    list-style-position: outside;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+    text-align: left;
+}
+
+.contentList li {
+    display: list-item;
+    margin-bottom: 8px;
+    padding-left: 0.25rem;
+}
+
+.reasonTitle {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 6px;
 }
 
 .achievementsSection {

@@ -149,6 +149,50 @@
     cursor: text;
 }
 
+.venueName {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 28px;
+    margin: 0;
+}
+
+.addressLines {
+    color: var(--text-muted);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+    max-width: 470px;
+}
+
+.addressLines p {
+    margin: 0 0 4px;
+}
+
+.addressLines p:last-child {
+    margin-bottom: 0;
+}
+
+.contentList {
+    margin: 4px 0 0;
+    padding-left: 1.5rem;
+    list-style-type: disc;
+    list-style-position: outside;
+    color: var(--text-muted);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 28px;
+    text-align: left;
+}
+
+.contentList li {
+    display: list-item;
+    margin-bottom: 8px;
+    padding-left: 0.25rem;
+}
+
 .iconsContainer {
     display: flex;
     width: 100%;
