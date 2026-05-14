@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { blogPublicPath } from "@/lib/blog-path";
 import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -244,14 +245,15 @@ export default function BlogPage() {
               return (
                 <Link
                   key={blog.id}
-                  href={`/blog/${encodeURIComponent(blog.slug)}`}
-                  className="block w-[270px] shrink-0 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)] sm:w-auto sm:shrink"
+                  href={blogPublicPath(blog)}
+                  className="block overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)]"
                 >
                   <div className="relative h-40 w-full bg-[#f1ede8] sm:h-56">
                     {canRenderImage ? (
                       <Image
                         src={imageUrl!}
-                        alt={blog.title}
+                        alt={blog.featuredImageAlt?.trim() || blog.title}
+                        title={blog.featuredImageTitle?.trim() || undefined}
                         fill
                         loading={idx === 0 ? "eager" : "lazy"}
                         unoptimized
