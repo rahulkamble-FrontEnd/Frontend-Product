@@ -203,6 +203,10 @@
     line-height: 28px;
 }
 
+.panelBody p + p {
+    margin-top: 12px;
+}
+
 .panelBody strong {
     display: block;
     margin: 0 0 12px;
