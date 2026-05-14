@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { useState } from "react";
@@ -15,6 +16,26 @@ type CommonFooterProps = {
 };
 
 type FooterLink = { label: string; href?: string };
+
+/** Match `/categories/[slug]` + banner key normalization in `app/categories/[slug]/page.tsx`. */
+function slugifyFooterCategoryLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+const SHOP_NAV_LABELS = [
+  "Core materials",
+  "Laminates",
+  "Wall Decorative",
+  "Counter Tops",
+  "Flooring & Tiles",
+  "Lighting",
+] as const;
 
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
   const [email, setEmail] = useState("");
@@ -54,44 +75,94 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
   const companyLinks: FooterLink[] = [
     { label: "About us", href: "/about-us" },
-    // { label: "Blogs" },
+    { label: "Blogs" },
     { label: "Contact us", href: "/contact-us" },
     { label: "FAQs", href: "/faqs" },
   ];
+
+  const shopLinks: FooterLink[] = SHOP_NAV_LABELS.map((label) => ({
+    label,
+    href: `/categories/${slugifyFooterCategoryLabel(label)}`,
+  }));
+
+  const experienceCentreAddress =
+    "Plot No - 190, Professor CR Rao Road, Opposite Old ALIND Factory Entrance Gate, Doyens Colony, Serilingampalle (M), Telangana-500019.";
+
+  const experienceCentreMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(experienceCentreAddress)}`;
+
+  const linkClass = "transition-opacity hover:text-white hover:opacity-100";
+
+  const renderFooterLink = (link: FooterLink) => {
+    if (!link.href) {
+      return link.label;
+    }
+    if (link.href.startsWith("http")) {
+      return (
+        <a
+          href={link.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={linkClass}
+        >
+          {link.label}
+        </a>
+      );
+    }
+    return (
+      <Link href={link.href} className={linkClass}>
+        {link.label}
+      </Link>
+    );
+  };
 
   const socialLinks = [
     {
       id: "IG",
       label: "Instagram",
       url: "https://www.instagram.com/customfurnish/",
+      iconSrc: "/logo-social/Link.svg",
     },
     {
       id: "FB",
       label: "Facebook",
       url: "https://www.facebook.com/customfurnish",
+      iconSrc: "/logo-social/Link-1.svg",
     },
     {
       id: "YT",
       label: "YouTube",
       url: "https://www.youtube.com/@Customfurnish",
+      iconSrc: "/logo-social/Link-2.svg",
     },
     {
       id: "LI",
       label: "LinkedIn",
       url: "https://www.linkedin.com/company/customfurnish-official",
+      iconSrc: "/logo-social/Link-3.svg",
     },
-    { id: "TW", label: "Twitter", url: "https://x.com/CustomFurnish1" },
+    {
+      id: "TW",
+      label: "Twitter",
+      url: "https://x.com/CustomFurnish1",
+      iconSrc: "/logo-social/Link-4.svg",
+    },
     {
       id: "PT",
       label: "Pinterest",
       url: "https://in.pinterest.com/customfurnishin/",
+      iconSrc: "/logo-social/Link-5.svg",
     },
     {
       id: "WA",
       label: "WhatsApp",
       url: "https://api.whatsapp.com/send/?phone=916301734646&text&type=phone_number&app_absent=0",
+      iconSrc: "/logo-social/Link-6.svg",
     },
-  ];
+  ] as const;
+
+  const footerMainGridClassName = hideNewsletter
+    ? "grid grid-cols-1 gap-x-8 gap-y-8 border-b border-white/25 pb-8 md:grid-cols-2 lg:grid-cols-3 xl:mx-auto xl:w-fit xl:max-w-full xl:grid-cols-[minmax(260px,min(100%,380px))_auto_auto_minmax(280px,min(100%,420px))] xl:items-start xl:gap-x-10 2xl:gap-x-12"
+    : "grid grid-cols-1 gap-x-8 gap-y-8 border-b border-white/25 pb-8 md:grid-cols-2 lg:grid-cols-3 xl:mx-auto xl:w-fit xl:max-w-full xl:grid-cols-[minmax(260px,min(100%,380px))_auto_auto_minmax(280px,min(100%,400px))_minmax(300px,320px)] xl:items-start xl:gap-x-10 2xl:gap-x-12";
 
   return (
     <footer
@@ -101,117 +172,144 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
           "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
       }}
     >
-      <div className="mx-auto w-full max-w-[1680px] px-6 py-9 md:px-10">
-        <div className="grid grid-cols-1 gap-8 border-b border-white/25 pb-8 md:grid-cols-[1.15fr_0.9fr_1.2fr]">
-          <div className="space-y-8">
-            <div className="text-[20px] font-semibold leading-normal tracking-[0%]">
-              CustomFurnish
-            </div>
-            <p className="max-w-sm text-[14px] font-normal leading-5 tracking-[0%] text-white/90">
-              CustomFurnish.com delivers customized home interiors with expert
-              craftsmanship and seamless design solutions.
+      <div className="mx-auto w-full max-w-[1680px] px-6 pb-9 pt-12 sm:px-8 sm:pt-14 md:px-10 md:pt-14 lg:px-12 xl:px-16 2xl:px-24">
+        <div className={footerMainGridClassName}>
+          <div className="flex flex-col gap-8 md:col-span-2 lg:col-span-1 xl:col-span-1">
+            <div className="flex max-w-full flex-col gap-6">
+            <Link
+              href="/"
+              className="inline-flex max-w-full min-w-0 items-center"
+            >
+              <Image
+                src="/customfurnish-logo.svg"
+                alt="CustomFurnish"
+                width={309}
+                height={28}
+                className="pointer-events-none block h-5 w-auto max-w-full object-contain object-left sm:h-6"
+              />
+            </Link>
+            <p
+              className="max-w-[min(100%,20rem)] text-left text-[14px] font-normal tracking-[0%] text-white/90 xl:max-w-[22rem]"
+              style={{ lineHeight: "26px" }}
+            >
+              CustomFurnish.com offers premium interior materials and modern design solutions for
+              elegant and customized living spaces.
             </p>
-            <div className="flex items-center gap-2">
+            </div>
+            <div className="flex flex-nowrap items-center gap-1.5 xl:gap-2">
               {socialLinks.map((item) => (
                 <a
                   key={item.id}
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-[2px] bg-[#121212] text-white transition-opacity hover:opacity-80"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-[2px] transition-opacity hover:opacity-80 xl:h-9 xl:w-9"
                   aria-label={item.label}
                 >
-                  {item.id === "IG" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="5" />
-                      <circle cx="12" cy="12" r="4" />
-                      <circle cx="17.5" cy="6.5" r="1.2" />
-                    </svg>
-                  )}
-                  {item.id === "FB" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 8h2V5h-2a4 4 0 0 0-4 4v2H8v3h2v5h3v-5h2.3l.4-3H13V9a1 1 0 0 1 1-1z" />
-                    </svg>
-                  )}
-                  {item.id === "YT" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="2.5" y="6.5" width="19" height="11" rx="3" />
-                      <path d="m10 9 5 3-5 3z" />
-                    </svg>
-                  )}
-                  {item.id === "LI" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M8 10v6" />
-                      <path d="M8 8h.01" />
-                      <path d="M12 16v-3a2 2 0 0 1 4 0v3" />
-                    </svg>
-                  )}
-                  {item.id === "TW" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 5.9c-.7.3-1.4.5-2.2.6.8-.5 1.3-1.2 1.6-2.1-.8.5-1.6.8-2.5 1-1.4-1.5-3.8-1.5-5.2 0-.8.8-1.2 2-1 3.1-3-.1-5.8-1.5-7.7-3.9-1 1.7-.5 3.9 1.1 5-.6 0-1.2-.2-1.7-.5 0 1.9 1.3 3.6 3.1 4-.5.1-1.1.2-1.6.1.5 1.6 2 2.8 3.7 2.8A7.6 7.6 0 0 1 3 17.6a10.8 10.8 0 0 0 5.8 1.7c7 0 10.8-5.8 10.8-10.8v-.5c.8-.5 1.5-1.2 2-2z" />
-                    </svg>
-                  )}
-                  {item.id === "PT" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 .1-2.9l1.2-5c-.2-.5-.4-1.2-.4-1.9 0-1.8 1-3.2 2.3-3.2 1.1 0 1.6.8 1.6 1.8 0 1.1-.7 2.8-1 4.3-.3 1.2.6 2.1 1.8 2.1 2.2 0 3.9-2.3 3.9-5.6 0-2.9-2.1-4.9-5.1-4.9-3.5 0-5.5 2.6-5.5 5.3 0 1 .4 2.2 1 2.8.1.1.1.2.1.3l-.4 1.5c-.1.2-.2.3-.4.2-1.5-.6-2.4-2.6-2.4-4.2 0-3.4 2.5-6.6 7.1-6.6 3.7 0 6.6 2.7 6.6 6.3 0 3.7-2.3 6.8-5.6 6.8-1.1 0-2.2-.6-2.5-1.2l-.7 2.7c-.3 1-.9 2.1-1.3 2.9.9.3 1.8.5 2.8.5A10 10 0 1 0 12 2z" />
-                    </svg>
-                  )}
-                  {item.id === "WA" && (
-                    <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="8.5" />
-                      <path d="M9.7 9.4c.2-.3.5-.4.8-.2l1.1.8c.3.2.4.5.2.8l-.4.7c.5 1 1.3 1.8 2.3 2.3l.7-.4c.3-.2.6-.1.8.2l.8 1.1c.2.3.1.6-.2.8-.6.4-1.3.6-2 .5-2.7-.4-4.9-2.6-5.3-5.3-.1-.7.1-1.4.5-2z" />
-                    </svg>
-                  )}
+                  <Image
+                    src={item.iconSrc}
+                    alt=""
+                    width={40}
+                    height={42}
+                    className="h-full w-full object-cover object-center"
+                  />
                 </a>
               ))}
             </div>
           </div>
 
-          <div className="md:justify-self-center">
+          <div className="md:pl-6 lg:pl-10 xl:pl-0 2xl:pl-2">
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Company
             </div>
             <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
               {companyLinks.map((link) => (
-                <li key={link.label}>
-                  {link.href ? (
-                    <Link
-                      href={link.href}
-                      className="transition-opacity hover:text-white hover:opacity-100"
-                    >
-                      {link.label}
-                    </Link>
-                  ) : (
-                    link.label
-                  )}
-                </li>
+                <li key={link.label}>{renderFooterLink(link)}</li>
               ))}
             </ul>
           </div>
 
-          {!hideNewsletter && (
-            <div className="border-white/25 md:-ml-12 md:border-l md:pl-6">
-              <p className="max-w-xs text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
-                Subscribe to our newsletter for the latest design trends, offers,
-                and updates!
-              </p>
-              <div className="mt-4 text-[20px] font-semibold leading-normal tracking-[0%]">
-                Newsletter
+          <div className="pl-2 md:pl-4 xl:pl-5">
+            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
+              Shop
+            </div>
+            <ul className="space-y-1.5 text-[14px] font-normal leading-8 tracking-[0%] text-white/90">
+              {shopLinks.map((link) => (
+                <li key={link.label}>{renderFooterLink(link)}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="w-full max-w-[340px] pl-2 md:pl-4 xl:max-w-[360px] xl:pl-5">
+            <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
+              Experience Centre
+            </div>
+            <div className="rounded border border-white/60 p-3.5 text-[13px] font-normal leading-snug tracking-[0%] text-white/90">
+              <div className="flex gap-2.5">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="mt-0.5 h-5 w-5 shrink-0 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden
+                >
+                  <path d="M12 21s7-4.5 7-10a7 7 0 1 0-14 0c0 5.5 7 10 7 10z" />
+                  <circle cx="12" cy="11" r="2.5" />
+                </svg>
+                <div>
+                  <div className="text-[12px] font-semibold uppercase tracking-wide text-white">
+                    Hyderabad
+                  </div>
+                  <p className="mt-2">{experienceCentreAddress}</p>
+                  <a
+                    href={experienceCentreMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-white underline decoration-white/80 underline-offset-2 transition-opacity hover:opacity-90"
+                  >
+                    Get Directions
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      aria-hidden
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </a>
+                </div>
               </div>
-              <form onSubmit={handleSubscribe} className="mt-3 flex max-w-xs items-center overflow-hidden rounded-md border border-white/40 bg-white/10">
+            </div>
+          </div>
+
+          {!hideNewsletter && (
+            <div className="flex w-full max-w-[300px] min-w-0 flex-col items-stretch justify-self-start text-left md:justify-self-end lg:col-span-2 xl:col-span-1">
+              <div className="text-[20px] font-semibold leading-tight tracking-[0%] text-white">
+                Stay Updated
+              </div>
+              <p className="mt-2 text-[14px] font-normal leading-[1.45] tracking-[0%] text-white/90">
+                Get the latest interior material trends and design updates
+              </p>
+              <form
+                onSubmit={handleSubscribe}
+                style={{ width: 300 }}
+                className="mt-4 box-border flex min-w-0 flex-col gap-2 rounded-none border border-white bg-transparent px-1.5 py-2 sm:flex-row sm:items-center sm:gap-1.5 sm:px-1.5 sm:py-2"
+              >
                 <input
                   type="email"
                   placeholder="Enter your Email Here"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-transparent px-3 py-2 text-[14px] font-normal leading-7 tracking-[0%] text-white placeholder:text-white/70 focus:outline-none"
+                  className="box-border h-[33px] min-h-[33px] w-full min-w-0 rounded-none border-0 bg-white/60 px-2 text-[12px] font-normal leading-none text-[#2d2620] placeholder:text-[#4a3d32] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-white/90 sm:flex-1 sm:text-[13px]"
                   disabled={status === "loading"}
                 />
                 <button
                   type="submit"
                   disabled={status === "loading"}
-                  className="bg-[#ef5a2b] px-3 py-2 text-[14px] font-semibold leading-7 tracking-[0%] text-white disabled:opacity-50"
+                  className="box-border h-[32px] min-h-[32px] w-full shrink-0 whitespace-nowrap rounded-none border-0 bg-[#EF2B04] px-2.5 text-[11px] font-semibold leading-none tracking-[0%] text-white transition-opacity hover:opacity-95 disabled:opacity-50 sm:w-auto sm:px-2.5"
                 >
                   {status === "loading" ? "..." : "Subscribe"}
                 </button>
@@ -231,7 +329,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
         </div>
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">
-          <div>© 2026 CustomFurnish.com</div>
+          <div>© 2026 CustomFurnish.com | All Rights Reserved.</div>
           <div className="flex items-center gap-1">
             <Link href="/terms-and-conditions" className="hover:text-white hover:underline">
               Terms & Conditions

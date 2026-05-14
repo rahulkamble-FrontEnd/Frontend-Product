@@ -15,76 +15,76 @@ type FaqItem = {
   answer: string;
 };
 
-// Same content as cf-angular-web/src/app/home/static items/frequently-asked-questions.ts
 const questions: FaqItem[] = [
   {
-    question: "What services does CustomFurnish.com offer?",
+    question: "What is CustomFurnish Materials?",
     answer:
-      "We provide complete home interior solutions, including modular kitchens, wardrobes, custom furniture, space planning, and personalized design services.",
+      "CustomFurnish Materials is a platform where customers can explore premium interior materials, finishes, and design products for their home interiors.",
   },
   {
-    question: "What makes CustomFurnish different from others?",
+    question: "Can I purchase materials directly from the website?",
     answer:
-      "We offer factory-to-home interiors, ensuring premium quality, cost-efficiency, and fast turnaround \u2014 including 21-day delivery on modular projects and full support covered under warranty.",
+      "No, materials cannot be purchased directly from the website. Customers can explore and select materials, and our interior design team will include them in the final interior quotation.",
   },
   {
-    question: "What is the 21-day delivery promise?",
+    question: "How does the material selection process work?",
     answer:
-      "Once your design is approved by you and your site is ready for the interior work, we ensure installation within 21 working days for modular interiors \u2014 thanks to our in-house manufacturing and streamlined processes.",
+      "Customers can browse materials, finishes, colors, and design options on the website. Once selected, our interior designers will assist in finalizing the materials for the project.",
   },
   {
-    question: "What does \u201CFactory-to-Direct Interiors\u201D mean?",
+    question: "Will the selected materials be included in the interior quotation?",
     answer:
-      "It means your interiors are built in our own factory \u2014 no middlemen, no delays. You get better prices, consistent quality, and faster delivery.",
+      "Yes, the selected materials and finishes will be discussed with our design team and added to the final project quotation.",
   },
   {
-    question: "How does the CustomFurnish design process work?",
+    question: "Can I customize materials for my interiors?",
     answer:
-      "Our process includes:\n Free design consultation\n Site visit & measurement\n 3D design proposals\n Design finalization\n Manufacturing & installation",
+      "Yes, customers can choose materials based on their design preferences, interior style, and budget requirements.",
   },
   {
-    question: "Is the design customizable?",
+    question: "Do you provide assistance in choosing materials?",
     answer:
-      "Yes! All our modular furniture, layouts, and finishes are fully customizable to suit your space, lifestyle, and budget.",
+      "Yes, our interior designers help customers select suitable materials based on functionality, aesthetics, and space requirements.",
   },
   {
-    question: "How much do home interiors cost?",
+    question: "Can I visit the experience centre to check materials physically?",
     answer:
-      "The cost depends on the size of your home, scope of work, and materials selected. We share a clear and itemized estimate after your consultation.",
+      "Yes, customers can visit our Hyderabad experience centre to explore material samples and finish collections.",
   },
   {
-    question: "Can I get a free design consultation?",
+    question: "What types of materials are available on the website?",
     answer:
-      "Yes, absolutely. Book a free consultation through our website and one of our expert designers will get in touch with you.",
+      "We showcase laminates, wall decorative panels, flooring materials, hardware, lighting, glass, mirrors, fabrics, and premium interior finishes.",
   },
   {
-    question: "Do you have experience centers I can visit?",
+    question: "Are the materials suitable for luxury home interiors?",
     answer:
-      "Yes, our experience center is located in Hyderabad where you can explore material samples, finishes, and complete mock-ups of kitchens, wardrobes, and living spaces.",
+      "Yes, our collections are carefully selected for modern, premium, and luxury residential interiors.",
   },
   {
-    question: "In which cities do you operate?",
+    question: "Do you provide complete interior design services along with materials?",
     answer:
-      "We currently serve Hyderabad and nearby areas. If you're unsure, feel free to reach out and confirm service availability in your location.",
+      "Yes, CustomFurnish provides complete customized home interior solutions along with material selection and execution.",
   },
   {
-    question: "Who will manage my project?",
+    question: "Can I get guidance from an interior designer after selecting materials?",
     answer:
-      "Every project is assigned a dedicated project manager who will guide you through each step and ensure smooth execution.",
+      "Yes, our design team will coordinate with customers and suggest suitable combinations and finishes for the project.",
   },
   {
-    question: "Do you handle both design and execution?",
+    question: "Where is your experience centre located?",
     answer:
-      "Yes, we offer end-to-end solutions \u2014 from interior design and space planning to manufacturing, delivery, and installation.",
+      "Our Hyderabad experience centre is located at:\nPlot No - 190, Professor CR Rao Road, Opposite Old ALIND Factory Entrance Gate, Doyens Colony, Serilingampalle (M), Telangana - 500019.",
   },
   {
-    question: "What payment options are available?",
-    answer: "We accept bank transfers, credit/debit cards, and UPI payments.",
+    question: "How can I contact CustomFurnish?",
+    answer:
+      "You can contact us through phone, email, or by visiting our experience centre during working hours.",
   },
   {
-    question: "What support do I get after installation?",
+    question: "What are your working hours?",
     answer:
-      "You get full post-installation support including servicing, repairs (if needed), and assistance covered during the warranty period",
+      "Our working hours are Monday to Saturday, from 10:00 AM to 7:00 PM.",
   },
 ];
 
@@ -94,14 +94,29 @@ function formatNumber(n: number): string {
 
 function renderAnswer(answer: string) {
   if (answer.includes("\n")) {
-    const lines = answer.split("\n");
-    const [heading, ...rest] = lines;
+    const lines = answer
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const [first, ...rest] = lines;
+    if (
+      rest.length === 1 &&
+      first.endsWith(":") &&
+      rest[0].length > 80
+    ) {
+      return (
+        <>
+          <p>{first}</p>
+          <p>{rest[0]}</p>
+        </>
+      );
+    }
     return (
       <div>
-        <strong>{heading}</strong>
+        <strong>{first}</strong>
         <ul>
           {rest.map((line, i) => (
-            <li key={i}>{line.trim()}</li>
+            <li key={i}>{line}</li>
           ))}
         </ul>
       </div>

@@ -24,7 +24,6 @@ const SHOWROOM_DIRECTIONS_URL =
 // from any production domain without browser CORS blocking us.
 const CONTACT_API_URL = "/api/contact-us";
 
-// Same validation as cf-angular-web/src/app/home/components/contact-us-page.
 const MOBILE_PATTERN = /^((\+91-?)|0)?[0-9]{10}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -63,88 +62,6 @@ function validate(form: FormState) {
     errors.mobile = "please enter a valid phone number";
   if (!form.location.trim()) errors.location = "location is required";
   return errors;
-}
-
-const socialLinks = [
-  {
-    id: "IG",
-    label: "Instagram",
-    href: "https://www.instagram.com/customfurnish/",
-  },
-  { id: "FB", label: "Facebook", href: "https://www.facebook.com/customfurnish" },
-  {
-    id: "YT",
-    label: "YouTube",
-    href: "https://www.youtube.com/@Customfurnish",
-  },
-  {
-    id: "LI",
-    label: "LinkedIn",
-    href: "https://www.linkedin.com/company/customfurnish-official",
-  },
-  { id: "TW", label: "Twitter / X", href: "https://x.com/CustomFurnish1" },
-  {
-    id: "PT",
-    label: "Pinterest",
-    href: "https://in.pinterest.com/customfurnishin/",
-  },
-];
-
-function SocialIcon({ id }: { id: string }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 2,
-    width: 22,
-    height: 22,
-  } as const;
-  switch (id) {
-    case "IG":
-      return (
-        <svg {...common}>
-          <rect x="3" y="3" width="18" height="18" rx="5" />
-          <circle cx="12" cy="12" r="4" />
-          <circle cx="17.5" cy="6.5" r="1.2" />
-        </svg>
-      );
-    case "FB":
-      return (
-        <svg {...common}>
-          <path d="M14 8h2V5h-2a4 4 0 0 0-4 4v2H8v3h2v5h3v-5h2.3l.4-3H13V9a1 1 0 0 1 1-1z" />
-        </svg>
-      );
-    case "YT":
-      return (
-        <svg {...common}>
-          <rect x="2.5" y="6.5" width="19" height="11" rx="3" />
-          <path d="m10 9 5 3-5 3z" />
-        </svg>
-      );
-    case "LI":
-      return (
-        <svg {...common}>
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M8 10v6" />
-          <path d="M8 8h.01" />
-          <path d="M12 16v-3a2 2 0 0 1 4 0v3" />
-        </svg>
-      );
-    case "TW":
-      return (
-        <svg {...common}>
-          <path d="M22 5.9c-.7.3-1.4.5-2.2.6.8-.5 1.3-1.2 1.6-2.1-.8.5-1.6.8-2.5 1-1.4-1.5-3.8-1.5-5.2 0-.8.8-1.2 2-1 3.1-3-.1-5.8-1.5-7.7-3.9-1 1.7-.5 3.9 1.1 5-.6 0-1.2-.2-1.7-.5 0 1.9 1.3 3.6 3.1 4-.5.1-1.1.2-1.6.1.5 1.6 2 2.8 3.7 2.8A7.6 7.6 0 0 1 3 17.6a10.8 10.8 0 0 0 5.8 1.7c7 0 10.8-5.8 10.8-10.8v-.5c.8-.5 1.5-1.2 2-2z" />
-        </svg>
-      );
-    case "PT":
-      return (
-        <svg {...common}>
-          <path d="M12 2a10 10 0 0 0-3.6 19.3c-.1-.8-.2-2 .1-2.9l1.2-5c-.2-.5-.4-1.2-.4-1.9 0-1.8 1-3.2 2.3-3.2 1.1 0 1.6.8 1.6 1.8 0 1.1-.7 2.8-1 4.3-.3 1.2.6 2.1 1.8 2.1 2.2 0 3.9-2.3 3.9-5.6 0-2.9-2.1-4.9-5.1-4.9-3.5 0-5.5 2.6-5.5 5.3 0 1 .4 2.2 1 2.8.1.1.1.2.1.3l-.4 1.5c-.1.2-.2.3-.4.2-1.5-.6-2.4-2.6-2.4-4.2 0-3.4 2.5-6.6 7.1-6.6 3.7 0 6.6 2.7 6.6 6.3 0 3.7-2.3 6.8-5.6 6.8-1.1 0-2.2-.6-2.5-1.2l-.7 2.7c-.3 1-.9 2.1-1.3 2.9.9.3 1.8.5 2.8.5A10 10 0 1 0 12 2z" />
-        </svg>
-      );
-    default:
-      return null;
-  }
 }
 
 export default function ContactUsPage() {
@@ -264,22 +181,33 @@ export default function ContactUsPage() {
 
             <div className={styles.commonContainer}>
               <div className={styles.heading}>
-                Get in Touch with CustomFurnish
+                Get in Touch With CustomFurnish
               </div>
               <div className={`${styles.commonText} ${styles.desc}`}>
-                We&rsquo;re here to help you bring your dream interiors to
-                life! Whether you have questions about our products, need
-                design assistance, or want to visit our showroom, our team is
-                ready to assist you.
+                We are here to help you explore premium interior materials and
+                modern design solutions for your dream home interiors.
+              </div>
+              <div className={`${styles.commonText} ${styles.desc}`}>
+                Whether you are planning a new home, renovating your interiors,
+                or looking for the right materials and finishes, our team is
+                ready to assist you with expert guidance and customized
+                recommendations.
               </div>
             </div>
 
             <div className={styles.commonContainer}>
-              <div className={styles.heading}>Call Us</div>
-              <div className={`${styles.commonText} ${styles.desc}`}>
-                Need immediate assistance? Our customer support team is happy
-                to help.
+              <div className={styles.heading}>Visit Our Experience Centre</div>
+              <p className={styles.venueName}>CustomFurnish Materials</p>
+              <div className={styles.addressLines}>
+                <p>Plot No - 190, Professor CR Rao Road,</p>
+                <p>Opposite Old ALIND Factory Entrance Gate,</p>
+                <p>Doyens Colony, Serilingampalle (M),</p>
+                <p>Telangana - 500019.</p>
               </div>
+            </div>
+
+            <div className={styles.commonContainer}>
+              <div className={styles.heading}>Contact Information</div>
               <span className={styles.contactLine}>
                 Phone:{" "}
                 <a href="tel:+919014324646" className={styles.contactText}>
@@ -287,67 +215,55 @@ export default function ContactUsPage() {
                 </a>
               </span>
               <span className={styles.contactLine}>
-                Available:{" "}
-                <span className={styles.contactTextStatic}>10 AM to 8 PM</span>
+                Email:{" "}
+                <a
+                  href="mailto:support@customfurnish.com"
+                  className={styles.contactText}
+                >
+                  support@customfurnish.com
+                </a>
               </span>
+            </div>
 
-              <div className={styles.heading} style={{ marginTop: 16 }}>
-                Email Us
+            <div className={styles.commonContainer}>
+              <div className={styles.heading}>Working Hours</div>
+              <span className={styles.contactLine}>Monday – Saturday</span>
+              <span className={styles.contactLine}>
+                <span className={styles.contactTextStatic}>
+                  10:00 AM – 7:00 PM
+                </span>
+              </span>
+            </div>
+
+            <div className={styles.commonContainer}>
+              <div className={styles.heading}>Material Selection Assistance</div>
+              <div className={`${styles.commonText} ${styles.desc}`}>
+                Customers can explore and shortlist materials directly from our
+                platform. Our interior design team will help finalize the
+                selected materials and include them in the interior design
+                quotation and execution process.
+              </div>
+            </div>
+
+            <div className={styles.commonContainer}>
+              <div className={styles.heading}>Why Visit CustomFurnish</div>
+              <ul className={styles.contentList}>
+                <li>Explore premium interior material collections</li>
+                <li>Experience modern finishes and textures</li>
+                <li>Get expert interior design guidance</li>
+                <li>Discover customized material combinations</li>
+                <li>Find inspiration for luxury home interiors</li>
+              </ul>
+            </div>
+
+            <div className={styles.commonContainer}>
+              <div className={styles.heading}>
+                Let&rsquo;s Create Beautiful Interiors Together
               </div>
               <div className={`${styles.commonText} ${styles.desc}`}>
-                Have a query? Drop us an email, and we&rsquo;ll get back to
-                you as soon as possible.
-              </div>
-              <span className={styles.contactLine}>
-                <span className={styles.bussinessText}>For Business</span>{" "}
-                Partnerships:{" "}
-                <a
-                  href="mailto:marketing@customfurnish.com"
-                  className={styles.contactText}
-                >
-                  marketing@customfurnish.com
-                </a>
-              </span>
-              <span className={styles.contactLine}>
-                For Careers:{" "}
-                <a
-                  href="mailto:careers@customfurnish.com"
-                  className={styles.contactText}
-                >
-                  careers@customfurnish.com
-                </a>
-              </span>
-              <span className={styles.contactLine}>
-                For Others:{" "}
-                <a
-                  href="mailto:wecare@customfurnish.com"
-                  className={styles.contactText}
-                >
-                  wecare@customfurnish.com
-                </a>
-              </span>
-
-              <div className={styles.commonContainer} style={{ marginTop: 16 }}>
-                <div className={styles.heading}>Follow us on Social Media</div>
-                <div className={`${styles.commonText} ${styles.desc}`}>
-                  Stay updated on our latest collections, offers, and interior
-                  design tips!
-                </div>
-                <div className={styles.iconsContainer}>
-                  {socialLinks.map((s) => (
-                    <a
-                      key={s.id}
-                      href={s.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={s.label}
-                    >
-                      <span className={styles.socialMediaBtn}>
-                        <SocialIcon id={s.id} />
-                      </span>
-                    </a>
-                  ))}
-                </div>
+                At CustomFurnish, we focus on helping customers create elegant,
+                functional, and modern living spaces with the right combination
+                of premium materials and expert interior solutions.
               </div>
             </div>
           </div>
@@ -468,21 +384,25 @@ export default function ContactUsPage() {
 
         <div className={`${styles.subContainer} ${styles.subContainerColumn}`}>
           <div className={styles.headingContainer}>
-            <h1>Visit Our Experience Center</h1>
+            <h1>Visit Our Experience Centre</h1>
             <div className={styles.commonText} style={{ textAlign: "center" }}>
-              Explore our collections, experience our quality firsthand, and
-              consult with our experts at our showroom.
+              Explore material samples and finishes, and consult with our team
+              at our Hyderabad experience centre.
             </div>
           </div>
 
           <div className={styles.addressContainer}>
             <div className={styles.commonContainer} style={{ gap: 14 }}>
-              <span className={styles.contactLine}>Showroom Address</span>
-              <span className={styles.commonText} style={{ lineHeight: "24px" }}>
-                Plot No - 190, Professor CR Rao Road, Opposite Old ALIND
-                Factory Entrance Gate, Doyens Colony, Serilingampalle (M),
-                Telangana-500019.
-              </span>
+              <span className={styles.contactLine}>CustomFurnish Materials</span>
+              <div
+                className={styles.addressLines}
+                style={{ textAlign: "center", maxWidth: "100%" }}
+              >
+                <p>Plot No - 190, Professor CR Rao Road,</p>
+                <p>Opposite Old ALIND Factory Entrance Gate,</p>
+                <p>Doyens Colony, Serilingampalle (M),</p>
+                <p>Telangana - 500019.</p>
+              </div>
               <span className={styles.contactLine}>
                 Mobile:{" "}
                 <a
@@ -495,7 +415,9 @@ export default function ContactUsPage() {
               </span>
               <span className={styles.contactLine}>
                 Timings:{" "}
-                <span className={styles.contactTextStatic}>10 AM to 8 PM</span>
+                <span className={styles.contactTextStatic}>
+                  Monday – Saturday, 10:00 AM – 7:00 PM
+                </span>
               </span>
               <a
                 href={SHOWROOM_DIRECTIONS_URL}
