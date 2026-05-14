@@ -105,7 +105,7 @@ const fetchRelevantBlogsForSlug = cache(async (slug: string): Promise<BlogItem[]
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<RouteParams> | RouteParams;
+  params: Promise<RouteParams>;
 }): Promise<Metadata> {
   const resolved = await params;
   const segments = Array.isArray(resolved?.slug) ? resolved.slug : [];
@@ -174,7 +174,7 @@ export async function generateMetadata({
 export default async function BlogDetailsPage({
   params,
 }: {
-  params: Promise<RouteParams> | RouteParams;
+  params: Promise<RouteParams>;
 }) {
   const resolved = await params;
   const segments = Array.isArray(resolved?.slug) ? resolved.slug : [];
