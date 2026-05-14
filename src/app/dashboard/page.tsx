@@ -274,6 +274,11 @@ export default function DashboardPage() {
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [deleteProductMsg, setDeleteProductMsg] = useState("");
   const [deleteProductError, setDeleteProductError] = useState("");
+  type ProductDeleteConfirm =
+    | null
+    | { mode: "single"; productId: string }
+    | { mode: "bulk"; productIds: string[] };
+  const [productDeleteConfirm, setProductDeleteConfirm] = useState<ProductDeleteConfirm>(null);
   const [isUpdatingProductStatus, setIsUpdatingProductStatus] = useState(false);
   const [updatingProductStatusId, setUpdatingProductStatusId] = useState<string | null>(null);
   const [updateProductStatusMsg, setUpdateProductStatusMsg] = useState("");
@@ -579,23 +584,7 @@ export default function DashboardPage() {
     });
   };
 
-  const handleBulkDeleteSelected = async () => {
-    setDeleteProductMsg("");
-    setDeleteProductError("");
-    setUpdateProductStatusMsg("");
-    setUpdateProductStatusError("");
-    if (userRole !== "admin") {
-      setDeleteProductError("Only admin can delete products.");
-      return;
-    }
-    const selectedIds = Array.from(bulkTagSelectedIds).filter(Boolean);
-    if (selectedIds.length === 0) {
-      setDeleteProductError("Select at least one product to delete.");
-      return;
-    }
-    const ok = window.confirm(`Delete ${selectedIds.length} selected product(s)? This cannot be undone.`);
-    if (!ok) return;
-
+  const runBulkProductDelete = async (selectedIds: string[]) => {
     setIsDeletingProduct(true);
     try {
       const results = await Promise.all(
@@ -623,6 +612,23 @@ export default function DashboardPage() {
     } finally {
       setIsDeletingProduct(false);
     }
+  };
+
+  const handleBulkDeleteSelected = () => {
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
+    if (userRole !== "admin") {
+      setDeleteProductError("Only admin can delete products.");
+      return;
+    }
+    const selectedIds = Array.from(bulkTagSelectedIds).filter(Boolean);
+    if (selectedIds.length === 0) {
+      setDeleteProductError("Select at least one product to delete.");
+      return;
+    }
+    setProductDeleteConfirm({ mode: "bulk", productIds: selectedIds });
   };
 
   const handleBulkTagApply = async () => {
@@ -683,19 +689,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    setDeleteProductMsg("");
-    setDeleteProductError("");
-    setUpdateProductStatusMsg("");
-    setUpdateProductStatusError("");
-    if (userRole !== "admin") {
-      setDeleteProductError("Only admin can delete products.");
-      return;
-    }
-    if (!id) return;
-    const ok = window.confirm("Delete this product? This cannot be undone.");
-    if (!ok) return;
-
+  const runSingleProductDelete = async (id: string) => {
     setIsDeletingProduct(true);
     try {
       const res = await deleteProduct(id);
@@ -711,6 +705,42 @@ export default function DashboardPage() {
     } finally {
       setIsDeletingProduct(false);
     }
+  };
+
+  const handleDeleteProduct = (id: string) => {
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
+    if (userRole !== "admin") {
+      setDeleteProductError("Only admin can delete products.");
+      return;
+    }
+    if (!id) return;
+    setProductDeleteConfirm({ mode: "single", productId: id });
+  };
+
+  const confirmPendingProductDelete = async () => {
+    if (!productDeleteConfirm || isDeletingProduct) return;
+    const pending = productDeleteConfirm;
+    setDeleteProductMsg("");
+    setDeleteProductError("");
+    setUpdateProductStatusMsg("");
+    setUpdateProductStatusError("");
+    try {
+      if (pending.mode === "bulk") {
+        await runBulkProductDelete(pending.productIds);
+      } else {
+        await runSingleProductDelete(pending.productId);
+      }
+    } finally {
+      setProductDeleteConfirm(null);
+    }
+  };
+
+  const cancelPendingProductDelete = () => {
+    if (isDeletingProduct) return;
+    setProductDeleteConfirm(null);
   };
 
   const allowedStatuses = ["draft", "active", "archived"] as const;
@@ -2480,11 +2510,11 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsBlogMenuOpen(false);
-                        router.push("/portfolio/create");
+                        router.push("/blog/manage");
                       }}
                       className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                     >
-                      Create Portfolio
+                      Manage Blogs
                     </button>
                     <button
                       type="button"
@@ -2500,21 +2530,31 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsBlogMenuOpen(false);
-                        router.push("/blog/manage");
-                      }}
-                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                    >
-                      Manage Blogs
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsBlogMenuOpen(false);
                         router.push("/trending/manage");
                       }}
                       className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                     >
                       Manage Trending
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/portfolio/create");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Create Portfolio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
+                        router.push("/portfolio/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Portfolio
                     </button>
                     <button
                       type="button"
@@ -2948,11 +2988,11 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsBlogMenuOpen(false);
-                      router.push("/portfolio/create");
+                      router.push("/blog/manage");
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Create Portfolio
+                    Manage Blogs
                   </button>
                   <button
                     type="button"
@@ -2968,21 +3008,31 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsBlogMenuOpen(false);
-                      router.push("/blog/manage");
-                    }}
-                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
-                  >
-                    Manage Blogs
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsBlogMenuOpen(false);
                       router.push("/trending/manage");
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
                     Manage Trending
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/portfolio/create");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Create Portfolio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
+                      router.push("/portfolio/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Portfolio
                   </button>
                   <button
                     type="button"
@@ -5437,6 +5487,50 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {productDeleteConfirm && (
+        <div
+          className="fixed inset-0 z-[710] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="product-delete-confirm-desc"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) cancelPendingProductDelete();
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p
+              id="product-delete-confirm-desc"
+              className="text-base font-medium leading-relaxed text-gray-800"
+            >
+              {productDeleteConfirm.mode === "bulk"
+                ? `Delete ${productDeleteConfirm.productIds.length} selected product(s)? This cannot be undone.`
+                : "Delete this product? This cannot be undone."}
+            </p>
+            <div className="mt-8 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelPendingProductDelete}
+                disabled={isDeletingProduct}
+                className="rounded-full border-2 border-[#4d2c1e] bg-rose-50 px-6 py-2.5 text-sm font-bold text-[#4d2c1e] transition-opacity disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmPendingProductDelete()}
+                disabled={isDeletingProduct}
+                className="rounded-full bg-[#4d2c1e] px-6 py-2.5 text-sm font-bold text-white transition-opacity disabled:opacity-50"
+              >
+                {isDeletingProduct ? "Deleting…" : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}
