@@ -1,22 +1,53 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteBlog, getBlogs, getCategories, publishBlog, updateBlog, type BlogItem, type BlogStatus } from "@/lib/api";
+import { BlogRichTextEditor } from "@/components/blog/BlogRichTextEditor";
+import { BlogSeoPanel } from "@/components/blog/BlogSeoPanel";
+import {
+  checkBlogSlugAvailable,
+  deleteBlog,
+  getBlogs,
+  getCategories,
+  publishBlog,
+  updateBlog,
+  uploadBlogBodyImage,
+  type BlogItem,
+  type BlogStatus,
+} from "@/lib/api";
 
 type CategoryOption = {
   id: string;
   name: string;
+  slug: string;
 };
+
+const SEO_META_TITLE_MAX = 60;
+const SEO_META_DESCRIPTION_MAX = 160;
 
 type BlogEditForm = {
   title: string;
   slug: string;
   body: string;
+  publishedAt: string;
   categoryId: string;
   featuredImageS3Key: string;
+  featuredImageAlt: string;
+  featuredImageTitle: string;
+  socialImageS3Key: string;
+  metaTitle: string;
+  metaDescription: string;
+  seoKeyword: string;
+  secondaryKeywords: string;
+  canonicalUrl: string;
+  metaRobots: "index" | "noindex";
   status: BlogStatus;
 };
+
+function htmlHasText(html: string) {
+  const t = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return t.length > 0;
+}
 
 function slugify(value: string) {
   return value
@@ -25,6 +56,24 @@ function slugify(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
+}
+
+function toDateTimeLocalValue(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function isValidCanonicalUrl(value: string) {
+  if (!value.trim()) return true;
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 export default function ManageBlogsPage() {
@@ -38,14 +87,27 @@ export default function ManageBlogsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [publishingBlogId, setPublishingBlogId] = useState<string | null>(null);
   const [deletingBlogId, setDeletingBlogId] = useState<string | null>(null);
+  const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
+  const [slugAvailability, setSlugAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const slugCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [form, setForm] = useState<BlogEditForm>({
     title: "",
     slug: "",
     body: "",
+    publishedAt: "",
     categoryId: "",
     featuredImageS3Key: "",
+    featuredImageAlt: "",
+    featuredImageTitle: "",
+    socialImageS3Key: "",
+    metaTitle: "",
+    metaDescription: "",
+    seoKeyword: "",
+    secondaryKeywords: "",
+    canonicalUrl: "",
+    metaRobots: "index",
     status: "draft",
   });
 
@@ -93,11 +155,15 @@ export default function ManageBlogsPage() {
     let active = true;
     const loadCategories = async () => {
       try {
-        const data = (await getCategories()) as Array<{ id?: string; name?: string }>;
+        const data = (await getCategories()) as Array<{ id?: string; name?: string; slug?: string }>;
         if (!active) return;
         const normalized = Array.isArray(data)
           ? data
-              .map((item) => ({ id: item.id ?? "", name: item.name ?? "" }))
+              .map((item) => ({
+                id: item.id ?? "",
+                name: item.name ?? "",
+                slug: item.slug ?? "",
+              }))
               .filter((item) => item.id && item.name)
           : [];
         setCategories(normalized);
@@ -117,6 +183,63 @@ export default function ManageBlogsPage() {
     setForm((prev) => ({ ...prev, slug: slugify(prev.title) }));
   }, [form.title, slugEdited]);
 
+  useEffect(() => {
+    if (!editingBlogId) {
+      setSlugAvailability("idle");
+      return;
+    }
+    if (slugCheckTimerRef.current) clearTimeout(slugCheckTimerRef.current);
+    const s = form.slug.trim();
+    if (!s) {
+      setSlugAvailability("idle");
+      return;
+    }
+    setSlugAvailability("checking");
+    slugCheckTimerRef.current = setTimeout(() => {
+      void (async () => {
+        try {
+          const { available } = await checkBlogSlugAvailable(s, { excludeId: editingBlogId });
+          setSlugAvailability(available ? "available" : "taken");
+        } catch {
+          setSlugAvailability("idle");
+        }
+      })();
+    }, 400);
+    return () => {
+      if (slugCheckTimerRef.current) clearTimeout(slugCheckTimerRef.current);
+    };
+  }, [form.slug, editingBlogId]);
+
+  const canSaveEdit = useMemo(() => {
+    if (!editingBlogId || isSaving) return false;
+    if (!form.title.trim() || !form.slug.trim() || !htmlHasText(form.body)) return false;
+    if (slugAvailability === "taken" || slugAvailability === "checking") return false;
+    if (form.metaTitle.length > SEO_META_TITLE_MAX) return false;
+    if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) return false;
+    if (!isValidCanonicalUrl(form.canonicalUrl)) return false;
+    return true;
+  }, [editingBlogId, isSaving, form.title, form.slug, form.body, slugAvailability, form.metaTitle, form.metaDescription, form.canonicalUrl]);
+
+  const selectedCategoryEdit = useMemo(
+    () => categories.find((c) => c.id === form.categoryId) ?? null,
+    [categories, form.categoryId]
+  );
+
+  const seoPreviewEdit = useMemo((): Pick<BlogItem, "slug" | "category"> | null => {
+    if (!form.slug.trim()) return null;
+    if (selectedCategoryEdit?.slug) {
+      return {
+        slug: form.slug.trim(),
+        category: {
+          id: selectedCategoryEdit.id,
+          name: selectedCategoryEdit.name,
+          slug: selectedCategoryEdit.slug,
+        },
+      };
+    }
+    return { slug: form.slug.trim(), category: null };
+  }, [form.slug, selectedCategoryEdit]);
+
   const orderedBlogs = useMemo(
     () =>
       [...blogs].sort((a, b) => {
@@ -129,15 +252,26 @@ export default function ManageBlogsPage() {
 
   const openEdit = (blog: BlogItem) => {
     setEditingBlogId(blog.id);
-    setSlugEdited(false);
+    setSlugEdited(true);
     setForm({
       title: blog.title || "",
       slug: blog.slug || "",
-      body: blog.body || "",
+      body: blog.body || "<p></p>",
+      publishedAt: toDateTimeLocalValue(blog.publishedAt),
       categoryId: blog.categoryId || "",
       featuredImageS3Key: blog.featuredImageS3Key || "",
+      featuredImageAlt: blog.featuredImageAlt || "",
+      featuredImageTitle: blog.featuredImageTitle || "",
+      socialImageS3Key: blog.socialImageS3Key || "",
+      metaTitle: blog.metaTitle || "",
+      metaDescription: blog.metaDescription || "",
+      seoKeyword: blog.seoKeyword || "",
+      secondaryKeywords: blog.secondaryKeywords || "",
+      canonicalUrl: blog.canonicalUrl || "",
+      metaRobots: blog.metaRobots === "noindex" ? "noindex" : "index",
       status: blog.status === "published" || blog.status === "archived" ? blog.status : "draft",
     });
+    setSocialImageFile(null);
     setError("");
     setSuccess("");
   };
@@ -152,17 +286,41 @@ export default function ManageBlogsPage() {
   };
 
   const handleSave = async () => {
-    if (!editingBlogId || isSaving) return;
+    if (!editingBlogId || isSaving || !canSaveEdit) return;
     setIsSaving(true);
     setError("");
     setSuccess("");
     try {
+      if (form.metaTitle.length > SEO_META_TITLE_MAX) {
+        throw new Error(`Meta title must be ${SEO_META_TITLE_MAX} characters or fewer.`);
+      }
+      if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) {
+        throw new Error(`Meta description must be ${SEO_META_DESCRIPTION_MAX} characters or fewer.`);
+      }
+      if (!isValidCanonicalUrl(form.canonicalUrl)) {
+        throw new Error("Canonical URL must be a valid http/https URL.");
+      }
+
+      const uploadedSocialImageKey =
+        socialImageFile instanceof File
+          ? (await uploadBlogBodyImage(socialImageFile)).key
+          : null;
       const updated = await updateBlog(editingBlogId, {
         title: form.title,
         slug: form.slug,
         body: form.body,
+        publishedAt: form.status === "published" && form.publishedAt ? new Date(form.publishedAt).toISOString() : null,
         categoryId: form.categoryId || null,
         featuredImageS3Key: form.featuredImageS3Key || null,
+        featuredImageAlt: form.featuredImageAlt || null,
+        featuredImageTitle: form.featuredImageTitle || null,
+        socialImageS3Key: uploadedSocialImageKey || form.socialImageS3Key || null,
+        metaTitle: form.metaTitle || null,
+        metaDescription: form.metaDescription || null,
+        seoKeyword: form.seoKeyword || null,
+        secondaryKeywords: form.secondaryKeywords || null,
+        canonicalUrl: form.canonicalUrl || null,
+        metaRobots: form.metaRobots,
         status: form.status,
       });
       applyBlogUpdate(updated);
@@ -272,9 +430,17 @@ export default function ManageBlogsPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-[#362f2a]">{blog.title}</td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{blog.slug}</td>
                     <td className="px-4 py-3">
+                      {(() => {
+                        const isScheduled =
+                          blog.status === "published" &&
+                          Boolean(blog.publishedAt) &&
+                          new Date(blog.publishedAt as string).getTime() > Date.now();
+                        return (
                       <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c716a]">
-                        {blog.status}
+                        {isScheduled ? "scheduled" : blog.status}
                       </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{new Date(blog.updatedAt).toLocaleString()}</td>
                     <td className="px-4 py-3 text-right">
@@ -314,7 +480,7 @@ export default function ManageBlogsPage() {
 
       {editingBlogId && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-xl border border-[#e6dfd7] bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto rounded-xl border border-[#e6dfd7] bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-[#3b322d]">Edit Blog</h2>
               <button
@@ -338,7 +504,19 @@ export default function ManageBlogsPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Slug</label>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">URL slug</label>
+                  <button
+                    type="button"
+                    onClick={() => setSlugEdited(false)}
+                    className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8b7355] hover:underline"
+                  >
+                    Regenerate from title
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-[#9b9088]">
+                  Public URL segment; use lowercase, numbers, and hyphens. Must be unique across all posts.
+                </p>
                 <input
                   type="text"
                   value={form.slug}
@@ -346,8 +524,27 @@ export default function ManageBlogsPage() {
                     setSlugEdited(true);
                     setForm((prev) => ({ ...prev, slug: e.target.value }));
                   }}
-                  className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  onBlur={() => {
+                    const next = slugify(form.slug);
+                    if (next !== form.slug) {
+                      setForm((prev) => ({ ...prev, slug: next }));
+                    }
+                  }}
+                  className="mt-2 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  autoComplete="off"
+                  spellCheck={false}
                 />
+                {slugAvailability === "checking" && (
+                  <p className="mt-1.5 text-xs font-semibold text-[#9b9088]">Checking if this URL is available…</p>
+                )}
+                {slugAvailability === "taken" && (
+                  <p className="mt-1.5 text-xs font-semibold text-red-600">
+                    This URL is already used by another post. Choose a different slug.
+                  </p>
+                )}
+                {slugAvailability === "available" && form.slug.trim() && (
+                  <p className="mt-1.5 text-xs font-semibold text-green-700">This URL is available.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -384,6 +581,17 @@ export default function ManageBlogsPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                    Schedule publish date & time
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={form.publishedAt}
+                    onChange={(e) => setForm((prev) => ({ ...prev, publishedAt: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Image S3 Key</label>
                   <input
                     type="text"
@@ -395,12 +603,150 @@ export default function ManageBlogsPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Body (HTML)</label>
-                <textarea
-                  value={form.body}
-                  onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
-                  className="mt-1 block min-h-[200px] w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                  Social image file (optional)
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(e) => setSocialImageFile(e.target.files?.[0] || null)}
+                  className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
                 />
+                {socialImageFile && (
+                  <p className="mt-1 text-xs font-semibold text-[#9b9088]">
+                    Selected social image file: {socialImageFile.name}
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-[#9b9088]">
+                  If selected, uploaded image is used for social preview (Open Graph/Twitter).
+                </p>
+              </div>
+
+              <section className="space-y-4 rounded-lg border border-[#e6dfd7] bg-[#fbfaf8] p-4">
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7f7167]">SEO</h3>
+                  <p className="mt-1 text-xs text-[#9b9088]">Set search metadata for this blog post.</p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta title</label>
+                  <input
+                    type="text"
+                    value={form.metaTitle}
+                    onChange={(e) => setForm((prev) => ({ ...prev, metaTitle: e.target.value }))}
+                    maxLength={SEO_META_TITLE_MAX}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-[#9b9088]">
+                    {form.metaTitle.length} / {SEO_META_TITLE_MAX} characters
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta description</label>
+                  <textarea
+                    value={form.metaDescription}
+                    onChange={(e) => setForm((prev) => ({ ...prev, metaDescription: e.target.value }))}
+                    rows={2}
+                    maxLength={SEO_META_DESCRIPTION_MAX}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                  />
+                  <p className="mt-1 text-xs text-[#9b9088]">
+                    {form.metaDescription.length} / {SEO_META_DESCRIPTION_MAX} characters
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Focus keyword</label>
+                    <input
+                      type="text"
+                      value={form.seoKeyword}
+                      onChange={(e) => setForm((prev) => ({ ...prev, seoKeyword: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                      Secondary keywords
+                    </label>
+                    <input
+                      type="text"
+                      value={form.secondaryKeywords}
+                      onChange={(e) => setForm((prev) => ({ ...prev, secondaryKeywords: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Canonical URL</label>
+                    <input
+                      type="url"
+                      value={form.canonicalUrl}
+                      onChange={(e) => setForm((prev) => ({ ...prev, canonicalUrl: e.target.value }))}
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    />
+                    {!!form.canonicalUrl.trim() && !isValidCanonicalUrl(form.canonicalUrl) && (
+                      <p className="mt-1 text-xs font-semibold text-red-600">Enter a valid http/https canonical URL.</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Meta robots</label>
+                    <select
+                      value={form.metaRobots}
+                      onChange={(e) =>
+                        setForm((prev) => ({ ...prev, metaRobots: e.target.value === "noindex" ? "noindex" : "index" }))
+                      }
+                      className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-white px-3 py-2 text-sm focus:outline-none"
+                    >
+                      <option value="index">index</option>
+                      <option value="noindex">noindex</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <BlogSeoPanel
+                title={form.title}
+                metaDescription={form.metaDescription}
+                bodyHtml={form.body}
+                focusKeyword={form.seoKeyword}
+                previewBlog={seoPreviewEdit}
+              />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Featured image alt</label>
+                  <input
+                    type="text"
+                    value={form.featuredImageAlt}
+                    onChange={(e) => setForm((prev) => ({ ...prev, featuredImageAlt: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Featured image title</label>
+                  <input
+                    type="text"
+                    value={form.featuredImageTitle}
+                    onChange={(e) => setForm((prev) => ({ ...prev, featuredImageTitle: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Article content</label>
+                <div className="mt-2 max-h-[min(70vh,520px)] overflow-y-auto">
+                  <BlogRichTextEditor
+                    key={editingBlogId}
+                    value={form.body}
+                    onChange={(html) => setForm((prev) => ({ ...prev, body: html }))}
+                    onUploadImage={(file) => uploadBlogBodyImage(file)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -423,7 +769,7 @@ export default function ManageBlogsPage() {
               </button>
               <button
                 type="button"
-                disabled={isSaving}
+                disabled={isSaving || !canSaveEdit}
                 onClick={handleSave}
                 className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] disabled:opacity-50"
               >
