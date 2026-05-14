@@ -1902,6 +1902,65 @@ export async function getPortfolios(params?: { category?: string }) {
   return rawList.map((item) => normalizePortfolioResponse(item));
 }
 
+export type UpdatePortfolioPayload = {
+  title?: string;
+  roomType?: string;
+  description?: string;
+  category?: string;
+};
+
+export async function updatePortfolio(portfolioId: string, payload: UpdatePortfolioPayload) {
+  const id = portfolioId.trim();
+  if (!id) throw new Error("Portfolio id is required");
+
+  const body: Record<string, string> = {};
+  if (payload.title !== undefined) body.title = payload.title;
+  if (payload.roomType !== undefined) body.roomType = payload.roomType;
+  if (payload.description !== undefined) body.description = payload.description;
+  if (payload.category !== undefined) body.category = payload.category;
+
+  if (Object.keys(body).length === 0) {
+    throw new Error("At least one field is required to update");
+  }
+
+  const response = await fetch(`${BASE_URL.replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: {
+      ...authHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update portfolio");
+  }
+
+  return normalizePortfolioResponse(await response.json());
+}
+
+export type DeletePortfolioResponse = {
+  message?: string;
+};
+
+export async function deletePortfolio(portfolioId: string) {
+  const id = portfolioId.trim();
+  if (!id) throw new Error("Portfolio id is required");
+
+  const response = await fetch(`${BASE_URL.replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete portfolio");
+  }
+
+  return response.json() as Promise<DeletePortfolioResponse>;
+}
+
 export type CreateTrendingPayload = {
   title: string;
   styleTag: string;
