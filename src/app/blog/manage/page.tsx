@@ -15,6 +15,7 @@ import {
   type BlogItem,
   type BlogStatus,
 } from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
 
 type CategoryOption = {
   id: string;
@@ -414,14 +415,14 @@ export default function ManageBlogsPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-            <table className="w-full min-w-[860px] text-left">
+            <table className="w-full min-w-[1020px] text-left">
               <thead className="border-b border-[#eee8df] bg-[#faf8f5]">
                 <tr>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Title</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Slug</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Status</th>
                   <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Updated</th>
-                  <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Actions</th>
+                  <th className="min-w-[300px] px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -443,12 +444,19 @@ export default function ManageBlogsPage() {
                       })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{new Date(blog.updatedAt).toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="min-w-[300px] px-4 py-3">
+                      <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => window.open(blogPublicPath(blog), "_blank", "noopener,noreferrer")}
+                          className="shrink-0 whitespace-nowrap rounded-md border border-[#d9d2ca] bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6c625c] hover:bg-[#f7f4ef]"
+                        >
+                          View
+                        </button>
                         <button
                           type="button"
                           onClick={() => openEdit(blog)}
-                          className="rounded-md border border-[#d9d2ca] bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] hover:bg-[#f7f4ef]"
+                          className="shrink-0 whitespace-nowrap rounded-md border border-[#d9d2ca] bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#6c625c] hover:bg-[#f7f4ef]"
                         >
                           Edit
                         </button>
@@ -456,7 +464,7 @@ export default function ManageBlogsPage() {
                           type="button"
                           disabled={publishingBlogId === blog.id || deletingBlogId === blog.id || blog.status === "published"}
                           onClick={() => handlePublish(blog.id)}
-                          className="rounded-md border border-[#bba892] bg-[#bca58c] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                          className="shrink-0 whitespace-nowrap rounded-md border border-[#bba892] bg-[#bca58c] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-50"
                         >
                           {publishingBlogId === blog.id ? "Publishing..." : "Publish"}
                         </button>
@@ -464,7 +472,7 @@ export default function ManageBlogsPage() {
                           type="button"
                           disabled={deletingBlogId === blog.id || publishingBlogId === blog.id}
                           onClick={() => handleDelete(blog.id)}
-                          className="rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-red-700 disabled:opacity-50"
+                          className="shrink-0 whitespace-nowrap rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700 disabled:opacity-50"
                         >
                           {deletingBlogId === blog.id ? "Deleting..." : "Delete"}
                         </button>
@@ -739,7 +747,7 @@ export default function ManageBlogsPage() {
 
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Article content</label>
-                <div className="mt-2 max-h-[min(70vh,520px)] overflow-y-auto">
+                <div className="mt-2">
                   <BlogRichTextEditor
                     key={editingBlogId}
                     value={form.body}
