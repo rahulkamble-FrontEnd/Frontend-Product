@@ -224,7 +224,7 @@ export default function AboutUsPage() {
             <div className={styles.whyChooseImage}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src="/about-us.png"
+                src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/about-us/about-us.png"
                 alt="CustomFurnish design consultation with material samples"
               />
             </div>
