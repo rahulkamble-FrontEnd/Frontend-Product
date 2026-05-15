@@ -238,12 +238,15 @@ export default function AboutUsPage() {
                 homeowners create beautiful living spaces with the right
                 combination of premium materials, thoughtful design, and expert
                 craftsmanship.
-              </p>
-              <p className={styles.visionText}>
                 We aim to make modern interior solutions more accessible,
                 inspiring, and customer-focused through innovation, quality, and
                 design excellence.
               </p>
+              {/* <p className={styles.visionText}>
+                We aim to make modern interior solutions more accessible,
+                inspiring, and customer-focused through innovation, quality, and
+                design excellence.
+              </p> */}
             </div>
           </div>
         </div>
