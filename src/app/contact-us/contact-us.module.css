@@ -163,7 +163,8 @@
     font-size: 16px;
     font-weight: 400;
     line-height: 28px;
-    max-width: 470px;
+    max-width: 100%;
+    text-align: justify;
 }
 
 .addressLines p {
@@ -172,25 +173,6 @@
 
 .addressLines p:last-child {
     margin-bottom: 0;
-}
-
-.contentList {
-    margin: 4px 0 0;
-    padding-left: 1.5rem;
-    list-style-type: disc;
-    list-style-position: outside;
-    color: var(--text-muted);
-    font-family: "Plus Jakarta Sans", sans-serif;
-    font-size: 16px;
-    font-weight: 400;
-    line-height: 28px;
-    text-align: left;
-}
-
-.contentList li {
-    display: list-item;
-    margin-bottom: 8px;
-    padding-left: 0.25rem;
 }
 
 .iconsContainer {
