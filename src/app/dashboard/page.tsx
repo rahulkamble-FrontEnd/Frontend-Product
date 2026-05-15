@@ -103,8 +103,8 @@ const CATEGORY_TILE_FILE_BY_KEY: Record<string, string> = {
   fabrics: "Fabric.webp",
   fabric: "Fabric.webp",
   // Batch 2
-  finishes: "Finishes.webp",
-  finish: "Finishes.webp",
+  finishes: "Finishes2.png",
+  finish: "Finishes2.png",
   hardware: "Hardware.webp",
   wallpanels: "Wallpanels.webp",
   "wall-panels": "Wallpanels.webp",
