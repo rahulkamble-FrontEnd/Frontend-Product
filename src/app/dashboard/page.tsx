@@ -72,6 +72,7 @@ const FALLBACK_MENU_NAMES: string[] = [
   // "TV Unit",
   // "Outdoor",
 ];
+/** Fallback tiles for categories without an S3 cover yet. */
 const CATEGORY_TILE_IMAGES = [
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
@@ -79,6 +80,75 @@ const CATEGORY_TILE_IMAGES = [
   "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1200&auto=format&fit=crop",
   "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=1200&auto=format&fit=crop",
 ];
+
+/**
+ * S3 object names under `category banner/front-category-cover/`
+ * (must match bucket keys exactly).
+ */
+const CATEGORY_TILE_FILE_BY_KEY: Record<string, string> = {
+  // Batch 1
+  flooring: "Flooring.webp",
+  "flooring-tiles": "Flooring.webp",
+  "flooring-and-tiles": "Flooring.webp",
+  tiles: "Flooring.webp",
+  "counter-tops": "Counter_tops.webp",
+  countertops: "Counter_tops.webp",
+  glass: "Glass.webp",
+  handles: "Handles.webp",
+  "handles-knobs": "Handles.webp",
+  "handles-and-knobs": "Handles.webp",
+  knobs: "Handles.webp",
+  mirrors: "Mirror.webp",
+  mirror: "Mirror.webp",
+  fabrics: "Fabric.webp",
+  fabric: "Fabric.webp",
+  // Batch 2
+  finishes: "Finishes.webp",
+  finish: "Finishes.webp",
+  hardware: "Hardware.webp",
+  wallpanels: "Wallpanels.webp",
+  "wall-panels": "Wallpanels.webp",
+  "wall-decorative": "Wallpanels.webp",
+  "wall-decorative-panels": "Wallpanels.webp",
+  "wall-panels-and-cladding": "Wallpanels.webp",
+  "core-materials": "CoreMaterial.webp",
+  "core-material": "CoreMaterial.webp",
+  core: "CoreMaterial.webp",
+  lighting: "Lighting.webp",
+  lights: "Lighting.webp",
+  ceiling: "False_Celing.webp",
+  ceilings: "False_Celing.webp",
+  "false-ceiling": "False_Celing.webp",
+  "false-ceilings": "False_Celing.webp",
+};
+
+function normalizeCategoryTileKey(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function categoryTileS3Url(fileName: string) {
+  const path = ["category banner", "front-category-cover", fileName]
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+  return `${PRODUCT_IMAGE_BASE_URL}/${path}`;
+}
+
+function resolveCategoryTileImageUrl(slug: string, categoryName?: string | null) {
+  const keys = [slug, categoryName ?? ""]
+    .filter((v) => v.trim().length > 0)
+    .map(normalizeCategoryTileKey);
+  for (const key of keys) {
+    const file = CATEGORY_TILE_FILE_BY_KEY[key];
+    if (file) return categoryTileS3Url(file);
+  }
+  return null;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -3425,7 +3495,12 @@ export default function DashboardPage() {
           className="flex w-full gap-3 overflow-x-auto pb-1 pr-2 scrollbar-hide md:ml-[70px] md:w-[calc(100%-70px)]"
         >
           {(menuCategories.length > 0 ? menuCategories : resolvedMenuCategories).map(
-            (category, index) => (
+            (category, index) => {
+              const tileImageUrl =
+                resolveCategoryTileImageUrl(category.slug, category.name) ??
+                CATEGORY_TILE_IMAGES[index % CATEGORY_TILE_IMAGES.length];
+
+              return (
               <button
                 type="button"
                 key={`tile-${category.id}`}
@@ -3437,7 +3512,7 @@ export default function DashboardPage() {
                 <div className="overflow-hidden rounded-[16px] border border-white bg-white shadow-sm">
                   <div className="relative h-[203px] w-[203px] bg-[#eadfcf]">
                     <Image
-                      src={CATEGORY_TILE_IMAGES[index % CATEGORY_TILE_IMAGES.length]}
+                      src={tileImageUrl}
                       alt={category.name}
                       fill
                       sizes="203px"
@@ -3449,7 +3524,8 @@ export default function DashboardPage() {
                   {toTitleCase(category.name)}
                 </div>
               </button>
-            ),
+              );
+            },
           )}
         </div>
       </section>
