@@ -234,38 +234,6 @@ export default function ContactUsPage() {
                 </span>
               </span>
             </div>
-
-            <div className={styles.commonContainer}>
-              <div className={styles.heading}>Material Selection Assistance</div>
-              <div className={`${styles.commonText} ${styles.desc}`}>
-                Customers can explore and shortlist materials directly from our
-                platform. Our interior design team will help finalize the
-                selected materials and include them in the interior design
-                quotation and execution process.
-              </div>
-            </div>
-
-            <div className={styles.commonContainer}>
-              <div className={styles.heading}>Why Visit CustomFurnish</div>
-              <ul className={styles.contentList}>
-                <li>Explore premium interior material collections</li>
-                <li>Experience modern finishes and textures</li>
-                <li>Get expert interior design guidance</li>
-                <li>Discover customized material combinations</li>
-                <li>Find inspiration for luxury home interiors</li>
-              </ul>
-            </div>
-
-            <div className={styles.commonContainer}>
-              <div className={styles.heading}>
-                Let&rsquo;s Create Beautiful Interiors Together
-              </div>
-              <div className={`${styles.commonText} ${styles.desc}`}>
-                At CustomFurnish, we focus on helping customers create elegant,
-                functional, and modern living spaces with the right combination
-                of premium materials and expert interior solutions.
-              </div>
-            </div>
           </div>
 
           <form
@@ -394,10 +362,7 @@ export default function ContactUsPage() {
           <div className={styles.addressContainer}>
             <div className={styles.commonContainer} style={{ gap: 14 }}>
               <span className={styles.contactLine}>CustomFurnish Materials</span>
-              <div
-                className={styles.addressLines}
-                style={{ textAlign: "center", maxWidth: "100%" }}
-              >
+              <div className={styles.addressLines}>
                 <p>Plot No - 190, Professor CR Rao Road,</p>
                 <p>Opposite Old ALIND Factory Entrance Gate,</p>
                 <p>Doyens Colony, Serilingampalle (M),</p>

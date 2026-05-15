@@ -178,17 +178,7 @@ export default function AboutUsPage() {
           >
             What We Offer
           </h1>
-          <div className={`${styles.discoverContainer} ${styles.reverse}`}>
-            <div className={styles.youtubeCard}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className={styles.mydezinerImg}
-                src={`${S3}/images/about-us/mydeziner.webp`}
-                alt="MyDeziner"
-              />
-            </div>
-            <div className={styles.discoverContent}>
-              <ul className={styles.contentList}>
+          <ul className={`${styles.contentList} ${styles.contentListTwoCol}`}>
                 <li>Premium interior material collections</li>
                 <li>Modern finishes and decorative solutions</li>
                 <li>Flooring and wall decorative materials</li>
@@ -201,6 +191,8 @@ export default function AboutUsPage() {
               <h2 className={styles.discoverSubheading}>
                 Why Choose CustomFurnish
               </h2>
+          <div className={styles.discoverContainer}>
+            <div className={styles.discoverContent}>
               <p className={styles.discoverContentTxt}>
                 <span className={styles.reasonTitle}>
                   Premium Material Collections
@@ -228,18 +220,33 @@ export default function AboutUsPage() {
                 From material selection to final execution, our team ensures a
                 smooth and organized interior journey.
               </p>
-              <h2 className={styles.discoverSubheading}>Our Vision</h2>
-              <p className={styles.discoverContentTxt}>
+            </div>
+            <div className={styles.whyChooseImage}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/about-us.png"
+                alt="CustomFurnish design consultation with material samples"
+              />
+            </div>
+          </div>
+
+          <div className={styles.visionSection}>
+            <h2 className={styles.visionHeading}>Our Vision</h2>
+            <div className={styles.visionBlock}>
+              <p className={styles.visionText}>
                 Our vision is to simplify interior material discovery and help
                 homeowners create beautiful living spaces with the right
                 combination of premium materials, thoughtful design, and expert
                 craftsmanship.
-              </p>
-              <p className={styles.discoverContentTxt}>
                 We aim to make modern interior solutions more accessible,
                 inspiring, and customer-focused through innovation, quality, and
                 design excellence.
               </p>
+              {/* <p className={styles.visionText}>
+                We aim to make modern interior solutions more accessible,
+                inspiring, and customer-focused through innovation, quality, and
+                design excellence.
+              </p> */}
             </div>
           </div>
         </div>
