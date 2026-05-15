@@ -22,6 +22,17 @@ function stripHtml(s: string) {
   return s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function formatBlogDate(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  });
+}
+
 type Props = {
   blog: BlogItem;
   relevantBlogs: BlogItem[];
@@ -36,8 +47,8 @@ export function BlogArticleView({ blog, relevantBlogs, imageFailed, onImageError
   const canonicalPath = useMemo(() => blogPublicPath(blog), [blog]);
   const authorDisplayName = blog.author?.name?.trim() || blog.author?.id?.trim() || "Custom Furnish";
   const publishedDate = blog.publishedAt || blog.createdAt;
-  const publishedDateLabel = new Date(publishedDate).toLocaleDateString();
-  const updatedDateLabel = new Date(blog.updatedAt).toLocaleDateString();
+  const publishedDateLabel = formatBlogDate(publishedDate);
+  const updatedDateLabel = formatBlogDate(blog.updatedAt);
   const showUpdatedDate = blog.updatedAt !== publishedDate;
 
   const articleSchema = useMemo(() => {
@@ -77,15 +88,10 @@ export function BlogArticleView({ blog, relevantBlogs, imageFailed, onImageError
     <article className="overflow-x-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <div className="space-y-3 border-b border-[#eee8df] px-6 py-6 sm:px-8">
-        <div className="flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
-          <span>Published: {publishedDateLabel}</span>
-          <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[#7c716a]">{blog.status}</span>
-        </div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
-          By {authorDisplayName}
-        </div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
-          Last updated: {showUpdatedDate ? updatedDateLabel : "Same as published"}
+        <div className="flex items-center justify-end">
+          <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c716a]">
+            {blog.status}
+          </span>
         </div>
         <h1 className="text-3xl font-semibold leading-tight tracking-tight text-[#302824]">{blog.title}</h1>
         {blog.category?.name && (
@@ -120,9 +126,21 @@ export function BlogArticleView({ blog, relevantBlogs, imageFailed, onImageError
         </div>
 
         <div
-          className="prose prose-sm max-w-none text-[#534a44] prose-p:leading-7 prose-headings:text-[#302824] prose-img:rounded-md prose-img:border prose-img:border-[#e6dfd7] prose-a:text-[#0468a3] prose-a:underline hover:prose-a:text-[#035382] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:list-inside [&_ol]:list-inside [&_ul]:pl-0 [&_ol]:pl-0 [&_li]:my-1"
+          className="prose prose-sm max-w-none text-[#534a44] prose-p:leading-7 prose-headings:text-[#302824] prose-img:rounded-md prose-img:border prose-img:border-[#e6dfd7] prose-a:text-[#0468a3] prose-a:underline hover:prose-a:text-[#035382] [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:list-outside [&_ol]:list-outside [&_ul]:pl-6 [&_ol]:pl-6 [&_li]:my-1 [&_li>p]:my-0"
           dangerouslySetInnerHTML={{ __html: blog.body }}
         />
+
+        <div className="mt-8 space-y-2 border-t border-[#eee8df] pt-6">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
+            Published: {publishedDateLabel}
+          </div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
+            By {authorDisplayName}
+          </div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
+            Last updated: {showUpdatedDate ? updatedDateLabel : "Same as published"}
+          </div>
+        </div>
 
         {relevantBlogs.length > 0 && (
           <div className="mt-10 border-t border-[#eee8df] pt-8">

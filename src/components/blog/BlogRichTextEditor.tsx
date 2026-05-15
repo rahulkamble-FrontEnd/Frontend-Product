@@ -8,6 +8,7 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
+import TextAlign from "@tiptap/extension-text-align";
 import imageCompression from "browser-image-compression";
 import { getBlogs, type BlogItem } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
@@ -41,6 +42,11 @@ export function BlogRichTextEditor({
         heading: { levels: [1, 2, 3] },
       }),
       Underline,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+        defaultAlignment: "left",
+      }),
       Link.configure({
         openOnClick: false,
         autolink: true,
@@ -240,7 +246,8 @@ export function BlogRichTextEditor({
 
   return (
     <div className={`rounded-xl border border-gray-200 bg-white shadow-inner ${className}`}>
-      <div className="flex flex-wrap gap-1 border-b border-gray-100 bg-gray-50/80 px-2 py-2">
+      <div className="sticky top-0 z-20 rounded-t-xl border-b border-gray-100 bg-gray-50/95 backdrop-blur-sm">
+        <div className="flex flex-wrap gap-1 px-2 py-2">
         <ToolbarBtn label="H1" active={editor.isActive("heading", { level: 1 })} onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} />
         <ToolbarBtn label="H2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} />
         <ToolbarBtn label="H3" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} />
@@ -252,12 +259,33 @@ export function BlogRichTextEditor({
         <ToolbarBtn label="Bullet list" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()} />
         <ToolbarBtn label="Numbered list" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()} />
         <span className="mx-1 w-px self-stretch bg-gray-200" />
+        <ToolbarBtn
+          label="Left"
+          active={editor.isActive({ textAlign: "left" })}
+          onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        />
+        <ToolbarBtn
+          label="Center"
+          active={editor.isActive({ textAlign: "center" })}
+          onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        />
+        <ToolbarBtn
+          label="Right"
+          active={editor.isActive({ textAlign: "right" })}
+          onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        />
+        <ToolbarBtn
+          label="Justify"
+          active={editor.isActive({ textAlign: "justify" })}
+          onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+        />
+        <span className="mx-1 w-px self-stretch bg-gray-200" />
         <ToolbarBtn label="Link" active={editor.isActive("link")} onClick={setLink} />
         <ToolbarBtn label="Link blog" active={showInternalLinkPicker} onClick={() => void openInternalLinkPicker()} />
         <ToolbarBtn label="Image" active={false} onClick={runImagePick} />
-      </div>
+        </div>
       {showInternalLinkPicker && (
-        <div className="border-b border-gray-100 bg-white px-3 py-3">
+        <div className="border-t border-gray-100 bg-white px-3 py-3">
           <label className="text-[10px] font-bold uppercase tracking-wide text-gray-500">Search existing blogs</label>
           <input
             type="text"
@@ -295,6 +323,7 @@ export function BlogRichTextEditor({
           </div>
         </div>
       )}
+      </div>
       <EditorContent editor={editor} />
       <div className="border-t border-gray-100 px-3 py-2 text-[11px] font-semibold text-gray-500">
         {typeof editor.storage.characterCount?.characters === "function"
