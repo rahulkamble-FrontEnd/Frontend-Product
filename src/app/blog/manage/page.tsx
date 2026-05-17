@@ -9,6 +9,7 @@ import {
   deleteBlog,
   getBlogs,
   getCategories,
+  getMe,
   publishBlog,
   updateBlog,
   uploadBlogBodyImage,
@@ -77,6 +78,30 @@ function isValidCanonicalUrl(value: string) {
   }
 }
 
+type BlogListStatus = "draft" | "published" | "scheduled" | "archived";
+type StatusFilter = "all" | BlogListStatus;
+
+function blogListStatus(blog: BlogItem): BlogListStatus {
+  if (
+    blog.status === "published" &&
+    Boolean(blog.publishedAt) &&
+    new Date(blog.publishedAt as string).getTime() > Date.now()
+  ) {
+    return "scheduled";
+  }
+  if (blog.status === "published") return "published";
+  if (blog.status === "archived") return "archived";
+  return "draft";
+}
+
+const STATUS_FILTER_OPTIONS: Array<{ id: StatusFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "published", label: "Published" },
+  { id: "draft", label: "Draft" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "archived", label: "Archived" },
+];
+
 export default function ManageBlogsPage() {
   const router = useRouter();
   const [userRole, setUserRole] = useState("");
@@ -88,6 +113,7 @@ export default function ManageBlogsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [publishingBlogId, setPublishingBlogId] = useState<string | null>(null);
   const [deletingBlogId, setDeletingBlogId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
   const [slugAvailability, setSlugAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
@@ -113,17 +139,32 @@ export default function ManageBlogsPage() {
   });
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole") || "";
-    const name = localStorage.getItem("userName") || "";
-    if (!name) {
-      router.push("/login");
-      return;
-    }
-    if (role !== "blogadmin") {
-      router.push("/dashboard");
-      return;
-    }
-    setUserRole(role);
+    let active = true;
+    const verifySession = async () => {
+      const name = localStorage.getItem("userName") || "";
+      if (!name) {
+        router.push("/login");
+        return;
+      }
+      try {
+        const user = await getMe();
+        if (!active) return;
+        if (user.role !== "blogadmin") {
+          router.push("/dashboard");
+          return;
+        }
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userName", user.name);
+        setUserRole(user.role);
+      } catch {
+        if (!active) return;
+        router.push("/login");
+      }
+    };
+    void verifySession();
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -250,6 +291,42 @@ export default function ManageBlogsPage() {
       }),
     [blogs]
   );
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusFilter, number> = {
+      all: blogs.length,
+      draft: 0,
+      published: 0,
+      scheduled: 0,
+      archived: 0,
+    };
+    for (const blog of blogs) {
+      counts[blogListStatus(blog)] += 1;
+    }
+    return counts;
+  }, [blogs]);
+
+  const visibleStatusFilters = useMemo(
+    () =>
+      STATUS_FILTER_OPTIONS.filter(
+        (option) =>
+          option.id === "all" ||
+          option.id === "draft" ||
+          option.id === "published" ||
+          statusCounts[option.id] > 0
+      ),
+    [statusCounts]
+  );
+
+  const filteredBlogs = useMemo(() => {
+    if (statusFilter === "all") return orderedBlogs;
+    return orderedBlogs.filter((blog) => blogListStatus(blog) === statusFilter);
+  }, [orderedBlogs, statusFilter]);
+
+  useEffect(() => {
+    if (statusFilter === "all") return;
+    if (statusCounts[statusFilter] === 0) setStatusFilter("all");
+  }, [statusCounts, statusFilter]);
 
   const openEdit = (blog: BlogItem) => {
     setEditingBlogId(blog.id);
@@ -405,13 +482,40 @@ export default function ManageBlogsPage() {
         {error && <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</div>}
         {success && <div className="mb-6 rounded-md border border-green-100 bg-green-50 p-3 text-sm font-semibold text-green-700">{success}</div>}
 
+        {!isLoading && blogs.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {visibleStatusFilters.map((option) => {
+              const isActive = statusFilter === option.id;
+              const count = statusCounts[option.id];
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setStatusFilter(option.id)}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition ${
+                    isActive
+                      ? "border-[#bba892] bg-[#bca58c] text-white"
+                      : "border-[#d9d2ca] bg-white text-[#6c625c] hover:bg-[#f7f4ef]"
+                  }`}
+                >
+                  {option.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             Loading blogs...
           </div>
-        ) : orderedBlogs.length === 0 ? (
+        ) : blogs.length === 0 ? (
           <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             No blogs found.
+          </div>
+        ) : filteredBlogs.length === 0 ? (
+          <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            No {statusFilter === "all" ? "" : `${statusFilter} `}blogs match this filter.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
@@ -426,22 +530,14 @@ export default function ManageBlogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {orderedBlogs.map((blog) => (
+                {filteredBlogs.map((blog) => (
                   <tr key={blog.id} className="border-b border-[#f2ede7] last:border-b-0">
                     <td className="px-4 py-3 text-sm font-semibold text-[#362f2a]">{blog.title}</td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{blog.slug}</td>
                     <td className="px-4 py-3">
-                      {(() => {
-                        const isScheduled =
-                          blog.status === "published" &&
-                          Boolean(blog.publishedAt) &&
-                          new Date(blog.publishedAt as string).getTime() > Date.now();
-                        return (
                       <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c716a]">
-                        {isScheduled ? "scheduled" : blog.status}
+                        {blogListStatus(blog)}
                       </span>
-                        );
-                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{new Date(blog.updatedAt).toLocaleString()}</td>
                     <td className="min-w-[300px] px-4 py-3">
