@@ -9,6 +9,7 @@ import {
   deleteBlog,
   getBlogs,
   getCategories,
+  getMe,
   publishBlog,
   updateBlog,
   uploadBlogBodyImage,
@@ -25,6 +26,16 @@ type CategoryOption = {
 
 const SEO_META_TITLE_MAX = 60;
 const SEO_META_DESCRIPTION_MAX = 160;
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+
+function makeBlogImageUrl(blog: Pick<BlogItem, "featuredImageUrl" | "featuredImageS3Key">) {
+  const directUrl = blog.featuredImageUrl?.trim() || "";
+  if (directUrl) return directUrl;
+  const key = blog.featuredImageS3Key?.trim() || "";
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
+}
 
 type BlogEditForm = {
   title: string;
@@ -77,6 +88,30 @@ function isValidCanonicalUrl(value: string) {
   }
 }
 
+type BlogListStatus = "draft" | "published" | "scheduled" | "archived";
+type StatusFilter = "all" | BlogListStatus;
+
+function blogListStatus(blog: BlogItem): BlogListStatus {
+  if (
+    blog.status === "published" &&
+    Boolean(blog.publishedAt) &&
+    new Date(blog.publishedAt as string).getTime() > Date.now()
+  ) {
+    return "scheduled";
+  }
+  if (blog.status === "published") return "published";
+  if (blog.status === "archived") return "archived";
+  return "draft";
+}
+
+const STATUS_FILTER_OPTIONS: Array<{ id: StatusFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "published", label: "Published" },
+  { id: "draft", label: "Draft" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "archived", label: "Archived" },
+];
+
 export default function ManageBlogsPage() {
   const router = useRouter();
   const [userRole, setUserRole] = useState("");
@@ -88,7 +123,10 @@ export default function ManageBlogsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [publishingBlogId, setPublishingBlogId] = useState<string | null>(null);
   const [deletingBlogId, setDeletingBlogId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [socialImageFile, setSocialImageFile] = useState<File | null>(null);
+  const [featuredImageFile, setFeaturedImageFile] = useState<File | null>(null);
+  const [featuredImagePreviewUrl, setFeaturedImagePreviewUrl] = useState<string | null>(null);
   const [slugEdited, setSlugEdited] = useState(false);
   const [slugAvailability, setSlugAvailability] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const slugCheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,17 +151,32 @@ export default function ManageBlogsPage() {
   });
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole") || "";
-    const name = localStorage.getItem("userName") || "";
-    if (!name) {
-      router.push("/login");
-      return;
-    }
-    if (role !== "blogadmin") {
-      router.push("/dashboard");
-      return;
-    }
-    setUserRole(role);
+    let active = true;
+    const verifySession = async () => {
+      const name = localStorage.getItem("userName") || "";
+      if (!name) {
+        router.push("/login");
+        return;
+      }
+      try {
+        const user = await getMe();
+        if (!active) return;
+        if (user.role !== "blogadmin") {
+          router.push("/dashboard");
+          return;
+        }
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userName", user.name);
+        setUserRole(user.role);
+      } catch {
+        if (!active) return;
+        router.push("/login");
+      }
+    };
+    void verifySession();
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -251,6 +304,60 @@ export default function ManageBlogsPage() {
     [blogs]
   );
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusFilter, number> = {
+      all: blogs.length,
+      draft: 0,
+      published: 0,
+      scheduled: 0,
+      archived: 0,
+    };
+    for (const blog of blogs) {
+      counts[blogListStatus(blog)] += 1;
+    }
+    return counts;
+  }, [blogs]);
+
+  const visibleStatusFilters = useMemo(
+    () =>
+      STATUS_FILTER_OPTIONS.filter(
+        (option) =>
+          option.id === "all" ||
+          option.id === "draft" ||
+          option.id === "published" ||
+          statusCounts[option.id] > 0
+      ),
+    [statusCounts]
+  );
+
+  const filteredBlogs = useMemo(() => {
+    if (statusFilter === "all") return orderedBlogs;
+    return orderedBlogs.filter((blog) => blogListStatus(blog) === statusFilter);
+  }, [orderedBlogs, statusFilter]);
+
+  useEffect(() => {
+    if (statusFilter === "all") return;
+    if (statusCounts[statusFilter] === 0) setStatusFilter("all");
+  }, [statusCounts, statusFilter]);
+
+  useEffect(() => {
+    if (!featuredImageFile) {
+      setFeaturedImagePreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(featuredImageFile);
+    setFeaturedImagePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [featuredImageFile]);
+
+  const editingBlog = useMemo(
+    () => blogs.find((item) => item.id === editingBlogId) ?? null,
+    [blogs, editingBlogId],
+  );
+
+  const currentFeaturedImageUrl = editingBlog ? makeBlogImageUrl(editingBlog) : null;
+  const displayFeaturedImageUrl = featuredImagePreviewUrl || currentFeaturedImageUrl;
+
   const openEdit = (blog: BlogItem) => {
     setEditingBlogId(blog.id);
     setSlugEdited(true);
@@ -270,9 +377,10 @@ export default function ManageBlogsPage() {
       secondaryKeywords: blog.secondaryKeywords || "",
       canonicalUrl: blog.canonicalUrl || "",
       metaRobots: blog.metaRobots === "noindex" ? "noindex" : "index",
-      status: blog.status === "published" || blog.status === "archived" ? blog.status : "draft",
+      status: blog.status === "published" ? "published" : "draft",
     });
     setSocialImageFile(null);
+    setFeaturedImageFile(null);
     setError("");
     setSuccess("");
   };
@@ -280,39 +388,42 @@ export default function ManageBlogsPage() {
   const closeEdit = () => {
     if (isSaving) return;
     setEditingBlogId(null);
+    setFeaturedImageFile(null);
   };
 
   const applyBlogUpdate = (updated: BlogItem) => {
     setBlogs((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
   };
 
-  const handleSave = async () => {
-    if (!editingBlogId || isSaving || !canSaveEdit) return;
-    setIsSaving(true);
-    setError("");
-    setSuccess("");
-    try {
-      if (form.metaTitle.length > SEO_META_TITLE_MAX) {
-        throw new Error(`Meta title must be ${SEO_META_TITLE_MAX} characters or fewer.`);
-      }
-      if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) {
-        throw new Error(`Meta description must be ${SEO_META_DESCRIPTION_MAX} characters or fewer.`);
-      }
-      if (!isValidCanonicalUrl(form.canonicalUrl)) {
-        throw new Error("Canonical URL must be a valid http/https URL.");
-      }
+  const persistBlogEdit = async (options: { publish?: boolean; closeOnSuccess?: boolean }) => {
+    if (!editingBlogId || !canSaveEdit) return null;
 
-      const uploadedSocialImageKey =
-        socialImageFile instanceof File
-          ? (await uploadBlogBodyImage(socialImageFile)).key
-          : null;
-      const updated = await updateBlog(editingBlogId, {
+    if (form.metaTitle.length > SEO_META_TITLE_MAX) {
+      throw new Error(`Meta title must be ${SEO_META_TITLE_MAX} characters or fewer.`);
+    }
+    if (form.metaDescription.length > SEO_META_DESCRIPTION_MAX) {
+      throw new Error(`Meta description must be ${SEO_META_DESCRIPTION_MAX} characters or fewer.`);
+    }
+    if (!isValidCanonicalUrl(form.canonicalUrl)) {
+      throw new Error("Canonical URL must be a valid http/https URL.");
+    }
+
+    const nextStatus: BlogStatus = options.publish ? "published" : form.status;
+    const publishedAtIso =
+      nextStatus === "published" && form.publishedAt ? new Date(form.publishedAt).toISOString() : null;
+
+    const uploadedSocialImageKey =
+      socialImageFile instanceof File ? (await uploadBlogBodyImage(socialImageFile)).key : null;
+
+    const updated = await updateBlog(
+      editingBlogId,
+      {
         title: form.title,
         slug: form.slug,
         body: form.body,
-        publishedAt: form.status === "published" && form.publishedAt ? new Date(form.publishedAt).toISOString() : null,
+        publishedAt: publishedAtIso,
         categoryId: form.categoryId || null,
-        featuredImageS3Key: form.featuredImageS3Key || null,
+        featuredImageS3Key: featuredImageFile ? null : form.featuredImageS3Key || null,
         featuredImageAlt: form.featuredImageAlt || null,
         featuredImageTitle: form.featuredImageTitle || null,
         socialImageS3Key: uploadedSocialImageKey || form.socialImageS3Key || null,
@@ -322,11 +433,28 @@ export default function ManageBlogsPage() {
         secondaryKeywords: form.secondaryKeywords || null,
         canonicalUrl: form.canonicalUrl || null,
         metaRobots: form.metaRobots,
-        status: form.status,
-      });
-      applyBlogUpdate(updated);
-      setSuccess("Blog updated successfully.");
+        status: nextStatus,
+      },
+      featuredImageFile ?? undefined,
+    );
+
+    applyBlogUpdate(updated);
+    setFeaturedImageFile(null);
+    setSocialImageFile(null);
+    if (options.closeOnSuccess !== false) {
       setEditingBlogId(null);
+    }
+    return updated;
+  };
+
+  const handleSave = async () => {
+    if (!editingBlogId || isSaving || !canSaveEdit) return;
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      await persistBlogEdit({ closeOnSuccess: true });
+      setSuccess("Blog updated successfully.");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to update blog.");
     } finally {
@@ -340,6 +468,16 @@ export default function ManageBlogsPage() {
     setError("");
     setSuccess("");
     try {
+      if (editingBlogId === blogId) {
+        if (!canSaveEdit) {
+          throw new Error("Fix validation errors before publishing.");
+        }
+        setIsSaving(true);
+        await persistBlogEdit({ publish: true, closeOnSuccess: true });
+        setSuccess("Blog published successfully.");
+        return;
+      }
+
       const updated = await publishBlog(blogId);
       applyBlogUpdate(updated);
       setSuccess("Blog published successfully.");
@@ -347,6 +485,7 @@ export default function ManageBlogsPage() {
       setError(err instanceof Error ? err.message : "Failed to publish blog.");
     } finally {
       setPublishingBlogId(null);
+      setIsSaving(false);
     }
   };
 
@@ -405,13 +544,40 @@ export default function ManageBlogsPage() {
         {error && <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-600">{error}</div>}
         {success && <div className="mb-6 rounded-md border border-green-100 bg-green-50 p-3 text-sm font-semibold text-green-700">{success}</div>}
 
+        {!isLoading && blogs.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {visibleStatusFilters.map((option) => {
+              const isActive = statusFilter === option.id;
+              const count = statusCounts[option.id];
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setStatusFilter(option.id)}
+                  className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] transition ${
+                    isActive
+                      ? "border-[#bba892] bg-[#bca58c] text-white"
+                      : "border-[#d9d2ca] bg-white text-[#6c625c] hover:bg-[#f7f4ef]"
+                  }`}
+                >
+                  {option.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {isLoading ? (
           <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             Loading blogs...
           </div>
-        ) : orderedBlogs.length === 0 ? (
+        ) : blogs.length === 0 ? (
           <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             No blogs found.
+          </div>
+        ) : filteredBlogs.length === 0 ? (
+          <div className="rounded-md border border-[#e6dfd7] bg-white p-8 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            No {statusFilter === "all" ? "" : `${statusFilter} `}blogs match this filter.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
@@ -426,22 +592,14 @@ export default function ManageBlogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {orderedBlogs.map((blog) => (
+                {filteredBlogs.map((blog) => (
                   <tr key={blog.id} className="border-b border-[#f2ede7] last:border-b-0">
                     <td className="px-4 py-3 text-sm font-semibold text-[#362f2a]">{blog.title}</td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{blog.slug}</td>
                     <td className="px-4 py-3">
-                      {(() => {
-                        const isScheduled =
-                          blog.status === "published" &&
-                          Boolean(blog.publishedAt) &&
-                          new Date(blog.publishedAt as string).getTime() > Date.now();
-                        return (
                       <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7c716a]">
-                        {isScheduled ? "scheduled" : blog.status}
+                        {blogListStatus(blog)}
                       </span>
-                        );
-                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-[#7a7069]">{new Date(blog.updatedAt).toLocaleString()}</td>
                     <td className="min-w-[300px] px-4 py-3">
@@ -563,14 +721,13 @@ export default function ManageBlogsPage() {
                     onChange={(e) =>
                       setForm((prev) => ({
                         ...prev,
-                        status: e.target.value === "published" ? "published" : e.target.value === "archived" ? "archived" : "draft",
+                        status: e.target.value === "published" ? "published" : "draft",
                       }))
                     }
                     className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
                   >
                     <option value="draft">draft</option>
                     <option value="published">published</option>
-                    <option value="archived">archived</option>
                   </select>
                 </div>
                 <div>
@@ -600,15 +757,36 @@ export default function ManageBlogsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Image S3 Key</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
+                    Replace featured image
+                  </label>
                   <input
-                    type="text"
-                    value={form.featuredImageS3Key}
-                    onChange={(e) => setForm((prev) => ({ ...prev, featuredImageS3Key: e.target.value }))}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => setFeaturedImageFile(e.target.files?.[0] || null)}
                     className="mt-1 block w-full rounded-md border border-[#e3ddd5] bg-[#fbfaf8] px-3 py-2 text-sm focus:outline-none"
                   />
+                  {featuredImageFile && (
+                    <p className="mt-1 text-xs font-semibold text-[#9b9088]">
+                      Selected file: {featuredImageFile.name}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-[#9b9088]">
+                    Upload a new featured image for draft or published posts. Use Publish to save the image and go live.
+                  </p>
                 </div>
               </div>
+
+              {displayFeaturedImageUrl && (
+                <div className="rounded-lg border border-[#e6dfd7] bg-[#fbfaf8] p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">Featured image preview</p>
+                  <img
+                    src={displayFeaturedImageUrl}
+                    alt={form.featuredImageAlt || form.title || "Featured image preview"}
+                    className="mt-2 max-h-48 w-auto rounded-md border border-[#e3ddd5] object-contain"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9b9088]">
@@ -759,14 +937,21 @@ export default function ManageBlogsPage() {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                disabled={isSaving || deletingBlogId === editingBlogId || publishingBlogId === editingBlogId}
-                onClick={() => handlePublish(editingBlogId)}
-                className="rounded-md border border-[#bba892] bg-[#bca58c] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-50"
-              >
-                {publishingBlogId === editingBlogId ? "Publishing..." : "Publish"}
-              </button>
+              {form.status !== "published" && (
+                <button
+                  type="button"
+                  disabled={
+                    !canSaveEdit ||
+                    isSaving ||
+                    deletingBlogId === editingBlogId ||
+                    publishingBlogId === editingBlogId
+                  }
+                  onClick={() => void handlePublish(editingBlogId)}
+                  className="rounded-md border border-[#bba892] bg-[#bca58c] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-50"
+                >
+                  {publishingBlogId === editingBlogId ? "Publishing..." : "Save & publish"}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={deletingBlogId === editingBlogId || isSaving || publishingBlogId === editingBlogId}
@@ -778,7 +963,7 @@ export default function ManageBlogsPage() {
               <button
                 type="button"
                 disabled={isSaving || !canSaveEdit}
-                onClick={handleSave}
+                onClick={() => void handleSave()}
                 className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] disabled:opacity-50"
               >
                 {isSaving ? "Saving..." : "Save Changes"}

@@ -15,6 +15,12 @@ const BASE_URL =
 let _accessToken: string | null =
   typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
 
+function syncAccessTokenFromStorage() {
+  if (typeof window === 'undefined') return;
+  const stored = sessionStorage.getItem('access_token');
+  if (stored) _accessToken = stored;
+}
+
 export function setAccessToken(token: string | null) {
   _accessToken = token;
   if (typeof window !== 'undefined') {
@@ -24,13 +30,20 @@ export function setAccessToken(token: string | null) {
 }
 
 export function getAccessToken() {
+  syncAccessTokenFromStorage();
   return _accessToken;
 }
 
 function authHeaders(): Record<string, string> {
+  syncAccessTokenFromStorage();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (_accessToken) headers['Authorization'] = `Bearer ${_accessToken}`;
   return headers;
+}
+
+function bearerOnlyHeaders(): Record<string, string> {
+  syncAccessTokenFromStorage();
+  return _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {};
 }
 
 export type CreateProductPayload = {
@@ -1021,7 +1034,7 @@ export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-upload`, {
     method: "POST",
-    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    headers: bearerOnlyHeaders(),
     body: formData,
     credentials: "include",
   });
@@ -1038,7 +1051,7 @@ export async function uploadProductImage(productId: string, imageFile: File) {
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
     method: 'POST',
-    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    headers: bearerOnlyHeaders(),
     body: formData,
     credentials: 'include',
   });
@@ -1067,7 +1080,7 @@ export async function uploadProductImages(productId: string, imageFiles: File[])
     `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images`,
     {
       method: "POST",
-      headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+      headers: bearerOnlyHeaders(),
       body: formData,
       credentials: "include",
     }
@@ -1367,11 +1380,15 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
 }
 
 export async function getBlogs(params?: { publishedOnly?: boolean; includeCredentials?: boolean }) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog`, {
+  const blogBase = `${BASE_URL.replace('/auth', '')}/blog`;
+  const isAdminList = params?.publishedOnly === false;
+  const url = isAdminList ? `${blogBase}/admin` : blogBase;
+  const response = await fetch(url, {
     method: "GET",
     headers: authHeaders(),
-    credentials: params?.includeCredentials ? "include" : "omit",
+    credentials: isAdminList || params?.includeCredentials ? "include" : "omit",
   });
+  if (response.status === 401) setAccessToken(null);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to fetch blogs");
@@ -1470,9 +1487,52 @@ export type UpdateBlogPayload = {
   status: BlogStatus;
 };
 
-export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
+function appendBlogUpdateFields(formData: FormData, cleanPayload: {
+  title: string;
+  slug: string;
+  body: string;
+  status: BlogStatus;
+  publishedAt: string | null;
+  categoryId: string | null;
+  featuredImageS3Key: string | null;
+  featuredImageAlt: string | null;
+  featuredImageTitle: string | null;
+  socialImageS3Key: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  seoKeyword: string | null;
+  secondaryKeywords: string | null;
+  canonicalUrl: string | null;
+  metaRobots: "index" | "noindex" | null;
+}) {
+  formData.append("title", cleanPayload.title);
+  formData.append("slug", cleanPayload.slug);
+  formData.append("body", cleanPayload.body);
+  formData.append("status", cleanPayload.status);
+  if (cleanPayload.publishedAt) formData.append("publishedAt", cleanPayload.publishedAt);
+  if (cleanPayload.categoryId) formData.append("categoryId", cleanPayload.categoryId);
+  if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
+  if (cleanPayload.featuredImageAlt) formData.append("featuredImageAlt", cleanPayload.featuredImageAlt);
+  if (cleanPayload.featuredImageTitle) formData.append("featuredImageTitle", cleanPayload.featuredImageTitle);
+  if (cleanPayload.socialImageS3Key) formData.append("socialImageS3Key", cleanPayload.socialImageS3Key);
+  if (cleanPayload.metaTitle) formData.append("metaTitle", cleanPayload.metaTitle);
+  if (cleanPayload.metaDescription) formData.append("metaDescription", cleanPayload.metaDescription);
+  if (cleanPayload.seoKeyword) formData.append("seoKeyword", cleanPayload.seoKeyword);
+  if (cleanPayload.secondaryKeywords) formData.append("secondaryKeywords", cleanPayload.secondaryKeywords);
+  if (cleanPayload.canonicalUrl) formData.append("canonicalUrl", cleanPayload.canonicalUrl);
+  if (cleanPayload.metaRobots) formData.append("metaRobots", cleanPayload.metaRobots);
+}
+
+export async function updateBlog(
+  blogId: string,
+  payload: UpdateBlogPayload,
+  featuredImageFile?: File,
+) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
+
+  const metaRobots: "index" | "noindex" | null =
+    payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null;
 
   const cleanPayload = {
     title: payload.title.trim(),
@@ -1489,33 +1549,46 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     seoKeyword: payload.seoKeyword?.trim() || null,
     secondaryKeywords: payload.secondaryKeywords?.trim() || null,
     canonicalUrl: payload.canonicalUrl?.trim() || null,
-    metaRobots: payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null,
+    metaRobots,
     status: payload.status,
   };
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: authHeaders(),
-    body: JSON.stringify({
-      title: cleanPayload.title,
-      slug: cleanPayload.slug,
-      body: cleanPayload.body,
-      status: cleanPayload.status,
-      ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
-      ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
-      ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
-      ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
-      featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
-      featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
-      metaTitle: cleanPayload.metaTitle ?? "",
-      metaDescription: cleanPayload.metaDescription ?? "",
-      seoKeyword: cleanPayload.seoKeyword ?? "",
-      secondaryKeywords: cleanPayload.secondaryKeywords ?? "",
-      canonicalUrl: cleanPayload.canonicalUrl ?? "",
-      metaRobots: cleanPayload.metaRobots ?? "index",
-    }),
-    credentials: "include",
-  });
+  const endpoint = `${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`;
+  const response = featuredImageFile instanceof File
+    ? await fetch(endpoint, {
+        method: "PUT",
+        headers: bearerOnlyHeaders(),
+        body: (() => {
+          const formData = new FormData();
+          appendBlogUpdateFields(formData, cleanPayload);
+          formData.append("featuredImage", featuredImageFile);
+          return formData;
+        })(),
+        credentials: "include",
+      })
+    : await fetch(endpoint, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: cleanPayload.title,
+          slug: cleanPayload.slug,
+          body: cleanPayload.body,
+          status: cleanPayload.status,
+          ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
+          ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
+          ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+          ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
+          featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
+          featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
+          metaTitle: cleanPayload.metaTitle ?? "",
+          metaDescription: cleanPayload.metaDescription ?? "",
+          seoKeyword: cleanPayload.seoKeyword ?? "",
+          secondaryKeywords: cleanPayload.secondaryKeywords ?? "",
+          canonicalUrl: cleanPayload.canonicalUrl ?? "",
+          metaRobots: cleanPayload.metaRobots ?? "index",
+        }),
+        credentials: "include",
+      });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to update blog");
@@ -1524,13 +1597,14 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
   return normalizeBlog((await response.json()) as RawBlogResponse);
 }
 
-export async function publishBlog(blogId: string) {
+export async function publishBlog(blogId: string, publishedAt?: string | null) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
-    method: "PUT",
+    method: "PATCH",
     headers: authHeaders(),
+    body: JSON.stringify(publishedAt ? { publishedAt } : {}),
     credentials: "include",
   });
   if (!response.ok) {
@@ -1595,7 +1669,7 @@ export async function uploadBlogBodyImage(file: File): Promise<{ url: string; ke
   formData.append("file", file);
   const response = await fetch(`${BASE_URL.replace("/auth", "")}/blog/body-image`, {
     method: "POST",
-    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    headers: bearerOnlyHeaders(),
     body: formData,
     credentials: "include",
   });
@@ -1630,7 +1704,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
   const response = featuredImageFile instanceof File
     ? await fetch(endpoint, {
         method: "POST",
-        headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+        headers: bearerOnlyHeaders(),
         body: (() => {
           const formData = new FormData();
           formData.append("title", cleanPayload.title);
@@ -1837,7 +1911,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
     files.length > 0
       ? await fetch(endpoint, {
           method: "POST",
-          headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+          headers: bearerOnlyHeaders(),
           body: (() => {
             const formData = new FormData();
             formData.append("title", cleanTitle);
@@ -2032,7 +2106,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
     imageFile instanceof File
       ? await fetch(endpoint, {
           method: "POST",
-          headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+          headers: bearerOnlyHeaders(),
           body: (() => {
             const formData = new FormData();
             formData.append("title", cleanPayload.title);
@@ -2246,7 +2320,7 @@ export async function createDesignCf(payload: CreateDesignCfPayload, imageFiles:
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf`, {
     method: "POST",
-    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    headers: bearerOnlyHeaders(),
     body: formData,
     credentials: "include",
   });
@@ -2281,7 +2355,7 @@ export async function updateDesignCf(
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
     method: "PUT",
-    headers: _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {},
+    headers: bearerOnlyHeaders(),
     body: formData,
     credentials: "include",
   });
@@ -2350,7 +2424,11 @@ export async function getMe() {
     credentials: 'include',
   });
   if (!response.ok) {
-    throw new Error('Unauthorized');
+    if (response.status === 401) setAccessToken(null);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      (errorData as { message?: string }).message || 'Session expired. Please log in again.',
+    );
   }
   return response.json();
 }

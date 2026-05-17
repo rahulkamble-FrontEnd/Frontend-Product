@@ -332,7 +332,6 @@ export default function CreateBlogPage() {
                 >
                   <option value="draft">draft</option>
                   <option value="published">published</option>
-                  <option value="archived">archived</option>
                 </select>
               </div>
               <div>
