@@ -1487,9 +1487,52 @@ export type UpdateBlogPayload = {
   status: BlogStatus;
 };
 
-export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
+function appendBlogUpdateFields(formData: FormData, cleanPayload: {
+  title: string;
+  slug: string;
+  body: string;
+  status: BlogStatus;
+  publishedAt: string | null;
+  categoryId: string | null;
+  featuredImageS3Key: string | null;
+  featuredImageAlt: string | null;
+  featuredImageTitle: string | null;
+  socialImageS3Key: string | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  seoKeyword: string | null;
+  secondaryKeywords: string | null;
+  canonicalUrl: string | null;
+  metaRobots: "index" | "noindex" | null;
+}) {
+  formData.append("title", cleanPayload.title);
+  formData.append("slug", cleanPayload.slug);
+  formData.append("body", cleanPayload.body);
+  formData.append("status", cleanPayload.status);
+  if (cleanPayload.publishedAt) formData.append("publishedAt", cleanPayload.publishedAt);
+  if (cleanPayload.categoryId) formData.append("categoryId", cleanPayload.categoryId);
+  if (cleanPayload.featuredImageS3Key) formData.append("featuredImageS3Key", cleanPayload.featuredImageS3Key);
+  if (cleanPayload.featuredImageAlt) formData.append("featuredImageAlt", cleanPayload.featuredImageAlt);
+  if (cleanPayload.featuredImageTitle) formData.append("featuredImageTitle", cleanPayload.featuredImageTitle);
+  if (cleanPayload.socialImageS3Key) formData.append("socialImageS3Key", cleanPayload.socialImageS3Key);
+  if (cleanPayload.metaTitle) formData.append("metaTitle", cleanPayload.metaTitle);
+  if (cleanPayload.metaDescription) formData.append("metaDescription", cleanPayload.metaDescription);
+  if (cleanPayload.seoKeyword) formData.append("seoKeyword", cleanPayload.seoKeyword);
+  if (cleanPayload.secondaryKeywords) formData.append("secondaryKeywords", cleanPayload.secondaryKeywords);
+  if (cleanPayload.canonicalUrl) formData.append("canonicalUrl", cleanPayload.canonicalUrl);
+  if (cleanPayload.metaRobots) formData.append("metaRobots", cleanPayload.metaRobots);
+}
+
+export async function updateBlog(
+  blogId: string,
+  payload: UpdateBlogPayload,
+  featuredImageFile?: File,
+) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
+
+  const metaRobots: "index" | "noindex" | null =
+    payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null;
 
   const cleanPayload = {
     title: payload.title.trim(),
@@ -1506,33 +1549,46 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
     seoKeyword: payload.seoKeyword?.trim() || null,
     secondaryKeywords: payload.secondaryKeywords?.trim() || null,
     canonicalUrl: payload.canonicalUrl?.trim() || null,
-    metaRobots: payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null,
+    metaRobots,
     status: payload.status,
   };
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: authHeaders(),
-    body: JSON.stringify({
-      title: cleanPayload.title,
-      slug: cleanPayload.slug,
-      body: cleanPayload.body,
-      status: cleanPayload.status,
-      ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
-      ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
-      ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
-      ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
-      featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
-      featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
-      metaTitle: cleanPayload.metaTitle ?? "",
-      metaDescription: cleanPayload.metaDescription ?? "",
-      seoKeyword: cleanPayload.seoKeyword ?? "",
-      secondaryKeywords: cleanPayload.secondaryKeywords ?? "",
-      canonicalUrl: cleanPayload.canonicalUrl ?? "",
-      metaRobots: cleanPayload.metaRobots ?? "index",
-    }),
-    credentials: "include",
-  });
+  const endpoint = `${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`;
+  const response = featuredImageFile instanceof File
+    ? await fetch(endpoint, {
+        method: "PUT",
+        headers: bearerOnlyHeaders(),
+        body: (() => {
+          const formData = new FormData();
+          appendBlogUpdateFields(formData, cleanPayload);
+          formData.append("featuredImage", featuredImageFile);
+          return formData;
+        })(),
+        credentials: "include",
+      })
+    : await fetch(endpoint, {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: cleanPayload.title,
+          slug: cleanPayload.slug,
+          body: cleanPayload.body,
+          status: cleanPayload.status,
+          ...(cleanPayload.publishedAt ? { publishedAt: cleanPayload.publishedAt } : {}),
+          ...(cleanPayload.categoryId ? { categoryId: cleanPayload.categoryId } : {}),
+          ...(cleanPayload.featuredImageS3Key ? { featuredImageS3Key: cleanPayload.featuredImageS3Key } : {}),
+          ...(cleanPayload.socialImageS3Key ? { socialImageS3Key: cleanPayload.socialImageS3Key } : {}),
+          featuredImageAlt: cleanPayload.featuredImageAlt ?? "",
+          featuredImageTitle: cleanPayload.featuredImageTitle ?? "",
+          metaTitle: cleanPayload.metaTitle ?? "",
+          metaDescription: cleanPayload.metaDescription ?? "",
+          seoKeyword: cleanPayload.seoKeyword ?? "",
+          secondaryKeywords: cleanPayload.secondaryKeywords ?? "",
+          canonicalUrl: cleanPayload.canonicalUrl ?? "",
+          metaRobots: cleanPayload.metaRobots ?? "index",
+        }),
+        credentials: "include",
+      });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || "Failed to update blog");
@@ -1541,13 +1597,14 @@ export async function updateBlog(blogId: string, payload: UpdateBlogPayload) {
   return normalizeBlog((await response.json()) as RawBlogResponse);
 }
 
-export async function publishBlog(blogId: string) {
+export async function publishBlog(blogId: string, publishedAt?: string | null) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
 
   const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
-    method: "PUT",
+    method: "PATCH",
     headers: authHeaders(),
+    body: JSON.stringify(publishedAt ? { publishedAt } : {}),
     credentials: "include",
   });
   if (!response.ok) {
