@@ -36,6 +36,8 @@ function htmlHasText(html: string) {
   return t.length > 0;
 }
 
+const SHOW_CANONICAL_URL_FIELD = false;
+
 function isValidCanonicalUrl(value: string) {
   if (!value.trim()) return true;
   try {
@@ -428,8 +430,14 @@ export default function CreateBlogPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
+              <div
+                className={
+                  SHOW_CANONICAL_URL_FIELD
+                    ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
+                    : "grid grid-cols-1 gap-4"
+                }
+              >
+                <div className={SHOW_CANONICAL_URL_FIELD ? "" : "hidden"} aria-hidden={!SHOW_CANONICAL_URL_FIELD}>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Canonical URL</label>
                   <input
                     type="url"
@@ -437,6 +445,7 @@ export default function CreateBlogPage() {
                     onChange={(e) => setCanonicalUrl(e.target.value)}
                     placeholder="https://www.customfurnish.com/blog/..."
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#0468a3] shadow-inner"
+                    tabIndex={SHOW_CANONICAL_URL_FIELD ? 0 : -1}
                   />
                   {!!canonicalUrl.trim() && !isValidCanonicalUrl(canonicalUrl) && (
                     <p className="mt-1 text-xs font-semibold text-red-600">Enter a valid http/https canonical URL.</p>
