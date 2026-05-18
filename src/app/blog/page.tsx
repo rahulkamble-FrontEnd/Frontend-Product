@@ -167,7 +167,7 @@ export default function BlogPage() {
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Blog Journal</h1>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Blog Journal</h1>
           </div>
           {/* <div className="flex items-center gap-2">
             <button
@@ -210,7 +210,7 @@ export default function BlogPage() {
         <section>
           <div className="mb-6">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Latest Blogs</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Latest Blogs</h2>
           </div>
         {error && (
           <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
@@ -219,9 +219,9 @@ export default function BlogPage() {
         )}
 
         {isLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible xl:grid-cols-3">
+          <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
             {Array.from({ length: 3 }).map((_, idx) => (
-              <div key={idx} className="w-[270px] shrink-0 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink">
+              <div key={idx} className="w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink">
                 <div className="h-44 animate-pulse bg-[#f1ede8] sm:h-56" />
                 <div className="space-y-3 p-4">
                   <div className="h-3 w-24 animate-pulse rounded bg-[#f1ede8]" />
@@ -236,7 +236,7 @@ export default function BlogPage() {
             No blogs available yet.
           </div>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible xl:grid-cols-3">
+          <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
             {orderedBlogs.map((blog, idx) => {
               const imageUrl = makeBlogImageUrl(blog);
               const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
@@ -246,7 +246,7 @@ export default function BlogPage() {
                 <Link
                   key={blog.id}
                   href={blogPublicPath(blog)}
-                  className="block overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)]"
+                  className="block w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)] sm:w-auto sm:shrink"
                 >
                   <div className="relative h-40 w-full bg-[#f1ede8] sm:h-56">
                     {canRenderImage ? (
@@ -257,7 +257,7 @@ export default function BlogPage() {
                         fill
                         loading={idx === 0 ? "eager" : "lazy"}
                         unoptimized
-                        sizes="(max-width: 1024px) 100vw, 33vw"
+                        sizes="(max-width: 640px) 280px, (max-width: 1280px) 50vw, 33vw"
                         className="object-cover"
                         onError={() =>
                           setFailedImageBlogIds((prev) => {
@@ -293,7 +293,7 @@ export default function BlogPage() {
         <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
           <div className="mb-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Inspiration</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight text-[#3b322d]">Trending</h2>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Trending</h2>
           </div>
 
           {trendingError && (
@@ -303,11 +303,11 @@ export default function BlogPage() {
           )}
 
           {isLoadingTrending ? (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:block sm:space-y-6 sm:overflow-visible sm:pb-0">
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:block sm:space-y-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {Array.from({ length: 2 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="grid w-[290px] shrink-0 overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink-0 lg:grid-cols-[1.06fr_1fr]"
+                  className="grid w-[min(88vw,320px)] shrink-0 snap-start overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink lg:grid-cols-[1.06fr_1fr]"
                 >
                   <div className="h-48 animate-pulse bg-[#f1ede8] sm:h-64 lg:h-full" />
                   <div className="space-y-4 p-6 sm:p-8">
@@ -324,7 +324,7 @@ export default function BlogPage() {
               No trending stories available yet.
             </div>
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide sm:block sm:space-y-6 sm:overflow-visible sm:pb-0">
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:block sm:space-y-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {orderedTrendings.map((item, idx) => {
                 const imageUrl = makeTrendingImageUrl(item);
                 const fallbackId = item.id?.trim() || `${item.title || "trending"}-${idx}`;
@@ -333,7 +333,7 @@ export default function BlogPage() {
                 return (
                   <article
                     key={fallbackId}
-                    className="grid w-[290px] shrink-0 overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink-0 lg:grid-cols-[1.06fr_1fr]"
+                    className="grid w-[min(88vw,320px)] shrink-0 snap-start overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink lg:grid-cols-[1.06fr_1fr]"
                   >
                     <div className="relative h-48 w-full bg-[#ece7df] sm:h-72 lg:h-full">
                       {canRenderImage ? (
@@ -343,7 +343,7 @@ export default function BlogPage() {
                           fill
                           loading="eager"
                           unoptimized
-                          sizes="(max-width: 1024px) 100vw, 52vw"
+                          sizes="(max-width: 640px) 320px, 52vw"
                           className="object-cover"
                           onError={() =>
                             setFailedTrendingImageIds((prev) => {
@@ -381,7 +381,7 @@ export default function BlogPage() {
 
         <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-black uppercase tracking-[0.06em] text-[#3b4762] sm:text-4xl">Portfolio</h2>
+            <h2 className="text-2xl font-black uppercase tracking-[0.06em] text-[#3b4762] sm:text-4xl">Portfolio</h2>
             <div className="mx-auto mt-3 h-0.5 w-16 bg-[#c7dbe9]" />
           </div>
 
@@ -392,11 +392,11 @@ export default function BlogPage() {
           )}
 
           {isLoadingPortfolio ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, idx) => (
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+              {Array.from({ length: 3 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="h-56 overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
+                  className="h-56 w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink"
                 >
                   <div className="h-full animate-pulse bg-[#f1ede8]" />
                 </div>
@@ -407,7 +407,7 @@ export default function BlogPage() {
               No portfolio entries available yet.
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-2">
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
               {orderedPortfolios.map((entry, idx) => {
                 const sortedImages = [...entry.images].sort((a, b) => a.displayOrder - b.displayOrder);
                 const firstImage = sortedImages[0];
@@ -420,7 +420,7 @@ export default function BlogPage() {
                 return (
                   <article
                     key={cardId}
-                    className="group relative overflow-hidden rounded-2xl border border-[#d7dde8] bg-[#0f1726] shadow-[0_10px_30px_rgba(15,23,38,0.22)]"
+                    className="group relative w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-2xl border border-[#d7dde8] bg-[#0f1726] shadow-[0_10px_30px_rgba(15,23,38,0.22)] sm:w-auto sm:shrink"
                   >
                     <div className="relative h-64 w-full bg-[#1a2336] sm:h-72">
                       {canRenderImage ? (
@@ -430,7 +430,7 @@ export default function BlogPage() {
                           fill
                           loading="eager"
                           unoptimized
-                          sizes="(max-width: 1024px) 100vw, 50vw"
+                          sizes="(max-width: 640px) 280px, (max-width: 1280px) 50vw, 33vw"
                           className="object-cover transition duration-500 group-hover:scale-[1.03]"
                           onError={() =>
                             setFailedPortfolioImageIds((prev) => {

@@ -2630,6 +2630,16 @@ export default function DashboardPage() {
                       type="button"
                       onClick={() => {
                         setIsBlogMenuOpen(false);
+                        router.push("/design-cf/manage");
+                      }}
+                      className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Manage Design CF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBlogMenuOpen(false);
                         router.push("/blog");
                       }}
                       className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -3108,6 +3118,16 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       setIsBlogMenuOpen(false);
+                      router.push("/design-cf/manage");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Manage Design CF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsBlogMenuOpen(false);
                       router.push("/blog");
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
@@ -3516,6 +3536,8 @@ export default function DashboardPage() {
                       alt={category.name}
                       fill
                       sizes="203px"
+                      loading={index < 3 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : undefined}
                       className="object-cover"
                     />
                   </div>
