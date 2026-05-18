@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { blogPublicPath } from "@/lib/blog-path";
+import { TRENDING_SECTION_ID, trendingItemAnchorId, trendingItemHref } from "@/lib/trending-path";
 import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -132,6 +133,19 @@ export default function BlogPage() {
       }),
     [trendingItems]
   );
+
+  useEffect(() => {
+    if (isLoadingTrending) return;
+    const scrollToTrendingHash = () => {
+      const hash = window.location.hash;
+      if (!hash.startsWith("#trending")) return;
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    scrollToTrendingHash();
+    window.addEventListener("hashchange", scrollToTrendingHash);
+    return () => window.removeEventListener("hashchange", scrollToTrendingHash);
+  }, [isLoadingTrending, orderedTrendings]);
 
   const orderedPortfolios = useMemo(
     () =>
@@ -290,7 +304,10 @@ export default function BlogPage() {
         )}
         </section>
 
-        <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
+        <section
+          id={TRENDING_SECTION_ID}
+          className="mt-10 scroll-mt-24 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14"
+        >
           <div className="mb-8">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Inspiration</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Trending</h2>
@@ -331,9 +348,11 @@ export default function BlogPage() {
                 const canRenderImage = Boolean(imageUrl) && !failedTrendingImageIds.has(fallbackId);
 
                 return (
-                  <article
+                  <Link
                     key={fallbackId}
-                    className="grid w-[min(88vw,320px)] shrink-0 snap-start overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:w-full sm:shrink lg:grid-cols-[1.06fr_1fr]"
+                    id={trendingItemAnchorId(item.id)}
+                    href={trendingItemHref(item.id)}
+                    className="grid w-[min(88vw,320px)] shrink-0 snap-start scroll-mt-24 overflow-hidden rounded-3xl border border-[#e6dfd7] bg-white shadow-[0_8px_28px_rgba(41,35,30,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(41,35,30,0.12)] sm:w-full sm:shrink lg:grid-cols-[1.06fr_1fr]"
                   >
                     <div className="relative h-48 w-full bg-[#ece7df] sm:h-72 lg:h-full">
                       {canRenderImage ? (
@@ -372,7 +391,7 @@ export default function BlogPage() {
                         {item.caption || "No caption available for this trend yet."}
                       </p>
                     </div>
-                  </article>
+                  </Link>
                 );
               })}
             </div>
