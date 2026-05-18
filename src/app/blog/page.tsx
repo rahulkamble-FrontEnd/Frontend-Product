@@ -8,6 +8,18 @@ import { TRENDING_SECTION_ID, trendingItemAnchorId, trendingItemHref } from "@/l
 import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const UNCATEGORIZED_CATEGORY_ID = "__uncategorized__";
+const SHOW_TRENDING_SECTION = false;
+const SHOW_PORTFOLIO_SECTION = false;
+
+function getBlogCategoryKey(blog: BlogItem): string | null {
+  const id = blog.category?.id?.trim() || blog.categoryId?.trim();
+  return id || null;
+}
+
+function getBlogCategoryLabel(blog: BlogItem): string {
+  return blog.category?.name?.trim() || "Uncategorized";
+}
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -22,6 +34,27 @@ function makeBlogImageUrl(blog: BlogItem) {
   return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
 }
 
+function blogMatchesSearch(blog: BlogItem, query: string) {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return true;
+  const haystack = [
+    blog.title,
+    blog.slug,
+    stripHtml(blog.body),
+    blog.metaTitle,
+    blog.metaDescription,
+    blog.seoKeyword,
+    blog.secondaryKeywords,
+    blog.category?.name,
+    blog.category?.slug,
+    blog.featuredImageAlt,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return terms.every((term) => haystack.includes(term));
+}
+
 export default function BlogPage() {
   const [blogs, setBlogs] = useState<BlogItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<TrendingItem[]>([]);
@@ -32,6 +65,8 @@ export default function BlogPage() {
   const [error, setError] = useState("");
   const [trendingError, setTrendingError] = useState("");
   const [portfolioError, setPortfolioError] = useState("");
+  const [blogSearchQuery, setBlogSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
   const [failedTrendingImageIds, setFailedTrendingImageIds] = useState<Set<string>>(new Set());
   const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
@@ -63,6 +98,7 @@ export default function BlogPage() {
   }, []);
 
   useEffect(() => {
+    if (!SHOW_TRENDING_SECTION) return;
     let active = true;
 
     const loadTrendings = async () => {
@@ -89,6 +125,7 @@ export default function BlogPage() {
   }, []);
 
   useEffect(() => {
+    if (!SHOW_PORTFOLIO_SECTION) return;
     let active = true;
 
     const loadPortfolios = async () => {
@@ -124,6 +161,66 @@ export default function BlogPage() {
     [blogs]
   );
 
+  const blogCategories = useMemo(() => {
+    const counts = new Map<string, { name: string; count: number }>();
+    for (const blog of orderedBlogs) {
+      const key = getBlogCategoryKey(blog) ?? UNCATEGORIZED_CATEGORY_ID;
+      const name = getBlogCategoryLabel(blog);
+      const existing = counts.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(key, { name, count: 1 });
+      }
+    }
+    return [...counts.entries()]
+      .map(([id, { name, count }]) => ({ id, name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [orderedBlogs]);
+
+  const selectedCategory = useMemo(
+    () => blogCategories.find((category) => category.id === selectedCategoryId) ?? null,
+    [blogCategories, selectedCategoryId]
+  );
+
+  const filteredBlogs = useMemo(() => {
+    let result = orderedBlogs;
+    if (selectedCategoryId) {
+      result = result.filter((blog) => (getBlogCategoryKey(blog) ?? UNCATEGORIZED_CATEGORY_ID) === selectedCategoryId);
+    }
+    if (blogSearchQuery.trim()) {
+      result = result.filter((blog) => blogMatchesSearch(blog, blogSearchQuery));
+    }
+    return result;
+  }, [orderedBlogs, selectedCategoryId, blogSearchQuery]);
+
+  const recentPosts = useMemo(() => orderedBlogs.slice(0, 6), [orderedBlogs]);
+
+  const hasBlogListFilter = Boolean(blogSearchQuery.trim() || selectedCategoryId);
+
+  const blogListFilterMessage = useMemo(() => {
+    if (!hasBlogListFilter) return null;
+    const count = filteredBlogs.length;
+    const countLabel = `${count} result${count === 1 ? "" : "s"}`;
+    if (selectedCategory && blogSearchQuery.trim()) {
+      return `${countLabel} in "${selectedCategory.name}" for "${blogSearchQuery.trim()}"`;
+    }
+    if (selectedCategory) {
+      return `${countLabel} in "${selectedCategory.name}"`;
+    }
+    return `${countLabel} for "${blogSearchQuery.trim()}"`;
+  }, [hasBlogListFilter, filteredBlogs.length, selectedCategory, blogSearchQuery]);
+
+  const blogListEmptyMessage = useMemo(() => {
+    if (selectedCategory && blogSearchQuery.trim()) {
+      return `No blogs in "${selectedCategory.name}" match "${blogSearchQuery.trim()}". Try a different search or category.`;
+    }
+    if (selectedCategory) {
+      return `No blogs in "${selectedCategory.name}" yet.`;
+    }
+    return `No blogs match "${blogSearchQuery.trim()}". Try a different search term.`;
+  }, [selectedCategory, blogSearchQuery]);
+
   const orderedTrendings = useMemo(
     () =>
       [...trendingItems].sort((a, b) => {
@@ -135,7 +232,7 @@ export default function BlogPage() {
   );
 
   useEffect(() => {
-    if (isLoadingTrending) return;
+    if (!SHOW_TRENDING_SECTION || isLoadingTrending) return;
     const scrollToTrendingHash = () => {
       const hash = window.location.hash;
       if (!hash.startsWith("#trending")) return;
@@ -178,7 +275,7 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
       <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-3 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+        <div className="mx-auto w-full max-w-7xl">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Blog Journal</h1>
@@ -221,19 +318,28 @@ export default function BlogPage() {
       </header>
 
       <main className="mx-auto w-full max-w-7xl px-3 py-8 sm:px-6 lg:px-8">
-        <section>
-          <div className="mb-6">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Latest Blogs</h2>
-          </div>
-        {error && (
-          <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
-            {error}
-          </div>
-        )}
+        <section aria-label="Latest Blogs">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+            <div className="min-w-0 flex-1">
+              <div className="mb-6">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Latest Blogs</h2>
+                {blogListFilterMessage && !isLoading && (
+                  <p className="mt-2 text-xs font-semibold text-[#9b9088]" aria-live="polite">
+                    {blogListFilterMessage}
+                  </p>
+                )}
+              </div>
 
-        {isLoading ? (
-          <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+              {error && (
+                <div className="mb-6 rounded-md border border-red-100 bg-red-50 p-3 text-center text-sm font-semibold text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <div aria-live="polite">
+              {isLoading ? (
+                <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
             {Array.from({ length: 3 }).map((_, idx) => (
               <div key={idx} className="w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink">
                 <div className="h-44 animate-pulse bg-[#f1ede8] sm:h-56" />
@@ -249,9 +355,13 @@ export default function BlogPage() {
           <div className="rounded-md border border-[#e6dfd7] bg-white p-10 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
             No blogs available yet.
           </div>
+        ) : filteredBlogs.length === 0 ? (
+          <div className="rounded-md border border-[#e6dfd7] bg-white p-10 text-center text-sm font-semibold text-[#847a72] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            {blogListEmptyMessage}
+          </div>
         ) : (
-          <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
-            {orderedBlogs.map((blog, idx) => {
+          <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            {filteredBlogs.map((blog, idx) => {
               const imageUrl = makeBlogImageUrl(blog);
               const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
               const preview = stripHtml(blog.body).slice(0, 150);
@@ -301,9 +411,104 @@ export default function BlogPage() {
               );
             })}
           </div>
-        )}
+              )}
+              </div>
+            </div>
+
+            <aside className="w-full lg:w-72 lg:shrink-0 xl:w-80">
+              <div className="space-y-8 lg:sticky lg:top-6">
+                <div>
+                  <h3 className="border-l-[3px] border-[#bca58c] pl-3 text-lg font-semibold tracking-tight text-[#3b322d]">
+                    Search
+                  </h3>
+                  <label htmlFor="blog-search" className="sr-only">
+                    Search blogs
+                  </label>
+                  <div className="relative mt-3">
+                    <input
+                      id="blog-search"
+                      type="text"
+                      role="searchbox"
+                      value={blogSearchQuery}
+                      onChange={(e) => setBlogSearchQuery(e.target.value)}
+                      placeholder="Search"
+                      autoComplete="off"
+                      className="w-full rounded-md border border-[#e3ddd5] bg-white py-2.5 pl-3 pr-9 text-sm text-[#3b322d] placeholder:text-[#a69d94] focus:border-[#bca58c] focus:outline-none focus:ring-1 focus:ring-[#bca58c]"
+                    />
+                    {blogSearchQuery.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setBlogSearchQuery("")}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#9b9088] transition hover:bg-[#f3eee7] hover:text-[#5c534c]"
+                        aria-label="Clear search"
+                      >
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="border-l-[3px] border-[#bca58c] pl-3 text-lg font-semibold tracking-tight text-[#3b322d]">
+                    Recent Posts
+                  </h3>
+                  {recentPosts.length === 0 ? (
+                    <p className="mt-3 text-sm text-[#9b9088]">No posts yet.</p>
+                  ) : (
+                    <ul className="mt-3 space-y-3">
+                      {recentPosts.map((blog) => (
+                        <li key={blog.id}>
+                          <Link
+                            href={blogPublicPath(blog)}
+                            className="text-sm font-medium leading-snug text-[#5c534c] transition hover:text-[#bca58c]"
+                          >
+                            {blog.title}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="border-l-[3px] border-[#bca58c] pl-3 text-lg font-semibold tracking-tight text-[#3b322d]">
+                    Categories
+                  </h3>
+                  {blogCategories.length === 0 ? (
+                    <p className="mt-3 text-sm text-[#9b9088]">No categories yet.</p>
+                  ) : (
+                    <ul className="mt-3 space-y-2">
+                      {blogCategories.map((category) => {
+                        const isActive = selectedCategoryId === category.id;
+                        return (
+                          <li key={category.id}>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedCategoryId((current) => (current === category.id ? null : category.id))
+                              }
+                              className={`w-full rounded-md px-2 py-1.5 text-left text-sm font-medium leading-snug transition ${
+                                isActive
+                                  ? "bg-[#f3eee7] text-[#bca58c]"
+                                  : "text-[#5c534c] hover:bg-[#faf8f5] hover:text-[#bca58c]"
+                              }`}
+                              aria-pressed={isActive}
+                            >
+                              {category.name}
+                              <span className="ml-1 text-[#9b9088]">({category.count})</span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </aside>
+          </div>
         </section>
 
+        {SHOW_TRENDING_SECTION && (
         <section
           id={TRENDING_SECTION_ID}
           className="mt-10 scroll-mt-24 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14"
@@ -397,7 +602,9 @@ export default function BlogPage() {
             </div>
           )}
         </section>
+        )}
 
+        {SHOW_PORTFOLIO_SECTION && (
         <section className="mt-10 border-t border-[#e6dfd7] pt-10 sm:mt-16 sm:pt-14">
           <div className="mb-10 text-center">
             <h2 className="text-2xl font-black uppercase tracking-[0.06em] text-[#3b4762] sm:text-4xl">Portfolio</h2>
@@ -411,7 +618,7 @@ export default function BlogPage() {
           )}
 
           {isLoadingPortfolio ? (
-            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {Array.from({ length: 3 }).map((_, idx) => (
                 <div
                   key={idx}
@@ -426,7 +633,7 @@ export default function BlogPage() {
               No portfolio entries available yet.
             </div>
           ) : (
-            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-3 [&::-webkit-scrollbar]:hidden">
+            <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
               {orderedPortfolios.map((entry, idx) => {
                 const sortedImages = [...entry.images].sort((a, b) => a.displayOrder - b.displayOrder);
                 const firstImage = sortedImages[0];
@@ -486,6 +693,7 @@ export default function BlogPage() {
             </div>
           )}
         </section>
+        )}
       </main>
     </div>
   );
