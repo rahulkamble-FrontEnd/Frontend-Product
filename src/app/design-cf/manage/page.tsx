@@ -37,7 +37,7 @@ export default function ManageDesignCfPage() {
       router.push("/login");
       return;
     }
-    if (role !== "admin") {
+    if (role !== "admin" && role !== "blogadmin") {
       router.push("/dashboard");
       return;
     }
@@ -59,7 +59,7 @@ export default function ManageDesignCfPage() {
   };
 
   useEffect(() => {
-    if (userRole !== "admin") return;
+    if (userRole !== "admin" && userRole !== "blogadmin") return;
     void loadEntries();
   }, [userRole]);
 
@@ -153,7 +153,7 @@ export default function ManageDesignCfPage() {
     }
   };
 
-  if (userRole !== "admin") return null;
+  if (userRole !== "admin" && userRole !== "blogadmin") return null;
 
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
