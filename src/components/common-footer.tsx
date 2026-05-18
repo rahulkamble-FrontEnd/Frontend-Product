@@ -166,13 +166,13 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
   return (
     <footer
-      className={`${plusJakartaSans.className} text-white`}
+      className={`${plusJakartaSans.className} w-full min-w-0 overflow-x-clip text-white`}
       style={{
         background:
           "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
       }}
     >
-      <div className="mx-auto w-full max-w-[1680px] px-6 pb-9 pt-12 sm:px-8 sm:pt-14 md:px-10 md:pt-14 lg:px-12 xl:px-16 2xl:px-24">
+      <div className="mx-auto w-full min-w-0 max-w-[1680px] px-6 pb-9 pt-12 sm:px-8 sm:pt-14 md:px-10 md:pt-14 lg:px-12 xl:px-16 2xl:px-24">
         <div className={footerMainGridClassName}>
           <div className="flex flex-col gap-8 md:col-span-2 lg:col-span-1 xl:col-span-1">
             <div className="flex max-w-full flex-col gap-6">
@@ -189,14 +189,14 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
               />
             </Link>
             <p
-              className="max-w-[min(100%,20rem)] text-left text-[14px] font-normal tracking-[0%] text-white/90 xl:max-w-[22rem]"
+              className="w-full max-w-full text-left text-[14px] font-normal tracking-[0%] text-white/90 sm:max-w-[min(100%,20rem)] xl:max-w-[22rem]"
               style={{ lineHeight: "26px" }}
             >
               CustomFurnish.com offers premium interior materials and modern design solutions for
               elegant and customized living spaces.
             </p>
             </div>
-            <div className="flex flex-nowrap items-center gap-1.5 xl:gap-2">
+            <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {socialLinks.map((item) => (
                 <a
                   key={item.id}
@@ -229,7 +229,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </ul>
           </div>
 
-          <div className="pl-2 md:pl-4 xl:pl-5">
+          <div className="pl-0 sm:pl-2 md:pl-4 xl:pl-5">
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Shop
             </div>
@@ -240,7 +240,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </ul>
           </div>
 
-          <div className="w-full max-w-[340px] pl-2 md:pl-4 xl:max-w-[360px] xl:pl-5">
+          <div className="w-full min-w-0 max-w-full pl-0 sm:max-w-[340px] sm:pl-2 md:pl-4 xl:max-w-[360px] xl:pl-5">
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Experience Centre
             </div>
@@ -286,7 +286,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
           </div>
 
           {!hideNewsletter && (
-            <div className="flex w-full max-w-[300px] min-w-0 flex-col items-stretch justify-self-start text-left md:justify-self-end lg:col-span-2 xl:col-span-1">
+            <div className="flex w-full min-w-0 max-w-full flex-col items-stretch justify-self-start text-left sm:max-w-[300px] md:justify-self-end lg:col-span-2 xl:col-span-1">
               <div className="text-[20px] font-semibold leading-tight tracking-[0%] text-white">
                 Stay Updated
               </div>
@@ -295,8 +295,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
               </p>
               <form
                 onSubmit={handleSubscribe}
-                style={{ width: 300 }}
-                className="mt-4 box-border flex min-w-0 flex-col gap-2 rounded-none border border-white bg-transparent px-1.5 py-2 sm:flex-row sm:items-center sm:gap-1.5 sm:px-1.5 sm:py-2"
+                className="mt-4 box-border flex w-full min-w-0 max-w-full flex-col gap-2 rounded-none border border-white bg-transparent px-1.5 py-2 sm:flex-row sm:items-center sm:gap-1.5 sm:px-1.5 sm:py-2"
               >
                 <input
                   type="email"
@@ -330,7 +329,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
         <div className="flex flex-col gap-2 pt-5 text-[11px] text-white/90 md:flex-row md:items-center md:justify-between">
           <div>© 2026 CustomFurnish.com | All Rights Reserved.</div>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
             <Link href="/terms-and-conditions" className="hover:text-white hover:underline">
               Terms & Conditions
             </Link>
