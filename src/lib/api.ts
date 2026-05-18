@@ -2071,6 +2071,7 @@ type RawTrending = {
   created_at?: string;
   imageUrl?: string | null;
   image_url?: string | null;
+  url?: string | null;
 };
 
 function normalizeTrending(raw: RawTrending): TrendingItem {
@@ -2082,8 +2083,25 @@ function normalizeTrending(raw: RawTrending): TrendingItem {
     caption: raw.caption ?? "",
     createdBy: raw.createdBy ?? raw.created_by ?? null,
     createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
-    imageUrl: raw.imageUrl ?? raw.image_url ?? null,
+    imageUrl: raw.imageUrl ?? raw.image_url ?? raw.url ?? null,
   };
+}
+
+export async function getTrendingById(trendingId: string) {
+  const id = trendingId.trim();
+  if (!id) throw new Error("Trending id is required");
+
+  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
+    method: "GET",
+    headers: authHeaders(),
+    credentials: "omit",
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch trending entry");
+  }
+
+  return normalizeTrending((await response.json()) as RawTrending);
 }
 
 export async function createTrending(payload: CreateTrendingPayload, imageFile?: File) {

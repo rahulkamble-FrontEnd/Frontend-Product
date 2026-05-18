@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { trendingItemHref } from "@/lib/trending-path";
 import {
   logout,
   createUser,
@@ -3597,11 +3599,10 @@ export default function DashboardPage() {
                   const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
                   const tag = trending?.styleTag || "Kitchen";
 
-                  return (
-                    <article
-                      key={trending?.id ?? `trending-placeholder-${idx}`}
-                      className="h-[270px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm sm:h-[430px] sm:w-full sm:max-w-[360px] sm:rounded-2xl sm:p-2.5"
-                    >
+                  const cardClassName =
+                    "block h-[270px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-[430px] sm:w-full sm:max-w-[360px] sm:rounded-2xl sm:p-2.5";
+                  const cardInner = (
+                    <>
                       <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-[#eadfcf] sm:h-[312px] sm:rounded-[14px]">
                         {imageUrl ? (
                           <Image
@@ -3625,6 +3626,20 @@ export default function DashboardPage() {
                           {title}
                         </div>
                       </div>
+                    </>
+                  );
+
+                  if (trending?.id) {
+                    return (
+                      <Link key={trending.id} href={trendingItemHref(trending.id)} className={cardClassName}>
+                        {cardInner}
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <article key={`trending-placeholder-${idx}`} className={cardClassName}>
+                      {cardInner}
                     </article>
                   );
                 })}
