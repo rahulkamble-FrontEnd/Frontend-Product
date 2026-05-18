@@ -3516,6 +3516,8 @@ export default function DashboardPage() {
                       alt={category.name}
                       fill
                       sizes="203px"
+                      loading={index < 3 ? "eager" : "lazy"}
+                      fetchPriority={index === 0 ? "high" : undefined}
                       className="object-cover"
                     />
                   </div>
