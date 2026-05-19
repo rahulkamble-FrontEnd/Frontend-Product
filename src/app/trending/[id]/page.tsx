@@ -56,29 +56,31 @@ export default function TrendingDetailPage() {
   const imageUrl = item ? makeTrendingImageUrl(item) : null;
 
   return (
-    <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
-      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-3 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4">
-          <div>
+    <div className="min-h-screen min-w-0 overflow-x-hidden bg-[#f5f3ef] text-[#312b27]">
+      <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-4xl min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Inspiration</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Trending Design</h1>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight text-[#3b322d] sm:text-2xl md:text-3xl">
+              Trending Design
+            </h1>
           </div>
           <Link
             href="/blog#trending"
-            className="rounded-md border border-[#d9d2ca] bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c625c] transition hover:bg-[#f7f4ef]"
+            className="inline-flex shrink-0 self-start rounded-md border border-[#d9d2ca] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] transition hover:bg-[#f7f4ef] sm:px-4 sm:text-[11px] sm:tracking-[0.14em]"
           >
             Back to blog
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl px-3 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full min-w-0 max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         {isLoading ? (
-          <div className="rounded-3xl border border-[#e6dfd7] bg-white p-10 text-center text-sm font-semibold text-[#847a72] shadow-[0_8px_28px_rgba(41,35,30,0.08)]">
+          <div className="rounded-3xl border border-[#e6dfd7] bg-white p-6 text-center text-sm font-semibold text-[#847a72] shadow-[0_8px_28px_rgba(41,35,30,0.08)] sm:p-10">
             Loading trending design...
           </div>
         ) : error || !item ? (
-          <div className="rounded-3xl border border-red-100 bg-red-50 p-10 text-center text-sm font-semibold text-red-600">
+          <div className="rounded-3xl border border-red-100 bg-red-50 p-6 text-center text-sm font-semibold text-red-600 sm:p-10">
             {error || "Trending design not found."}
           </div>
         ) : (
@@ -101,7 +103,7 @@ export default function TrendingDetailPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-4 p-6 sm:p-10">
+            <div className="space-y-4 p-4 sm:p-6 md:p-10">
               <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.13em] text-[#9b9088]">
                 <span className="rounded-full bg-[#f4efe8] px-2.5 py-1 text-[#7d7269]">Trending</span>
                 {item.styleTag ? (
@@ -109,10 +111,10 @@ export default function TrendingDetailPage() {
                 ) : null}
                 <span>{new Date(item.createdAt).toLocaleDateString()}</span>
               </div>
-              <h2 className="text-3xl font-semibold leading-tight text-[#2d2622] sm:text-4xl">
+              <h2 className="break-words text-2xl font-semibold leading-tight text-[#2d2622] sm:text-3xl md:text-4xl">
                 {item.title || "Untitled trend"}
               </h2>
-              <p className="text-base leading-8 text-[#625852] sm:text-lg">
+              <p className="break-words text-sm leading-7 text-[#625852] sm:text-base sm:leading-8 md:text-lg">
                 {item.caption || "No description available for this trending design yet."}
               </p>
             </div>

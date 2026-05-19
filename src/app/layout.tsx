@@ -32,8 +32,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://images.unsplash.com" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
-      <body className="min-h-full flex flex-col">
-        <div className="flex-1">{children}</div>
+      <body className="flex min-h-full min-w-0 flex-col overflow-x-hidden">
+        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
         <LayoutFooter />
       </body>
     </html>
