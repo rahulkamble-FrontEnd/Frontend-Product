@@ -11,6 +11,21 @@ const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazon
 const UNCATEGORIZED_CATEGORY_ID = "__uncategorized__";
 const SHOW_TRENDING_SECTION = false;
 const SHOW_PORTFOLIO_SECTION = false;
+const BLOGS_PAGE_SIZE = 10;
+
+function buildBlogPageNumbers(totalPages: number, currentPage: number): (number | "ellipsis")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const pages = new Set<number>([1, 2, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  const sorted = [...pages].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b);
+  const result: (number | "ellipsis")[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push("ellipsis");
+    result.push(sorted[i]);
+  }
+  return result;
+}
 
 function getBlogCategoryKey(blog: BlogItem): string | null {
   const id = blog.category?.id?.trim() || blog.categoryId?.trim();
@@ -67,6 +82,7 @@ export default function BlogPage() {
   const [portfolioError, setPortfolioError] = useState("");
   const [blogSearchQuery, setBlogSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [blogPage, setBlogPage] = useState(1);
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
   const [failedTrendingImageIds, setFailedTrendingImageIds] = useState<Set<string>>(new Set());
   const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
@@ -195,6 +211,38 @@ export default function BlogPage() {
   }, [orderedBlogs, selectedCategoryId, blogSearchQuery]);
 
   const recentPosts = useMemo(() => orderedBlogs.slice(0, 6), [orderedBlogs]);
+
+  const totalFilteredBlogs = filteredBlogs.length;
+  const totalBlogPages = Math.max(1, Math.ceil(totalFilteredBlogs / BLOGS_PAGE_SIZE));
+  const safeBlogPage = Math.min(blogPage, totalBlogPages);
+
+  const paginatedBlogs = useMemo(() => {
+    const start = (safeBlogPage - 1) * BLOGS_PAGE_SIZE;
+    return filteredBlogs.slice(start, start + BLOGS_PAGE_SIZE);
+  }, [filteredBlogs, safeBlogPage]);
+
+  const blogPageNumbers = useMemo(
+    () => buildBlogPageNumbers(totalBlogPages, safeBlogPage),
+    [totalBlogPages, safeBlogPage]
+  );
+
+  useEffect(() => {
+    setBlogPage(1);
+  }, [blogSearchQuery, selectedCategoryId]);
+
+  useEffect(() => {
+    if (blogPage > totalBlogPages) {
+      setBlogPage(totalBlogPages);
+    }
+  }, [blogPage, totalBlogPages]);
+
+  const goToBlogPage = (page: number) => {
+    const next = Math.min(Math.max(1, page), totalBlogPages);
+    setBlogPage(next);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const hasBlogListFilter = Boolean(blogSearchQuery.trim() || selectedCategoryId);
 
@@ -360,8 +408,9 @@ export default function BlogPage() {
             {blogListEmptyMessage}
           </div>
         ) : (
+          <>
           <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
-            {filteredBlogs.map((blog, idx) => {
+            {paginatedBlogs.map((blog, idx) => {
               const imageUrl = makeBlogImageUrl(blog);
               const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
               const preview = stripHtml(blog.body).slice(0, 150);
@@ -411,6 +460,63 @@ export default function BlogPage() {
               );
             })}
           </div>
+
+          {totalFilteredBlogs > BLOGS_PAGE_SIZE && (
+            <nav
+              className="mt-8 flex flex-col gap-4 border-t border-[#e6dfd7] pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+              aria-label="Blog pagination"
+            >
+              <p className="text-xs font-semibold text-[#9b9088]">
+                <span>Total: {totalFilteredBlogs}</span>
+                <span className="mx-2">•</span>
+                <span>Limit: {BLOGS_PAGE_SIZE}</span>
+                <span className="mx-2">•</span>
+                <span>Page: {safeBlogPage} of {totalBlogPages}</span>
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="mr-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#9b9088]">Page</span>
+                {blogPageNumbers.map((item, idx) =>
+                  item === "ellipsis" ? (
+                    <span key={`ellipsis-${idx}`} className="px-1 text-sm text-[#9b9088]">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => goToBlogPage(item)}
+                      aria-current={item === safeBlogPage ? "page" : undefined}
+                      className={`min-w-[2.25rem] rounded-md border px-2.5 py-1.5 text-sm font-semibold transition ${
+                        item === safeBlogPage
+                          ? "border-[#bca58c] bg-[#bca58c] text-white"
+                          : "border-[#e3ddd5] bg-white text-[#5c534c] hover:border-[#bca58c] hover:text-[#bca58c]"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
+                <button
+                  type="button"
+                  onClick={() => goToBlogPage(safeBlogPage - 1)}
+                  disabled={safeBlogPage <= 1}
+                  className="ml-1 rounded-md border border-[#e3ddd5] bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c534c] transition hover:border-[#bca58c] hover:text-[#bca58c] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToBlogPage(safeBlogPage + 1)}
+                  disabled={safeBlogPage >= totalBlogPages}
+                  className="rounded-md border border-[#e3ddd5] bg-white px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5c534c] transition hover:border-[#bca58c] hover:text-[#bca58c] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            </nav>
+          )}
+          </>
               )}
               </div>
             </div>
