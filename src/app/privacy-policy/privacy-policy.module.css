@@ -16,6 +16,12 @@
     min-height: 100vh;
 }
 
+.container *,
+.container *::before,
+.container *::after {
+    box-sizing: border-box;
+}
+
 .headerContainer {
     width: 100%;
     background: var(--bg-primary);
@@ -107,13 +113,115 @@
     }
 }
 
-@media (max-width: 674px) {
-    .header, .mainPage {
+@media (max-width: 936px) {
+    .header {
         width: 100%;
-        padding-left: 24px;
-        padding-right: 24px;
+        max-width: 100%;
+        padding: 14px 24px;
+        min-width: 0;
     }
+
+    .mainPage {
+        width: 100%;
+        max-width: 100%;
+        padding: 48px 24px;
+        min-width: 0;
+    }
+
+    .title {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .paragraph {
+        text-align: left;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .paraHeading,
+    .subHeading {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .bulletPoints li {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+}
+
+@media (max-width: 674px) {
+    .header {
+        width: 100%;
+        max-width: 100%;
+        padding: 14px 24px;
+    }
+
+    .mainPage {
+        width: 100%;
+        max-width: 100%;
+        padding: 40px 24px;
+    }
+
     .title {
         font-size: 28px;
+        margin-bottom: 28px;
+        line-height: 1.25;
+    }
+
+    .paragraph {
+        font-size: 15px;
+        line-height: 26px;
+        margin-bottom: 20px;
+    }
+
+    .paraHeading {
+        font-size: 18px;
+    }
+
+    .subHeading {
+        font-size: 17px;
+    }
+
+    .paraContainer {
+        margin-bottom: 28px;
+    }
+
+    .bulletPoints {
+        padding-left: 20px;
+    }
+}
+
+@media (max-width: 510px) {
+    .header {
+        padding: 14px 16px;
+        font-size: 14px;
+    }
+
+    .headerText {
+        font-size: 14px;
+    }
+
+    .mainPage {
+        padding: 32px 16px;
+    }
+
+    .title {
+        font-size: 24px;
+        margin-bottom: 24px;
+    }
+
+    .paragraph {
+        font-size: 15px;
+        line-height: 26px;
+    }
+
+    .paraHeading {
+        font-size: 17px;
+    }
+
+    .subHeading {
+        font-size: 16px;
     }
 }

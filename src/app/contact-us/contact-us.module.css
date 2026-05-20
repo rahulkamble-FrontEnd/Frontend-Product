@@ -454,25 +454,107 @@
 }
 
 @media (max-width: 936px) {
+    .header {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
     .addressContainer {
         flex-direction: column;
         gap: 40px;
     }
+
     .map {
         width: 100%;
+        min-width: 0;
+        max-width: 100%;
         height: 320px;
     }
+
     .subContainer {
         width: 100%;
+        max-width: 100%;
         padding: 0 24px;
+        min-width: 0;
     }
+
+    .subContainer > .commonContainer {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .addressContainer > .commonContainer {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
     .sub {
         gap: 64px;
         padding-bottom: 80px;
         padding-top: 56px;
     }
+
     .title {
         font-size: 28px;
+    }
+
+    .contactLine,
+    .contactText {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .addressLines {
+        text-align: left;
+    }
+
+    .directionsButton {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 674px) {
+    .header {
+        width: 100%;
+        padding: 14px 24px;
+    }
+
+    .subContainer {
+        width: 100%;
+        padding: 0 24px;
+        gap: 40px;
+    }
+
+    .subContainerColumn {
+        gap: 28px;
+    }
+
+    .sub {
+        padding-top: 48px;
+        padding-bottom: 64px;
+        gap: 48px;
+    }
+
+    .addressContainer {
+        gap: 28px;
+        margin-top: 0;
+    }
+
+    .map {
+        height: 280px;
+    }
+
+    .commonText {
+        font-size: 15px;
+        line-height: 26px;
+    }
+
+    .desc {
+        line-height: 26px;
     }
 }
 
@@ -494,5 +576,35 @@
     }
     .headingContainer h1 {
         font-size: 24px;
+    }
+
+    .sub {
+        padding-top: 40px;
+        padding-bottom: 56px;
+        gap: 40px;
+    }
+
+    .subContainer {
+        gap: 32px;
+        padding: 0 16px;
+    }
+
+    .header {
+        padding-left: 16px;
+        padding-right: 16px;
+        font-size: 14px;
+    }
+
+    .headerText {
+        font-size: 14px;
+    }
+
+    .input,
+    .textarea {
+        font-size: 16px;
+    }
+
+    .map {
+        height: 240px;
     }
 }

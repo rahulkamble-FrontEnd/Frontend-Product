@@ -278,41 +278,147 @@
 }
 
 @media (max-width: 936px) {
-    .sub {
-        padding: 56px 0;
-        gap: 32px;
+    .header {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
     }
+
+    .sub {
+        width: 100%;
+        max-width: 100%;
+        padding: 56px 24px;
+        gap: 32px;
+        min-width: 0;
+    }
+
+    .contentWrapper {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
     .mainHeading {
         font-size: 32px;
         margin-bottom: 8px;
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
+
     .heading,
     .inactiveHeading {
         font-size: 16px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
+
     .number {
         font-size: 16px;
+    }
+
+    .panel {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 674px) {
+    .header {
+        width: 100%;
+        padding: 14px 24px;
+    }
+
+    .sub {
+        width: 100%;
+        padding: 40px 24px;
+        gap: 28px;
+    }
+
+    .mainHeading {
+        font-size: 28px;
+        line-height: 1.25;
+    }
+
+    .panelHeader {
+        padding: 16px;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .headerSec {
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .panelBody {
+        padding: 0 16px;
+    }
+
+    .panelBodyOpen {
+        padding: 0 16px 16px;
+    }
+
+    .panelBody p,
+    .panelBody li,
+    .panelBody strong {
+        font-size: 15px;
+        line-height: 26px;
+    }
+
+    .panelBody ul {
+        padding-left: 20px;
+        line-height: 1.8;
     }
 }
 
 @media (max-width: 510px) {
+    .header {
+        padding-left: 16px;
+        padding-right: 16px;
+        font-size: 14px;
+    }
+
+    .headerText {
+        font-size: 14px;
+    }
+
+    .sub {
+        padding: 32px 16px;
+        gap: 24px;
+    }
+
     .panelHeader {
-        padding: 18px 16px;
-        gap: 12px;
+        padding: 14px 12px;
+        gap: 10px;
     }
+
     .panelBody {
-        padding: 0 16px;
+        padding: 0 12px;
     }
+
     .panelBodyOpen {
-        padding: 0 16px 18px;
+        padding: 0 12px 14px;
     }
+
     .headerSec {
-        gap: 12px;
+        gap: 10px;
     }
+
     .mainHeading {
-        font-size: 28px;
+        font-size: 24px;
     }
+
+    .heading,
+    .inactiveHeading {
+        font-size: 15px;
+    }
+
+    .number {
+        font-size: 14px;
+    }
+
     .toggleIcon {
-        font-size: 26px;
+        font-size: 24px;
+        width: 20px;
     }
 }

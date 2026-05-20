@@ -459,30 +459,154 @@
     .youtubeCard,
     .discoverContent {
         width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .aboutImage img {
+        height: auto;
+        max-height: 480px;
+    }
+
+    .whyChooseImage {
+        flex-shrink: 1;
     }
 
     .whyChooseImage img {
         min-height: 280px;
+        height: auto;
     }
     .discoverContainer {
         flex-direction: column;
     }
 }
 
+@media (max-width: 936px) {
+    .header {
+        width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .aboutSection,
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        width: 100%;
+        max-width: 100%;
+        padding-left: 24px;
+        padding-right: 24px;
+        min-width: 0;
+    }
+
+    .aboutImage img {
+        height: auto;
+        max-height: 360px;
+    }
+
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        gap: 48px;
+    }
+
+    .discoverSectionHeader,
+    .achievementsHeader {
+        font-size: 32px;
+        letter-spacing: -0.8px;
+    }
+
+    .discoverSubheading {
+        font-size: 28px;
+        margin: 24px 0 12px;
+    }
+
+    .visionHeading {
+        font-size: 28px;
+    }
+
+    .contentListTwoCol {
+        grid-template-columns: 1fr;
+        grid-template-rows: none;
+        grid-auto-flow: row;
+        column-gap: 0;
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        justify-content: flex-start;
+    }
+
+    .aboutContentTxt,
+    .discoverContentTxt,
+    .visionText {
+        text-align: left;
+    }
+
+    .achievementsImage {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        gap: 32px;
+    }
+}
+
 @media (max-width: 674px) {
+    .header {
+        width: 100%;
+        padding: 14px 24px;
+    }
+
     .aboutSection {
         width: 100%;
-        padding: 80px 24px 40px 24px;
+        padding: 48px 24px 32px 24px;
     }
     .aboutSection,
     .discoverSection,
     .excellenceSection,
     .achievementsSection {
         width: 100%;
-        padding: 40px 24px;
+        padding: 32px 24px;
     }
+
+    .aboutSection {
+        gap: 24px;
+    }
+
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        gap: 36px;
+    }
+
+    .aboutImage img {
+        height: auto;
+        max-height: 280px;
+    }
+
+    .whyChooseImage img {
+        min-height: 220px;
+    }
+
+    .aboutHeadingTxt {
+        font-size: 24px;
+    }
+
+    .aboutTagline {
+        font-size: 18px;
+        margin-bottom: 20px;
+    }
+
+    .aboutContentTxt,
+    .discoverContentTxt,
+    .visionText {
+        font-size: 15px;
+        line-height: 26px;
+    }
+
     .achievementsImage {
         grid-template-columns: 1fr;
+        gap: 24px;
     }
     .discoverSectionHeader,
     .achievementsHeader {
@@ -490,12 +614,77 @@
         letter-spacing: -0.6px;
     }
     .achievementsHeader {
-        margin-bottom: 40px;
+        margin-bottom: 24px;
     }
+
+    .discoverSubheading {
+        font-size: 24px;
+    }
+
+    .visionHeading {
+        font-size: 24px;
+    }
+
+    .visionSection {
+        gap: 24px;
+    }
+
     .contentListTwoCol {
         grid-template-columns: 1fr;
         grid-template-rows: none;
         grid-auto-flow: row;
+    }
+}
+
+@media (max-width: 510px) {
+    .header {
+        padding-left: 16px;
+        padding-right: 16px;
+        font-size: 14px;
+    }
+
+    .headerText {
+        font-size: 14px;
+    }
+
+    .aboutSection {
+        padding: 40px 16px 28px 16px;
+    }
+
+    .aboutSection,
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        padding: 28px 16px;
+    }
+
+    .discoverSection,
+    .excellenceSection,
+    .achievementsSection {
+        gap: 28px;
+    }
+
+    .discoverContainer {
+        gap: 28px;
+    }
+
+    .aboutImage img {
+        max-height: 220px;
+    }
+
+    .whyChooseImage img {
+        min-height: 180px;
+    }
+
+    .discoverSectionHeader,
+    .achievementsHeader {
+        font-size: 24px;
+        letter-spacing: -0.4px;
+    }
+
+    .discoverSubheading,
+    .visionHeading {
+        font-size: 22px;
     }
 }
 
