@@ -15,7 +15,6 @@ export type BlogCardDisplay = {
   imageAlt: string;
   imageTitle?: string;
   priority: boolean;
-  eagerLoad: boolean;
 };
 
 type BlogCardProps = {
@@ -44,9 +43,9 @@ function BlogCard({ card, imageFailed, onImageError }: BlogCardProps) {
             title={card.imageTitle}
             fill
             priority={card.priority}
-            loading={card.eagerLoad ? "eager" : "lazy"}
-            unoptimized
-            sizes="(max-width: 640px) 280px, (max-width: 1280px) 50vw, 33vw"
+            loading={card.priority ? undefined : "lazy"}
+            quality={75}
+            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 45vw, 535px"
             className="object-cover"
             onError={handleImageError}
           />
