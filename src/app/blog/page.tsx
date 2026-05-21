@@ -52,21 +52,7 @@ function makeBlogImageUrl(blog: BlogItem) {
 function blogMatchesSearch(blog: BlogItem, query: string) {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return true;
-  const haystack = [
-    blog.title,
-    blog.slug,
-    stripHtml(blog.body),
-    blog.metaTitle,
-    blog.metaDescription,
-    blog.seoKeyword,
-    blog.secondaryKeywords,
-    blog.category?.name,
-    blog.category?.slug,
-    blog.featuredImageAlt,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
+  const haystack = (blog.title || "").toLowerCase();
   return terms.every((term) => haystack.includes(term));
 }
 
@@ -428,7 +414,8 @@ export default function BlogPage() {
                         alt={blog.featuredImageAlt?.trim() || blog.title}
                         title={blog.featuredImageTitle?.trim() || undefined}
                         fill
-                        loading={idx === 0 ? "eager" : "lazy"}
+                        priority={safeBlogPage === 1 && idx === 0}
+                        loading={safeBlogPage === 1 && idx < 2 ? "eager" : "lazy"}
                         unoptimized
                         sizes="(max-width: 640px) 280px, (max-width: 1280px) 50vw, 33vw"
                         className="object-cover"
