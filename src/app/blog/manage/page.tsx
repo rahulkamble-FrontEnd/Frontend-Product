@@ -9,6 +9,7 @@ import {
   deleteBlog,
   getBlogs,
   getCategories,
+  ensureAuthenticated,
   getMe,
   publishBlog,
   updateBlog,
@@ -159,6 +160,7 @@ export default function ManageBlogsPage() {
         return;
       }
       try {
+        await ensureAuthenticated();
         const user = await getMe();
         if (!active) return;
         if (user.role !== "blogadmin") {
