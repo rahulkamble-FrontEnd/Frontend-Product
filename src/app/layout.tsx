@@ -29,8 +29,12 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="preconnect" href="https://images.unsplash.com" />
-        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+        <link
+          rel="preconnect"
+          href="https://products-customfurnish.s3.ap-south-1.amazonaws.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://products-customfurnish.s3.ap-south-1.amazonaws.com" />
       </head>
       <body className="flex min-h-full min-w-0 flex-col overflow-x-hidden">
         <div className="flex min-w-0 flex-1 flex-col">{children}</div>
