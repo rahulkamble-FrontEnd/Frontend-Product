@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getUsers, deleteUser, updateUser } from "@/lib/api";
+import { ensureAuthenticated, getMe, getUsers, deleteUser, updateUser } from "@/lib/api";
 
 type User = {
   id: string;
@@ -36,18 +36,38 @@ export default function UsersPage() {
   const [updateMsg, setUpdateMsg] = useState("");
 
   useEffect(() => {
-    const storedRole = localStorage.getItem("userRole");
-    const storedName = localStorage.getItem("userName");
-    const storedEmail = localStorage.getItem("userEmail");
-
-    if (!storedName || storedRole !== "admin") {
-      router.push("/dashboard");
-    } else {
-      setUserRole(storedRole);
-      setAdminEmail(storedEmail || "");
-      fetchUsers();
-      fetchDesigners();
-    }
+    let active = true;
+    const init = async () => {
+      const storedName = localStorage.getItem("userName");
+      if (!storedName) {
+        router.push("/login");
+        return;
+      }
+      try {
+        await ensureAuthenticated();
+        const user = await getMe();
+        if (!active) return;
+        if (user.role !== "admin") {
+          router.push("/dashboard");
+          return;
+        }
+        localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userName", user.name);
+        setUserRole(user.role);
+        setAdminEmail(localStorage.getItem("userEmail") || "");
+        await fetchUsers();
+        await fetchDesigners();
+      } catch (err: unknown) {
+        if (!active) return;
+        const msg = err instanceof Error ? err.message : "Session expired. Please log in again.";
+        setError(msg);
+        router.push("/login");
+      }
+    };
+    void init();
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   const fetchDesigners = async () => {

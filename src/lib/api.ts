@@ -1,9 +1,14 @@
-// const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://47.128.67.255:3000/api/auth';
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ||
-  (process.env.NODE_ENV === "development"
-    ? "http://localhost:3000/api/auth"
-    : "https://pmsapi.customfurnish.com/api/auth");
+/** Auth API base. Browser dev uses same-origin proxy so JWT cookie/token work on :4200. */
+export function getApiAuthBase(): string {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "");
+  }
+  if (process.env.NODE_ENV === "development") {
+    if (typeof window !== "undefined") return "/backend-api/auth";
+    return "http://127.0.0.1:3000/api/auth";
+  }
+  return "https://pmsapi.customfurnish.com/api/auth";
+}
 
 /**
  * PRODUCTION READY API UTILITY
@@ -44,6 +49,20 @@ function authHeaders(): Record<string, string> {
 function bearerOnlyHeaders(): Record<string, string> {
   syncAccessTokenFromStorage();
   return _accessToken ? { Authorization: `Bearer ${_accessToken}` } : {};
+}
+
+/** Re-login when JWT missing but credentials are stored (common after refresh/tab reopen). */
+export async function ensureAuthenticated(): Promise<void> {
+  if (typeof window === "undefined") return;
+  syncAccessTokenFromStorage();
+  if (_accessToken) return;
+
+  const email = localStorage.getItem("userEmail")?.trim() || "";
+  const password = localStorage.getItem("userPassword") || "";
+  if (!email || !password) {
+    throw new Error("Session expired. Please log in again.");
+  }
+  await login({ email, password });
 }
 
 export type CreateProductPayload = {
@@ -373,7 +392,7 @@ export async function getProducts(params?: {
   sortBy?: "createdAt" | "updatedAt" | "name";
   sortOrder?: "asc" | "desc";
 }) {
-  const url = new URL(`${BASE_URL.replace('/auth', '')}/products`);
+  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/products`);
   if (params?.page) url.searchParams.set('page', String(params.page));
   if (params?.limit) url.searchParams.set('limit', String(params.limit));
   if (params?.status) url.searchParams.set('status', params.status);
@@ -407,7 +426,7 @@ export async function getProductsCompare(ids: string[]) {
     throw new Error('Compare requires 2 to 4 product ids');
   }
 
-  const url = new URL(`${BASE_URL.replace('/auth', '')}/products/compare`);
+  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/products/compare`);
   url.searchParams.set('ids', uniqueIds.join(','));
 
   const response = await fetch(url.toString(), {
@@ -428,7 +447,7 @@ export async function createShortlist(payload: CreateShortlistPayload) {
 
   const customerNote = typeof payload?.customerNote === "string" ? payload.customerNote.trim() : "";
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/shortlist`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -447,7 +466,7 @@ export async function createShortlist(payload: CreateShortlistPayload) {
 }
 
 export async function getShortlist() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/shortlist`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -465,7 +484,7 @@ export async function requestShortlistSample(shortlistId: string) {
   const id = shortlistId.trim();
   if (!id) throw new Error("Shortlist id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/sample`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/sample`, {
     method: 'POST',
     headers: authHeaders(),
     credentials: 'include',
@@ -485,7 +504,7 @@ export async function updateShortlistNote(shortlistId: string, payload: UpdateSh
 
   const customerNote = typeof payload?.customerNote === "string" ? payload.customerNote.trim() : "";
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/note`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/shortlist/${encodeURIComponent(id)}/note`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ customerNote }),
@@ -504,7 +523,7 @@ export async function deleteShortlist(shortlistId: string) {
   const id = shortlistId.trim();
   if (!id) throw new Error("Shortlist id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/shortlist/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/shortlist/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: authHeaders(),
     credentials: 'include',
@@ -517,7 +536,7 @@ export async function deleteShortlist(shortlistId: string) {
 }
 
 export async function getDesignerCustomers() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/customers`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -533,7 +552,7 @@ export async function getDesignerCustomerDetails(customerId: string) {
   const id = customerId.trim();
   if (!id) throw new Error("Customer id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/customers/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/customers/${encodeURIComponent(id)}`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -562,7 +581,7 @@ export async function createDesignerNote(payload: CreateDesignerNotePayload) {
 
   const productId = typeof payload?.productId === "string" ? payload.productId.trim() : "";
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/notes`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -592,7 +611,7 @@ export async function createDesignerRecommendation(payload: CreateDesignerRecomm
   const note = typeof payload?.note === "string" ? payload.note.trim() : "";
   if (!note) throw new Error("Note is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/recommendations`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/recommendations`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
@@ -617,7 +636,7 @@ export async function updateDesignerNote(noteId: string, payload: UpdateDesigner
   const note = typeof payload?.note === "string" ? payload.note.trim() : "";
   if (!note) throw new Error("Note is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/notes/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/notes/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ note }),
@@ -637,7 +656,7 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
   const sampleStatus = typeof payload?.sampleStatus === "string" ? payload.sampleStatus.trim() : "";
   if (!sampleStatus) throw new Error("Sample status is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/designer/samples/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/designer/samples/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ sampleStatus }),
@@ -653,7 +672,7 @@ export async function updateDesignerSample(shortlistId: string, payload: UpdateD
 }
 
 export async function getNotifications() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/notifications`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -669,7 +688,7 @@ export async function markNotificationAsRead(notificationId: string) {
   const id = notificationId.trim();
   if (!id) throw new Error("Notification id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/${encodeURIComponent(id)}/read`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/notifications/${encodeURIComponent(id)}/read`, {
     method: 'PUT',
     headers: authHeaders(),
     credentials: 'include',
@@ -686,7 +705,7 @@ export type MarkAllNotificationsReadResponse = {
 };
 
 export async function markAllNotificationsAsRead() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/notifications/read-all`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/notifications/read-all`, {
     method: 'PUT',
     headers: authHeaders(),
     credentials: 'include',
@@ -699,7 +718,7 @@ export async function markAllNotificationsAsRead() {
 }
 
 export async function getProductImages(productId: string) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${productId}/images`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -722,7 +741,7 @@ export type ProductDetailsResponse = ProductListItem & {
 };
 
 export async function getProductBySlug(slug: string) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(slug)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(slug)}`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -739,7 +758,7 @@ export async function getSimilarProductsByTags(productId: string, limit = 24) {
   if (!pid) throw new Error("Product id is required");
 
   const url = new URL(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/similar`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/similar`,
   );
   if (Number.isFinite(limit) && limit > 0) {
     url.searchParams.set("limit", String(Math.floor(limit)));
@@ -767,7 +786,7 @@ export async function deleteProduct(productId: string) {
   const id = productId.trim();
   if (!id) throw new Error("Product id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: authHeaders(),
     credentials: 'include',
@@ -793,7 +812,7 @@ export async function updateProductStatus(productId: string, payload: UpdateProd
   const nextStatus = payload?.status?.trim();
   if (!nextStatus) throw new Error("Status is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}/status`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(id)}/status`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify({ status: nextStatus }),
@@ -892,7 +911,7 @@ export async function bulkUpdateProducts(payload: BulkUpdateProductsPayload) {
     throw new Error("At least one update field is required");
   }
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-update`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/bulk-update`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(body),
@@ -986,7 +1005,7 @@ export async function updateProduct(productId: string, payload: UpdateProductPay
     throw new Error("At least one field is required to update");
   }
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(id)}`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(clean),
@@ -1000,7 +1019,7 @@ export async function updateProduct(productId: string, payload: UpdateProductPay
 }
 
 export async function createProduct(payload: CreateProductPayload) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -1032,7 +1051,7 @@ export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
     formData.append("imagesZip", imagesZip);
   }
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/bulk-upload`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/bulk-upload`, {
     method: "POST",
     headers: bearerOnlyHeaders(),
     body: formData,
@@ -1049,7 +1068,7 @@ export async function uploadProductImage(productId: string, imageFile: File) {
   const formData = new FormData();
   formData.append('image', imageFile);
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/images`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${productId}/images`, {
     method: 'POST',
     headers: bearerOnlyHeaders(),
     body: formData,
@@ -1077,7 +1096,7 @@ export async function uploadProductImages(productId: string, imageFiles: File[])
   files.forEach((file) => formData.append("images", file));
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/images`,
     {
       method: "POST",
       headers: bearerOnlyHeaders(),
@@ -1107,7 +1126,7 @@ export async function deleteProductImage(productId: string, imageId: string) {
   if (!iid) throw new Error("Image id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/images/${encodeURIComponent(iid)}`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/images/${encodeURIComponent(iid)}`,
     {
       method: 'DELETE',
       headers: authHeaders(),
@@ -1122,7 +1141,7 @@ export async function deleteProductImage(productId: string, imageId: string) {
 }
 
 export async function bindProductCategories(productId: string, categoryIds: string[]) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${productId}/categories`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${productId}/categories`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({ categoryIds }),
@@ -1163,7 +1182,7 @@ export async function deleteProductCategory(productId: string, categoryId: strin
   if (!cid) throw new Error("Category id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/categories/${encodeURIComponent(cid)}`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/categories/${encodeURIComponent(cid)}`,
     {
       method: 'DELETE',
       headers: authHeaders(),
@@ -1198,7 +1217,7 @@ export async function linkProductTag(productId: string, payload: LinkProductTagP
   if (!tagId) throw new Error("Tag id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`,
     {
       method: "POST",
       headers: authHeaders(),
@@ -1220,7 +1239,7 @@ export async function unlinkProductTag(productId: string, tagId: string) {
   if (!tid) throw new Error("Tag id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags/${encodeURIComponent(tid)}`,
+    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags/${encodeURIComponent(tid)}`,
     {
       method: "DELETE",
       headers: authHeaders(),
@@ -1380,8 +1399,9 @@ function normalizeBlog(raw: RawBlogResponse): BlogItem {
 }
 
 export async function getBlogs(params?: { publishedOnly?: boolean; includeCredentials?: boolean }) {
-  const blogBase = `${BASE_URL.replace('/auth', '')}/blog`;
   const isAdminList = params?.publishedOnly === false;
+  if (isAdminList) await ensureAuthenticated();
+  const blogBase = `${getApiAuthBase().replace('/auth', '')}/blog`;
   const url = isAdminList ? `${blogBase}/admin` : blogBase;
   const response = await fetch(url, {
     method: "GET",
@@ -1420,7 +1440,7 @@ export async function getBlogBySlug(slug: string, params?: { publishedOnly?: boo
   const cleanSlug = slug.trim();
   if (!cleanSlug) throw new Error("Blog slug is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -1448,7 +1468,7 @@ export async function getBlogByCategoryAndSlug(
   if (!cat || !post) throw new Error("Category slug and post slug are required");
 
   const response = await fetch(
-    `${BASE_URL.replace("/auth", "")}/blog/by-category/${encodeURIComponent(cat)}/${encodeURIComponent(post)}`,
+    `${getApiAuthBase().replace("/auth", "")}/blog/by-category/${encodeURIComponent(cat)}/${encodeURIComponent(post)}`,
     {
       method: "GET",
       headers: authHeaders(),
@@ -1553,7 +1573,7 @@ export async function updateBlog(
     status: payload.status,
   };
 
-  const endpoint = `${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`;
+  const endpoint = `${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(id)}`;
   const response = featuredImageFile instanceof File
     ? await fetch(endpoint, {
         method: "PUT",
@@ -1601,7 +1621,7 @@ export async function publishBlog(blogId: string, publishedAt?: string | null) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(id)}/publish`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify(publishedAt ? { publishedAt } : {}),
@@ -1623,7 +1643,7 @@ export async function deleteBlog(blogId: string) {
   const id = blogId.trim();
   if (!id) throw new Error("Blog id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: authHeaders(),
     credentials: "include",
@@ -1646,7 +1666,7 @@ export async function checkBlogSlugAvailable(
     return { available: false };
   }
 
-  const url = new URL(`${BASE_URL.replace("/auth", "")}/blog/check-slug`);
+  const url = new URL(`${getApiAuthBase().replace("/auth", "")}/blog/check-slug`);
   url.searchParams.set("slug", clean);
   const exclude = options?.excludeId?.trim();
   if (exclude) url.searchParams.set("excludeId", exclude);
@@ -1667,7 +1687,7 @@ export async function checkBlogSlugAvailable(
 export async function uploadBlogBodyImage(file: File): Promise<{ url: string; key: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch(`${BASE_URL.replace("/auth", "")}/blog/body-image`, {
+  const response = await fetch(`${getApiAuthBase().replace("/auth", "")}/blog/body-image`, {
     method: "POST",
     headers: bearerOnlyHeaders(),
     body: formData,
@@ -1700,7 +1720,7 @@ export async function createBlog(payload: CreateBlogPayload, featuredImageFile?:
     metaRobots: payload.metaRobots === "noindex" ? "noindex" : payload.metaRobots === "index" ? "index" : null,
   };
 
-  const endpoint = `${BASE_URL.replace('/auth', '')}/blog`;
+  const endpoint = `${getApiAuthBase().replace('/auth', '')}/blog`;
   const response = featuredImageFile instanceof File
     ? await fetch(endpoint, {
         method: "POST",
@@ -1765,7 +1785,7 @@ export async function getRelevantBlogs(slug: string, limit = 3) {
   if (!cleanSlug) throw new Error("Blog slug is required");
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 3;
 
-  const url = new URL(`${BASE_URL.replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}/relevant`);
+  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}/relevant`);
   url.searchParams.set("limit", String(safeLimit));
 
   const response = await fetch(url.toString(), {
@@ -1906,7 +1926,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
     throw new Error("At least one portfolio image is required");
   }
 
-  const endpoint = `${BASE_URL.replace('/auth', '')}/portfolio`;
+  const endpoint = `${getApiAuthBase().replace('/auth', '')}/portfolio`;
   const response =
     files.length > 0
       ? await fetch(endpoint, {
@@ -1948,7 +1968,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
 }
 
 export async function getPortfolios(params?: { category?: string }) {
-  const url = new URL(`${BASE_URL.replace('/auth', '')}/portfolio`);
+  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/portfolio`);
   if (params?.category?.trim()) {
     url.searchParams.set("category", params.category.trim());
   }
@@ -1997,7 +2017,7 @@ export async function updatePortfolio(portfolioId: string, payload: UpdatePortfo
     throw new Error("At least one field is required to update");
   }
 
-  const response = await fetch(`${BASE_URL.replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
     method: "PATCH",
     headers: {
       ...authHeaders(),
@@ -2022,7 +2042,7 @@ export async function deletePortfolio(portfolioId: string) {
   const id = portfolioId.trim();
   if (!id) throw new Error("Portfolio id is required");
 
-  const response = await fetch(`${BASE_URL.replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace("/auth", "")}/portfolio/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: authHeaders(),
     credentials: "include",
@@ -2091,7 +2111,7 @@ export async function getTrendingById(trendingId: string) {
   const id = trendingId.trim();
   if (!id) throw new Error("Trending id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -2119,7 +2139,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
     throw new Error("Either system image upload or S3 key is required");
   }
 
-  const endpoint = `${BASE_URL.replace('/auth', '')}/trending`;
+  const endpoint = `${getApiAuthBase().replace('/auth', '')}/trending`;
   const response =
     imageFile instanceof File
       ? await fetch(endpoint, {
@@ -2157,7 +2177,7 @@ export async function createTrending(payload: CreateTrendingPayload, imageFile?:
 }
 
 export async function getTrendings() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/trending`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -2189,7 +2209,7 @@ export async function deleteTrending(trendingId: string) {
   const id = trendingId.trim();
   if (!id) throw new Error("Trending id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/trending/${encodeURIComponent(id)}`, {
     method: "DELETE",
     headers: authHeaders(),
     credentials: "include",
@@ -2290,7 +2310,7 @@ export type UpdateDesignCfPayload = {
 };
 
 export async function getDesignCfEntries() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/design-cf`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -2308,7 +2328,7 @@ export async function getDesignCfEntryById(id: string) {
   const cleanId = id.trim();
   if (!cleanId) throw new Error("Design CF id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "omit",
@@ -2336,7 +2356,7 @@ export async function createDesignCf(payload: CreateDesignCfPayload, imageFiles:
   }
   files.forEach((file) => formData.append("images", file));
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/design-cf`, {
     method: "POST",
     headers: bearerOnlyHeaders(),
     body: formData,
@@ -2371,7 +2391,7 @@ export async function updateDesignCf(
   }
   files.forEach((file) => formData.append("images", file));
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
     method: "PUT",
     headers: bearerOnlyHeaders(),
     body: formData,
@@ -2392,7 +2412,7 @@ export async function deleteDesignCf(id: string) {
   const cleanId = id.trim();
   if (!cleanId) throw new Error("Design CF id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/design-cf/${encodeURIComponent(cleanId)}`, {
     method: "DELETE",
     headers: authHeaders(),
     credentials: "include",
@@ -2405,7 +2425,7 @@ export async function deleteDesignCf(id: string) {
 }
 
 export async function login(payload: { email: string; password: string }) {
-  const response = await fetch(`${BASE_URL}/login`, {
+  const response = await fetch(`${getApiAuthBase()}/login`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2421,7 +2441,7 @@ export async function login(payload: { email: string; password: string }) {
 }
 
 export async function logout(payload: { email: string; password: string }) {
-  const response = await fetch(`${BASE_URL}/logout`, {
+  const response = await fetch(`${getApiAuthBase()}/logout`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2436,7 +2456,7 @@ export async function logout(payload: { email: string; password: string }) {
 }
 
 export async function getMe() {
-  const response = await fetch(`${BASE_URL}/me`, {
+  const response = await fetch(`${getApiAuthBase()}/me`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -2452,7 +2472,7 @@ export async function getMe() {
 }
 
 export async function forgotPassword(payload: { email: string }) {
-  const response = await fetch(`${BASE_URL}/forgot-password`, {
+  const response = await fetch(`${getApiAuthBase()}/forgot-password`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2466,7 +2486,7 @@ export async function forgotPassword(payload: { email: string }) {
 }
 
 export async function resetPassword(payload: { token: string; newPassword: string }) {
-  const response = await fetch(`${BASE_URL}/reset-password`, {
+  const response = await fetch(`${getApiAuthBase()}/reset-password`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2480,7 +2500,7 @@ export async function resetPassword(payload: { token: string; newPassword: strin
 }
 
 export async function createUser(payload: { email: string; name: string; role: string; projectName?: string }) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2494,7 +2514,8 @@ export async function createUser(payload: { email: string; name: string; role: s
 }
 
 export async function getUsers(role?: string) {
-  let url = `${BASE_URL.replace('/auth', '')}/users`;
+  await ensureAuthenticated();
+  let url = `${getApiAuthBase().replace('/auth', '')}/users`;
   if (role) {
     url += `?role=${role}`;
   }
@@ -2503,6 +2524,7 @@ export async function getUsers(role?: string) {
     headers: authHeaders(),
     credentials: 'include',
   });
+  if (response.status === 401) setAccessToken(null);
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.message || 'Failed to fetch users');
@@ -2511,7 +2533,7 @@ export async function getUsers(role?: string) {
 }
 
 export async function deleteUser(id: string) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
     credentials: 'include',
@@ -2524,7 +2546,7 @@ export async function deleteUser(id: string) {
 }
 
 export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string }) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/users/${id}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2538,7 +2560,7 @@ export async function updateUser(id: string, payload: { name: string; email: str
 }
 
 export async function createCategory(payload: { name: string; type?: 'material' | 'furniture'; parent_id?: string }) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/categories`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2552,7 +2574,7 @@ export async function createCategory(payload: { name: string; type?: 'material' 
 }
 
 export async function getCategories(type?: 'material' | 'furniture') {
-  let url = `${BASE_URL.replace('/auth', '')}/categories`;
+  let url = `${getApiAuthBase().replace('/auth', '')}/categories`;
   if (type) {
     url += `?type=${type}`;
   }
@@ -2666,7 +2688,7 @@ export async function getCategoryMenu(params?: {
   productLimit?: number;
   includeChildren?: boolean;
 }) {
-  const url = new URL(`${BASE_URL.replace('/auth', '')}/categories/menu`);
+  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/categories/menu`);
   if (params?.type) {
     url.searchParams.set("type", params.type);
   }
@@ -2707,7 +2729,7 @@ export type CategoryDetails = {
 };
 
 export async function deleteCategory(id: string) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/categories/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
     credentials: 'include',
@@ -2720,7 +2742,7 @@ export async function deleteCategory(id: string) {
 }
 
 export async function updateCategory(id: string, payload: { name?: string; type: 'material' | 'furniture'; parent_id?: string }) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${id}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/categories/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -2734,7 +2756,7 @@ export async function updateCategory(id: string, payload: { name?: string; type:
 }
 
 export async function getCategoryBySlug(slug: string) {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/categories/${slug}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/categories/${slug}`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
@@ -2751,7 +2773,7 @@ export async function getSubcategories(categoryId: string) {
   if (!id) throw new Error("Category id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
+    `${getApiAuthBase().replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
     {
       method: "GET",
       headers: authHeaders(),
@@ -2773,7 +2795,7 @@ export async function createSubcategory(
   if (!id) throw new Error("Category id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
+    `${getApiAuthBase().replace('/auth', '')}/categories/${encodeURIComponent(id)}/subcategories`,
     {
       method: "POST",
       headers: authHeaders(),
@@ -2799,7 +2821,7 @@ export async function updateSubcategory(
   if (!sid) throw new Error("Sub-category id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
+    `${getApiAuthBase().replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
     {
       method: "PUT",
       headers: authHeaders(),
@@ -2821,7 +2843,7 @@ export async function deleteSubcategory(categoryId: string, subCategoryId: strin
   if (!sid) throw new Error("Sub-category id is required");
 
   const response = await fetch(
-    `${BASE_URL.replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
+    `${getApiAuthBase().replace('/auth', '')}/categories/${encodeURIComponent(cid)}/subcategories/${encodeURIComponent(sid)}`,
     {
       method: "DELETE",
       headers: authHeaders(),
@@ -2887,7 +2909,7 @@ export async function createTag(payload: CreateTagPayload) {
   if (!name) throw new Error("Tag name is required");
   if (!hexCode) throw new Error("Tag hex_code is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/tags`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({
@@ -2904,7 +2926,7 @@ export async function createTag(payload: CreateTagPayload) {
 }
 
 export async function getTags() {
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/tags`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "include",
@@ -2922,7 +2944,7 @@ export async function getProductTags(productId: string) {
   const pid = productId.trim();
   if (!pid) throw new Error("Product id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/tags`, {
     method: "GET",
     headers: authHeaders(),
     credentials: "include",
@@ -2954,7 +2976,7 @@ export async function updateTag(id: string, payload: UpdateTagPayload) {
   if (!name) throw new Error("Tag name is required");
   if (!hexCode) throw new Error("Tag hex_code is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({
@@ -2974,7 +2996,7 @@ export async function deleteTag(id: string) {
   const tagId = id.trim();
   if (!tagId) throw new Error("Tag id is required");
 
-  const response = await fetch(`${BASE_URL.replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/tags/${encodeURIComponent(tagId)}`, {
     method: "DELETE",
     headers: authHeaders(),
     credentials: "include",
