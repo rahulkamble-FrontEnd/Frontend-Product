@@ -3452,22 +3452,16 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="w-full">
-          {/* Banner natural aspect ratio is 3:1 (3000x1000). On small screens we crop
-              to a fixed height so the hero isn't excessively tall; from lg upward we
-              honour the image's aspect ratio so the whole banner is always visible
-              and never cropped on wide desktops/2xl screens. */}
-          <div className="relative h-[280px] lg:h-auto lg:aspect-[3/1]">
+      {/* Hero Section — fixed aspect ratio reserves space before image loads (reduces CLS) */}
+      <section className="relative w-full overflow-hidden">
+        <div className="relative aspect-[3/1] w-full min-h-[220px] max-h-[min(42vw,560px)] bg-[#eadfcf] sm:min-h-[260px] md:min-h-[280px]">
              <Image
                src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/banner.webp"
                alt="Newly Launched Karigari Laminate Collection"
                fill
+               priority
                sizes="100vw"
                quality={75}
-               loading="eager"
-               fetchPriority="high"
                className="object-cover object-center"
              />
              {/* Overlay for text readability - temporarily disabled */}
@@ -3490,7 +3484,6 @@ export default function DashboardPage() {
                 </div>
              </div> */}
 
-          </div>
         </div>
       </section>
 
