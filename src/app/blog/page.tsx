@@ -223,7 +223,6 @@ export default function BlogPage() {
         imageAlt: blog.featuredImageAlt?.trim() || blog.title,
         imageTitle: blog.featuredImageTitle?.trim() || undefined,
         priority: safeBlogPage === 1 && idx === 0,
-        eagerLoad: safeBlogPage === 1 && idx < 2,
       })),
     [paginatedBlogs, safeBlogPage],
   );
