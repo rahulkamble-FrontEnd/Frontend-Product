@@ -10,6 +10,31 @@ export function getApiAuthBase(): string {
   return "https://pmsapi.customfurnish.com/api/auth";
 }
 
+/** API root without `/auth` suffix (e.g. `/backend-api` or `https://…/api`). */
+export function getApiRoot(): string {
+  return getApiAuthBase().replace(/\/auth\/?$/, "").replace(/\/$/, "");
+}
+
+/** Build URL for fetch; supports relative dev proxy bases like `/backend-api`. */
+function buildApiUrl(path: string): URL {
+  const root = getApiRoot();
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const target = `${root}${normalizedPath}`;
+
+  if (/^https?:\/\//i.test(root)) {
+    return new URL(target);
+  }
+
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NODE_ENV === "development"
+        ? "http://127.0.0.1:4200"
+        : "https://pmsapi.customfurnish.com";
+
+  return new URL(target, origin);
+}
+
 /**
  * PRODUCTION READY API UTILITY
  * All requests include credentials: 'include' for cross-origin cookie support.
@@ -392,7 +417,7 @@ export async function getProducts(params?: {
   sortBy?: "createdAt" | "updatedAt" | "name";
   sortOrder?: "asc" | "desc";
 }) {
-  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/products`);
+  const url = buildApiUrl("/products");
   if (params?.page) url.searchParams.set('page', String(params.page));
   if (params?.limit) url.searchParams.set('limit', String(params.limit));
   if (params?.status) url.searchParams.set('status', params.status);
@@ -426,7 +451,7 @@ export async function getProductsCompare(ids: string[]) {
     throw new Error('Compare requires 2 to 4 product ids');
   }
 
-  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/products/compare`);
+  const url = buildApiUrl("/products/compare");
   url.searchParams.set('ids', uniqueIds.join(','));
 
   const response = await fetch(url.toString(), {
@@ -757,9 +782,7 @@ export async function getSimilarProductsByTags(productId: string, limit = 24) {
   const pid = productId.trim();
   if (!pid) throw new Error("Product id is required");
 
-  const url = new URL(
-    `${getApiAuthBase().replace('/auth', '')}/products/${encodeURIComponent(pid)}/similar`,
-  );
+  const url = buildApiUrl(`/products/${encodeURIComponent(pid)}/similar`);
   if (Number.isFinite(limit) && limit > 0) {
     url.searchParams.set("limit", String(Math.floor(limit)));
   }
@@ -1666,7 +1689,7 @@ export async function checkBlogSlugAvailable(
     return { available: false };
   }
 
-  const url = new URL(`${getApiAuthBase().replace("/auth", "")}/blog/check-slug`);
+  const url = buildApiUrl("/blog/check-slug");
   url.searchParams.set("slug", clean);
   const exclude = options?.excludeId?.trim();
   if (exclude) url.searchParams.set("excludeId", exclude);
@@ -1785,7 +1808,7 @@ export async function getRelevantBlogs(slug: string, limit = 3) {
   if (!cleanSlug) throw new Error("Blog slug is required");
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 3;
 
-  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/blog/${encodeURIComponent(cleanSlug)}/relevant`);
+  const url = buildApiUrl(`/blog/${encodeURIComponent(cleanSlug)}/relevant`);
   url.searchParams.set("limit", String(safeLimit));
 
   const response = await fetch(url.toString(), {
@@ -1968,7 +1991,7 @@ export async function createPortfolio(payload: CreatePortfolioPayload, imageFile
 }
 
 export async function getPortfolios(params?: { category?: string }) {
-  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/portfolio`);
+  const url = buildApiUrl("/portfolio");
   if (params?.category?.trim()) {
     url.searchParams.set("category", params.category.trim());
   }
@@ -2688,7 +2711,7 @@ export async function getCategoryMenu(params?: {
   productLimit?: number;
   includeChildren?: boolean;
 }) {
-  const url = new URL(`${getApiAuthBase().replace('/auth', '')}/categories/menu`);
+  const url = buildApiUrl("/categories/menu");
   if (params?.type) {
     url.searchParams.set("type", params.type);
   }

@@ -2049,11 +2049,11 @@ export default function DashboardPage() {
       if (cached) {
         try {
           const parsed = JSON.parse(cached) as unknown;
-          if (Array.isArray(parsed) && isMounted) {
+          if (Array.isArray(parsed) && parsed.length > 0 && isMounted) {
             setMenuCategories(parsed as CategoryMenuItem[]);
           }
         } catch {
-          // Ignore invalid cache and fetch fresh data below.
+          window.sessionStorage.removeItem(MENU_CATEGORIES_CACHE_KEY);
         }
       }
     }
@@ -2065,15 +2065,22 @@ export default function DashboardPage() {
           const nextMenuCategories = Array.isArray(data) ? data : [];
           setMenuCategories(nextMenuCategories);
           if (typeof window !== "undefined") {
-            window.sessionStorage.setItem(
-              MENU_CATEGORIES_CACHE_KEY,
-              JSON.stringify(nextMenuCategories),
-            );
+            if (nextMenuCategories.length > 0) {
+              window.sessionStorage.setItem(
+                MENU_CATEGORIES_CACHE_KEY,
+                JSON.stringify(nextMenuCategories),
+              );
+            } else {
+              window.sessionStorage.removeItem(MENU_CATEGORIES_CACHE_KEY);
+            }
           }
         }
       } catch {
         if (isMounted) {
           setMenuCategories([]);
+        }
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(MENU_CATEGORIES_CACHE_KEY);
         }
       } finally {
       }
