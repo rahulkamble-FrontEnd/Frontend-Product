@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import BlogCard from "@/components/blog-card";
 import { blogPublicPath } from "@/lib/blog-path";
 import { TRENDING_SECTION_ID, trendingItemAnchorId, trendingItemHref } from "@/lib/trending-path";
 import { getBlogs, getPortfolios, getTrendings, type BlogItem, type PortfolioResponse, type TrendingItem } from "@/lib/api";
@@ -70,6 +71,8 @@ export default function BlogPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [blogPage, setBlogPage] = useState(1);
   const [failedImageBlogIds, setFailedImageBlogIds] = useState<Set<string>>(new Set());
+  const blogListRef = useRef<HTMLDivElement>(null);
+  const deferredSearchQuery = useDeferredValue(blogSearchQuery);
   const [failedTrendingImageIds, setFailedTrendingImageIds] = useState<Set<string>>(new Set());
   const [failedPortfolioImageIds, setFailedPortfolioImageIds] = useState<Set<string>>(new Set());
 
@@ -190,11 +193,11 @@ export default function BlogPage() {
     if (selectedCategoryId) {
       result = result.filter((blog) => (getBlogCategoryKey(blog) ?? UNCATEGORIZED_CATEGORY_ID) === selectedCategoryId);
     }
-    if (blogSearchQuery.trim()) {
-      result = result.filter((blog) => blogMatchesSearch(blog, blogSearchQuery));
+    if (deferredSearchQuery.trim()) {
+      result = result.filter((blog) => blogMatchesSearch(blog, deferredSearchQuery));
     }
     return result;
-  }, [orderedBlogs, selectedCategoryId, blogSearchQuery]);
+  }, [orderedBlogs, selectedCategoryId, deferredSearchQuery]);
 
   const recentPosts = useMemo(() => orderedBlogs.slice(0, 6), [orderedBlogs]);
 
@@ -207,6 +210,24 @@ export default function BlogPage() {
     return filteredBlogs.slice(start, start + BLOGS_PAGE_SIZE);
   }, [filteredBlogs, safeBlogPage]);
 
+  const paginatedBlogCards = useMemo(
+    () =>
+      paginatedBlogs.map((blog, idx) => ({
+        id: blog.id,
+        href: blogPublicPath(blog),
+        title: blog.title,
+        preview: stripHtml(blog.body).slice(0, 150),
+        dateLabel: new Date(blog.createdAt).toLocaleDateString(),
+        status: blog.status,
+        imageUrl: makeBlogImageUrl(blog),
+        imageAlt: blog.featuredImageAlt?.trim() || blog.title,
+        imageTitle: blog.featuredImageTitle?.trim() || undefined,
+        priority: safeBlogPage === 1 && idx === 0,
+        eagerLoad: safeBlogPage === 1 && idx < 2,
+      })),
+    [paginatedBlogs, safeBlogPage],
+  );
+
   const blogPageNumbers = useMemo(
     () => buildBlogPageNumbers(totalBlogPages, safeBlogPage),
     [totalBlogPages, safeBlogPage]
@@ -214,7 +235,7 @@ export default function BlogPage() {
 
   useEffect(() => {
     setBlogPage(1);
-  }, [blogSearchQuery, selectedCategoryId]);
+  }, [deferredSearchQuery, selectedCategoryId]);
 
   useEffect(() => {
     if (blogPage > totalBlogPages) {
@@ -222,38 +243,49 @@ export default function BlogPage() {
     }
   }, [blogPage, totalBlogPages]);
 
-  const goToBlogPage = (page: number) => {
-    const next = Math.min(Math.max(1, page), totalBlogPages);
-    setBlogPage(next);
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  const handleBlogImageError = useCallback((id: string) => {
+    setFailedImageBlogIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
-  const hasBlogListFilter = Boolean(blogSearchQuery.trim() || selectedCategoryId);
+  const goToBlogPage = useCallback(
+    (page: number) => {
+      const next = Math.min(Math.max(1, page), totalBlogPages);
+      setBlogPage(next);
+      blogListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [totalBlogPages],
+  );
+
+  const isSearchPending = blogSearchQuery !== deferredSearchQuery;
+  const hasBlogListFilter = Boolean(deferredSearchQuery.trim() || selectedCategoryId);
 
   const blogListFilterMessage = useMemo(() => {
     if (!hasBlogListFilter) return null;
     const count = filteredBlogs.length;
     const countLabel = `${count} result${count === 1 ? "" : "s"}`;
-    if (selectedCategory && blogSearchQuery.trim()) {
-      return `${countLabel} in "${selectedCategory.name}" for "${blogSearchQuery.trim()}"`;
+    if (selectedCategory && deferredSearchQuery.trim()) {
+      return `${countLabel} in "${selectedCategory.name}" for "${deferredSearchQuery.trim()}"`;
     }
     if (selectedCategory) {
       return `${countLabel} in "${selectedCategory.name}"`;
     }
-    return `${countLabel} for "${blogSearchQuery.trim()}"`;
-  }, [hasBlogListFilter, filteredBlogs.length, selectedCategory, blogSearchQuery]);
+    return `${countLabel} for "${deferredSearchQuery.trim()}"`;
+  }, [hasBlogListFilter, filteredBlogs.length, selectedCategory, deferredSearchQuery]);
 
   const blogListEmptyMessage = useMemo(() => {
-    if (selectedCategory && blogSearchQuery.trim()) {
-      return `No blogs in "${selectedCategory.name}" match "${blogSearchQuery.trim()}". Try a different search or category.`;
+    if (selectedCategory && deferredSearchQuery.trim()) {
+      return `No blogs in "${selectedCategory.name}" match "${deferredSearchQuery.trim()}". Try a different search or category.`;
     }
     if (selectedCategory) {
       return `No blogs in "${selectedCategory.name}" yet.`;
     }
-    return `No blogs match "${blogSearchQuery.trim()}". Try a different search term.`;
-  }, [selectedCategory, blogSearchQuery]);
+    return `No blogs match "${deferredSearchQuery.trim()}". Try a different search term.`;
+  }, [selectedCategory, deferredSearchQuery]);
 
   const orderedTrendings = useMemo(
     () =>
@@ -371,10 +403,10 @@ export default function BlogPage() {
                 </div>
               )}
 
-              <div aria-live="polite">
+              <div ref={blogListRef} aria-live="polite" className={isSearchPending ? "opacity-80 transition-opacity" : undefined}>
               {isLoading ? (
                 <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
-            {Array.from({ length: 3 }).map((_, idx) => (
+            {Array.from({ length: Math.min(BLOGS_PAGE_SIZE, 4) }).map((_, idx) => (
               <div key={idx} className="w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:w-auto sm:shrink">
                 <div className="h-44 animate-pulse bg-[#f1ede8] sm:h-56" />
                 <div className="space-y-3 p-4">
@@ -396,56 +428,14 @@ export default function BlogPage() {
         ) : (
           <>
           <div className="-mx-3 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-3 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden">
-            {paginatedBlogs.map((blog, idx) => {
-              const imageUrl = makeBlogImageUrl(blog);
-              const canRenderImage = Boolean(imageUrl) && !failedImageBlogIds.has(blog.id);
-              const preview = stripHtml(blog.body).slice(0, 150);
-
-              return (
-                <Link
-                  key={blog.id}
-                  href={blogPublicPath(blog)}
-                  className="block w-[min(82vw,280px)] shrink-0 snap-start overflow-hidden rounded-md border border-[#e6dfd7] bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(41,35,30,0.08)] sm:w-auto sm:shrink"
-                >
-                  <div className="relative h-40 w-full bg-[#f1ede8] sm:h-56">
-                    {canRenderImage ? (
-                      <Image
-                        src={imageUrl!}
-                        alt={blog.featuredImageAlt?.trim() || blog.title}
-                        title={blog.featuredImageTitle?.trim() || undefined}
-                        fill
-                        priority={safeBlogPage === 1 && idx === 0}
-                        loading={safeBlogPage === 1 && idx < 2 ? "eager" : "lazy"}
-                        unoptimized
-                        sizes="(max-width: 640px) 280px, (max-width: 1280px) 50vw, 33vw"
-                        className="object-cover"
-                        onError={() =>
-                          setFailedImageBlogIds((prev) => {
-                            const next = new Set(prev);
-                            next.add(blog.id);
-                            return next;
-                          })
-                        }
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b1a79f]">
-                        No Image
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-3 p-4">
-                    <div className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9b9088]">
-                      <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
-                      <span className="rounded-full bg-[#f3eee7] px-2.5 py-0.5 text-[#7c716a]">{blog.status}</span>
-                    </div>
-                    <h2 className="line-clamp-2 text-[20px] font-semibold leading-[1.2] text-[#302824] sm:text-[27px] sm:leading-[1.15]">
-                      {blog.title}
-                    </h2>
-                    <p className="line-clamp-3 text-[13px] leading-5 text-[#7a7069] sm:text-sm sm:leading-6">{preview || "No blog content added yet."}</p>
-                  </div>
-                </Link>
-              );
-            })}
+            {paginatedBlogCards.map((card) => (
+              <BlogCard
+                key={card.id}
+                card={card}
+                imageFailed={failedImageBlogIds.has(card.id)}
+                onImageError={handleBlogImageError}
+              />
+            ))}
           </div>
 
           {totalFilteredBlogs > BLOGS_PAGE_SIZE && (
