@@ -3456,13 +3456,22 @@ export default function DashboardPage() {
       <section className="relative w-full overflow-hidden">
         <div className="relative aspect-[3/1] w-full min-h-[220px] max-h-[min(42vw,560px)] bg-[#eadfcf] sm:min-h-[260px] md:min-h-[280px]">
              <Image
+               src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/mobile-banner.webp"
+               alt="Newly Launched Karigari Laminate Collection"
+               fill
+               priority
+               sizes="100vw"
+               quality={75}
+               className="object-cover object-center md:hidden"
+             />
+             <Image
                src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/banner.webp"
                alt="Newly Launched Karigari Laminate Collection"
                fill
                priority
                sizes="100vw"
                quality={75}
-               className="object-cover object-center"
+               className="hidden object-cover object-center md:block"
              />
              {/* Overlay for text readability - temporarily disabled */}
              {/* <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
