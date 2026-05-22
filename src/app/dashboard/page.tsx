@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
 import { trendingItemHref } from "@/lib/trending-path";
 import {
   logout,
@@ -3452,49 +3453,7 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* Hero Section — fixed aspect ratio reserves space before image loads (reduces CLS) */}
-      <section className="relative w-full overflow-hidden">
-        <div className="relative aspect-[3/1] w-full min-h-[220px] max-h-[min(42vw,560px)] bg-[#eadfcf] sm:min-h-[260px] md:min-h-[280px]">
-             <Image
-               src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/mobile-banner.webp"
-               alt="Newly Launched Karigari Laminate Collection"
-               fill
-               priority
-               sizes="100vw"
-               quality={75}
-               className="object-cover object-center md:hidden"
-             />
-             <Image
-               src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/category+banner/hero+banner/banner.webp"
-               alt="Newly Launched Karigari Laminate Collection"
-               fill
-               priority
-               sizes="100vw"
-               quality={75}
-               className="hidden object-cover object-center md:block"
-             />
-             {/* Overlay for text readability - temporarily disabled */}
-             {/* <div className="absolute inset-0 bg-gradient-to-r from-[#4d2c1e]/60 to-transparent flex items-center p-8 lg:p-20">
-                <div className="max-w-xl text-white">
-                   <div className="flex items-center gap-2 mb-4">
-                      <div className="h-0.5 w-8 bg-[#ffcb05]" />
-                      <span className="text-xl italic font-serif leading-none tracking-wide">Newly Launched</span>
-                      <div className="h-0.5 w-8 bg-[#ffcb05]" />
-                   </div>
-                   <h2 className="text-4xl lg:text-7xl font-black uppercase italic leading-tight tracking-tighter">
-                      का​री​गरी
-                   </h2>
-                   <p className="text-2xl lg:text-5xl font-black uppercase mt-2 tracking-tight">
-                    Laminate Collection
-                   </p>
-                   <p className="mt-4 text-xs lg:text-lg font-medium opacity-90 italic">
-                    Celebration of <span className="font-bold">Faith, Folklore & Creativity</span>
-                   </p>
-                </div>
-             </div> */}
-
-        </div>
-      </section>
+      <DashboardHeroBanner />
 
       <section className={`${dashboardShellClass} pt-10 pb-7`}>
         <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8 sm:gap-4">
@@ -3618,6 +3577,8 @@ export default function DashboardPage() {
                             src={imageUrl}
                             alt={title}
                             fill
+                            loading="lazy"
+                            fetchPriority="low"
                             sizes="(max-width: 1024px) 50vw, 360px"
                             className="object-cover"
                           />
