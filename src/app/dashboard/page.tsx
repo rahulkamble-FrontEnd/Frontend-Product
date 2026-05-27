@@ -542,9 +542,9 @@ export default function DashboardPage() {
     ...Array.from({ length: Math.max(0, 8 - latestProducts.length) }, () => null),
   ].slice(0, 8);
   const showcaseDesignCards: Array<DesignCfEntry | null> = [
-    ...designCfEntries.slice(0, 8),
-    ...Array.from({ length: Math.max(0, 8 - designCfEntries.length) }, () => null),
-  ].slice(0, 8);
+    ...designCfEntries.slice(0, 14),
+    ...Array.from({ length: Math.max(0, 14 - designCfEntries.length) }, () => null),
+  ].slice(0, 14);
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length < 2) {
@@ -2129,7 +2129,7 @@ export default function DashboardPage() {
       try {
         const data = await getDesignCfEntries();
         if (isMounted) {
-          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 8) : []);
+          setDesignCfEntries(Array.isArray(data) ? data.slice(0, 14) : []);
         }
       } catch (err: unknown) {
         if (isMounted) {
@@ -3300,17 +3300,17 @@ export default function DashboardPage() {
                   setIsManageCFMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
-                className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
+                className="flex w-full items-center justify-between rounded-md border-2 border-transparent bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
               >
-                Products
-                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <span className="truncate pr-1">Products</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </button>
               {isProductsMenuOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                  className="absolute left-1/2 z-[320] mt-2 max-h-[56vh] w-[210px] -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg"
                 >
                   <button
                     type="button"
@@ -3506,8 +3506,8 @@ export default function DashboardPage() {
                       alt={category.name}
                       fill
                       sizes="203px"
-                      loading={index < 3 ? "eager" : "lazy"}
-                      fetchPriority={index === 0 ? "high" : undefined}
+                      priority={index === 0}
+                      loading={index === 0 ? "eager" : "lazy"}
                       className="object-cover"
                     />
                   </div>
@@ -3577,8 +3577,8 @@ export default function DashboardPage() {
                             src={imageUrl}
                             alt={title}
                             fill
-                            loading="lazy"
-                            fetchPriority="low"
+                            priority={idx === 0}
+                            loading={idx === 0 ? "eager" : "lazy"}
                             sizes="(max-width: 1024px) 50vw, 360px"
                             className="object-cover"
                           />
@@ -3761,7 +3761,15 @@ export default function DashboardPage() {
                     }`}
                   >
                     <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-white sm:h-[260px] sm:rounded-[14px]">
-                      <Image src={imageUrl} alt={title} fill sizes="(max-width: 1024px) 50vw, 340px" className="object-cover" />
+                      <Image
+                        src={imageUrl}
+                        alt={title}
+                        fill
+                        priority={idx === 0}
+                        loading={idx === 0 ? "eager" : "lazy"}
+                        sizes="(max-width: 1024px) 50vw, 340px"
+                        className="object-cover"
+                      />
                     </div>
                     <div className="mt-2 rounded-[10px] bg-[#e8dfd0] px-2.5 py-2 sm:rounded-[14px] sm:px-3">
                       <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
@@ -3819,7 +3827,7 @@ export default function DashboardPage() {
             className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-8 sm:gap-5"
           >
           {isLoadingDesignCfEntries ? (
-            Array.from({ length: 8 }).map((_, idx) => (
+            Array.from({ length: 14 }).map((_, idx) => (
               <div
                 key={`design-cf-loading-${idx}`}
                 className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
@@ -3930,6 +3938,7 @@ export default function DashboardPage() {
                         src={imageUrl}
                         alt={blog.title || "Relevant article"}
                         fill
+                        priority={idx === 0}
                         loading={idx === 0 ? "eager" : "lazy"}
                         sizes="(max-width: 1024px) 50vw, 25vw"
                         className="object-cover"
