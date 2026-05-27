@@ -3300,17 +3300,17 @@ export default function DashboardPage() {
                   setIsManageCFMenuOpen(false);
                   setIsBlogMenuOpen(false);
                 }}
-                className="flex w-full items-center justify-center gap-1 rounded-md bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
+                className="flex w-full items-center justify-between rounded-md border-2 border-transparent bg-[#0468a3] px-2 py-2 text-[10px] font-black uppercase tracking-wider text-white shadow-sm"
               >
-                Products
-                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <span className="truncate pr-1">Products</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <path d="m6 9 6 6 6-6" />
                 </svg>
               </button>
               {isProductsMenuOpen && (
                 <div
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute left-0 right-0 z-[320] mt-2 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-lg"
+                  className="absolute left-1/2 z-[320] mt-2 max-h-[56vh] w-[210px] -translate-x-1/2 overflow-y-auto rounded-xl border border-gray-100 bg-white shadow-lg"
                 >
                   <button
                     type="button"
