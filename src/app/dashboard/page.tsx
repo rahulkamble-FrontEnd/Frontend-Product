@@ -3919,6 +3919,7 @@ export default function DashboardPage() {
                 fill
                 sizes="(max-width: 1024px) 96vw, 72vw"
                 className="object-contain"
+                unoptimized
               />
             </div>
           </div>
