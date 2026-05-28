@@ -180,6 +180,10 @@ export default function DashboardPage() {
   const [designCfEntries, setDesignCfEntries] = useState<DesignCfEntry[]>([]);
   const [isLoadingDesignCfEntries, setIsLoadingDesignCfEntries] = useState(false);
   const [designCfEntriesError, setDesignCfEntriesError] = useState("");
+  const [activeDesignPreview, setActiveDesignPreview] = useState<{
+    imageUrl: string;
+    label: string;
+  } | null>(null);
   const [latestBlogs, setLatestBlogs] = useState<BlogItem[]>([]);
   const [isLoadingLatestBlogs, setIsLoadingLatestBlogs] = useState(false);
   const [latestBlogsError, setLatestBlogsError] = useState("");
@@ -545,6 +549,19 @@ export default function DashboardPage() {
     ...designCfEntries.slice(0, 14),
     ...Array.from({ length: Math.max(0, 14 - designCfEntries.length) }, () => null),
   ].slice(0, 14);
+  useEffect(() => {
+    const preloadUrls = showcaseDesignCards
+      .map((product, idx) => product?.coverImageUrl || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length])
+      .filter((url, index, arr) => arr.indexOf(url) === index)
+      .slice(0, 10);
+
+    preloadUrls.forEach((url) => {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.src = url;
+    });
+  }, [showcaseDesignCards]);
+
   const openCompareByIds = async (ids: string[]) => {
     const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
     if (uniqueIds.length < 2) {
@@ -3852,12 +3869,12 @@ export default function DashboardPage() {
             return (
               <article
                 key={product?.id ?? `cf-design-${idx}`}
-                className={`h-[230px] w-[170px] flex-shrink-0 overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px] ${
-                  product?.id ? "cursor-pointer" : ""
-                }`}
+                className="h-[230px] w-[170px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
                 onClick={() => {
-                  if (!product?.id) return;
-                  router.push(`/design-cf/${encodeURIComponent(product.id)}`);
+                  setActiveDesignPreview({
+                    imageUrl: cardImageUrl,
+                    label,
+                  });
                 }}
               >
                 <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
@@ -3870,6 +3887,43 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {activeDesignPreview && (
+        <div
+          className="fixed inset-0 z-[720] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+          onClick={() => setActiveDesignPreview(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setActiveDesignPreview(null);
+            }
+          }}
+        >
+          <div
+            className="relative w-full max-w-5xl rounded-2xl bg-white p-2 sm:p-4"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveDesignPreview(null)}
+              className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-xl leading-none text-white transition hover:bg-black/75"
+              aria-label="Close design preview"
+            >
+              ×
+            </button>
+            <div className="relative h-[55vh] w-full overflow-hidden rounded-xl bg-[#eadfcf] sm:h-[78vh]">
+              <Image
+                src={activeDesignPreview.imageUrl}
+                alt={activeDesignPreview.label}
+                fill
+                sizes="(max-width: 1024px) 96vw, 72vw"
+                className="object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">

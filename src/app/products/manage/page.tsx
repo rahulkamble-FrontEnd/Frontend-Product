@@ -289,7 +289,7 @@ export default function ManageProductsPage() {
                 <label htmlFor="product-search" className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a7d73]">
                   Search
                 </label>
-                <div className="mt-1 flex gap-2">
+                <div className="mt-1 flex flex-col gap-2 sm:flex-row">
                   <input
                     id="product-search"
                     type="search"
@@ -304,7 +304,7 @@ export default function ManageProductsPage() {
                   <button
                     type="button"
                     onClick={applySearch}
-                    className="shrink-0 rounded-md bg-[#bca58c] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:opacity-95"
+                    className="w-full shrink-0 rounded-md bg-[#bca58c] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition hover:opacity-95 sm:w-auto"
                   >
                     Search
                   </button>
@@ -340,7 +340,7 @@ export default function ManageProductsPage() {
         {!isLoading && items.length > 0 ? (
           <section className="flex flex-col gap-4 rounded-md border border-[#e6dfd7] bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] sm:p-5">
             <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-end lg:justify-between">
-              <div className="text-[11px] font-black uppercase tracking-widest text-[#6c625c]">
+              <div className="break-words text-[11px] font-black uppercase tracking-widest text-[#6c625c]">
                 Bulk tag: {selectedIds.size} selected (this page: {pageIds.filter((id) => selectedIds.has(id)).length} of{" "}
                 {pageIds.length})
               </div>
