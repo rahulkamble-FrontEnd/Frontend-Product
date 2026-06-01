@@ -79,7 +79,7 @@ export function RelevantArticleCard({
   sizes,
 }: RelevantArticleCardProps) {
   const cardClassName = mergeClasses(
-    "group relative block min-h-[250px] w-full overflow-hidden rounded-[14px] shadow-[4px_4px_4.1px_0_rgba(0,0,0,0.25)] sm:min-h-[332px] sm:rounded-[18px]",
+    "group relative block min-h-[220px] overflow-hidden rounded-[14px] shadow-[4px_4px_4.1px_0_rgba(0,0,0,0.25)] sm:min-h-[332px] sm:rounded-[18px]",
     (href || onClick) && "cursor-pointer",
     className,
   );

@@ -802,6 +802,7 @@ export default function CategoryProductsPage() {
                     {relevantBlogs.slice(0, 8).map((item, idx) => (
                       <RelevantArticleCard
                         key={item.id}
+                        className="w-full"
                         title={item.title}
                         imageUrl={getBlogImageUrl(item)}
                         imageAlt={item.title}

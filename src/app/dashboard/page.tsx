@@ -3965,7 +3965,7 @@ export default function DashboardPage() {
               Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
+                  className="h-[220px] w-[150px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
@@ -3979,7 +3979,7 @@ export default function DashboardPage() {
                 return (
                   <RelevantArticleCard
                     key={blog.id || `relevant-article-${idx}`}
-                    className="w-[180px] flex-shrink-0 sm:w-full sm:max-w-[280px]"
+                    className="h-[220px] w-[150px] max-w-[calc(100vw-2rem)] flex-shrink-0 sm:h-[332px] sm:w-[280px] sm:max-w-[280px]"
                     title={blog.title || "Blog"}
                     imageUrl={imageUrl}
                     imageAlt={blog.title || "Relevant article"}

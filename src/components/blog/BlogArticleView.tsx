@@ -149,6 +149,7 @@ export function BlogArticleView({ blog, relevantBlogs, imageFailed, onImageError
               {relevantBlogs.map((item, idx) => (
                 <RelevantArticleCard
                   key={item.id}
+                  className="mx-auto w-full max-w-[240px] sm:mx-0 sm:max-w-none"
                   title={item.title || "Article"}
                   imageUrl={makeBlogImageUrl(item) || ""}
                   imageAlt={item.title || "Relevant article"}
