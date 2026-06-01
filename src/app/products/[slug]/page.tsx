@@ -21,6 +21,7 @@ import {
   type UpdateProductResponse,
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
+import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -1088,56 +1089,20 @@ export default function ProductDetailsPage() {
                 No relevant articles found.
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-                {relevantArticles.slice(0, 8).map((item) => {
-                  const articleImageUrl = getBlogImageUrl(item);
-                  const articlePreview = (item.body ?? "")
-                    .replace(/<[^>]*>/g, " ")
-                    .replace(/\s+/g, " ")
-                    .trim();
-                  return (
-                    <article
-                      key={item.id}
-                      className="overflow-hidden rounded-2xl border border-[#d9cab5] bg-[#efe8dc] shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => router.push(blogPublicPath(item))}
-                        className="block w-full text-left"
-                      >
-                        <div className="p-2 pb-0">
-                          <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
-                          {articleImageUrl ? (
-                            <Image
-                              src={articleImageUrl}
-                              alt={item.title}
-                              fill
-                              unoptimized
-                              sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                              className="object-cover object-center"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              No Image
-                            </div>
-                          )}
-                        </div>
-                        </div>
-                        <div className="bg-[#e8dfd0] p-2.5 sm:p-3">
-                          <div className="line-clamp-1 text-[11px] font-black uppercase tracking-wider text-gray-800 sm:text-xs">
-                            {item.title}
-                          </div>
-                          <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                            {articlePreview || "Blog article"}
-                          </div>
-                          <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
-                            Read Now
-                          </div>
-                        </div>
-                      </button>
-                    </article>
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
+                {relevantArticles.slice(0, 8).map((item, idx) => (
+                  <RelevantArticleCard
+                    key={item.id}
+                    className="w-full"
+                    title={item.title}
+                    imageUrl={getBlogImageUrl(item)}
+                    imageAlt={item.title}
+                    href={blogPublicPath(item)}
+                    priority={idx === 0}
+                    unoptimized
+                    sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  />
+                ))}
               </div>
             )}
           </section>
