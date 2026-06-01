@@ -59,6 +59,7 @@ import {
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
 import { BulkEditProductsModal } from "@/components/bulk-edit-products-modal";
+import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -3964,7 +3965,7 @@ export default function DashboardPage() {
               Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={`relevant-article-loading-${idx}`}
-                  className="h-[250px] w-[180px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
+                  className="h-[220px] w-[150px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
                 />
               ))
             ) : latestBlogs.length === 0 ? (
@@ -3974,52 +3975,18 @@ export default function DashboardPage() {
             ) : (
               latestBlogs.map((blog, idx) => {
                 const imageUrl = makeBlogImageUrl(blog) || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-                const articleTitle = (blog.title || "Blog").trim() || "Blog";
-                const displayTitle = articleTitle.length > 26 ? `${articleTitle.slice(0, 23)}...` : articleTitle;
                 const blogSlug = (blog.slug || "").trim();
                 return (
-                  <article
+                  <RelevantArticleCard
                     key={blog.id || `relevant-article-${idx}`}
-                    className={`w-[180px] flex-shrink-0 overflow-hidden rounded-[14px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:w-full sm:max-w-[280px] sm:rounded-[18px] ${
-                      blogSlug ? "cursor-pointer" : ""
-                    }`}
-                    onClick={() => {
-                      if (!blogSlug) return;
-                      router.push(blogPublicPath(blog));
-                    }}
-                  >
-                    <div className="relative h-[170px] w-full sm:h-[270px]">
-                      <Image
-                        src={imageUrl}
-                        alt={blog.title || "Relevant article"}
-                        fill
-                        priority={idx === 0}
-                        loading={idx === 0 ? "eager" : "lazy"}
-                        sizes="(max-width: 1024px) 50vw, 25vw"
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="flex items-center justify-center bg-[#AE8953] px-2 py-2 sm:px-3 sm:py-2.5">
-                      <span className="text-center text-[12px] font-medium leading-tight text-white sm:text-[18px]">{displayTitle}</span>
-                    </div>
-                    <div className="flex items-center justify-center bg-[#262626] py-2 sm:py-2.5">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!blogSlug) return;
-                          router.push(blogPublicPath(blog));
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-[#AE8953] px-3 py-1 text-[10px] font-medium text-white sm:gap-2 sm:px-5 sm:text-[11px]"
-                      >
-                        Read Now
-                        <svg viewBox="0 0 24 24" className="h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" stroke="currentColor" strokeWidth="2.2">
-                          <path d="M5 12h14" />
-                          <path d="m13 6 6 6-6 6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </article>
+                    className="h-[220px] w-[150px] max-w-[calc(100vw-2rem)] flex-shrink-0 sm:h-[332px] sm:w-[280px] sm:max-w-[280px]"
+                    title={blog.title || "Blog"}
+                    imageUrl={imageUrl}
+                    imageAlt={blog.title || "Relevant article"}
+                    priority={idx === 0}
+                    sizes="(max-width: 1024px) 50vw, 25vw"
+                    onClick={blogSlug ? () => router.push(blogPublicPath(blog)) : undefined}
+                  />
                 );
               })
             )}
