@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useMemo } from "react";
 import type { BlogItem } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
+import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 
@@ -144,16 +144,18 @@ export function BlogArticleView({ blog, relevantBlogs, imageFailed, onImageError
 
         {relevantBlogs.length > 0 && (
           <div className="mt-10 border-t border-[#eee8df] pt-8">
-            <h2 className="text-2xl font-semibold tracking-tight text-[#302824]">Relevant Articles</h2>
-            <div className="mt-4 grid gap-3">
-              {relevantBlogs.map((item) => (
-                <Link
+            <h2 className="text-2xl font-semibold tracking-tight text-[#AE8953]">Relevant Articles</h2>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {relevantBlogs.map((item, idx) => (
+                <RelevantArticleCard
                   key={item.id}
+                  title={item.title || "Article"}
+                  imageUrl={makeBlogImageUrl(item) || ""}
+                  imageAlt={item.title || "Relevant article"}
                   href={blogPublicPath(item)}
-                  className="rounded-md border border-[#e6dfd7] bg-[#faf8f5] px-4 py-3 text-sm font-semibold text-[#3b322d] hover:bg-white"
-                >
-                  {item.title}
-                </Link>
+                  priority={idx === 0}
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                />
               ))}
             </div>
           </div>
