@@ -60,8 +60,8 @@ import {
 import { blogPublicPath } from "@/lib/blog-path";
 import { BulkEditProductsModal } from "@/components/bulk-edit-products-modal";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
+import { isTestS3Url, PRODUCT_IMAGE_BASE_URL } from "@/lib/s3-image-base";
 
-const PRODUCT_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const MENU_CATEGORIES_CACHE_KEY = "dashboard_menu_categories_cache_v1";
 // NOTE: Keeping this fallback for now; menu data is currently coming directly from API.
@@ -3523,6 +3523,7 @@ export default function DashboardPage() {
                       src={tileImageUrl}
                       alt={category.name}
                       fill
+                      unoptimized={isTestS3Url(tileImageUrl)}
                       sizes="203px"
                       priority={index === 0}
                       loading={index === 0 ? "eager" : "lazy"}
@@ -4436,6 +4437,7 @@ export default function DashboardPage() {
                         src={imageUrl as string}
                         alt={p.name}
                         fill
+                        unoptimized={isTestS3Url(imageUrl)}
                         sizes="(max-width: 1024px) 50vw, 33vw"
                         className="object-contain object-center p-2"
                       />

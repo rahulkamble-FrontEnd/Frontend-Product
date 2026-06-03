@@ -1,0 +1,28 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        # Only "staging" branch uses test API proxy. All other branches (main/prod) use prod API.
+        - |
+          if [ "$AWS_BRANCH" = "staging" ]; then
+            echo "NEXT_PUBLIC_API_BASE_URL=/backend-api/auth" >> .env.production
+            echo "API_PROXY_TARGET=http://13.212.52.223:3000" >> .env.production
+            echo "NEXT_PUBLIC_S3_IMAGE_BASE_URL=https://test-products-customfurnish.s3.ap-southeast-1.amazonaws.com" >> .env.production
+            echo "NEXT_PUBLIC_SITE_URL=https://staging.d1fxytyprexnok.amplifyapp.com" >> .env.production
+          else
+            echo "NEXT_PUBLIC_API_BASE_URL=https://pmsapi.customfurnish.com/api/auth" >> .env.production
+            export API_PROXY_TARGET=""
+          fi
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*

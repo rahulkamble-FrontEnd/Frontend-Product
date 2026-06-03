@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getServerApiUrl, serverFetchJson } from "@/lib/server-api-base";
 
 type BlogSitemapItem = {
   slug?: string;
@@ -13,15 +14,6 @@ function getSiteBaseUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:4200").replace(/\/+$/, "");
 }
 
-function getApiBaseUrl() {
-  const authBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    (process.env.NODE_ENV === "development"
-      ? "http://localhost:3000/api/auth"
-      : "https://pmsapi.customfurnish.com/api/auth");
-  return authBase.replace("/auth", "");
-}
-
 function blogPath(item: BlogSitemapItem) {
   const slug = (item.slug || "").trim();
   if (!slug) return null;
@@ -33,18 +25,9 @@ function blogPath(item: BlogSitemapItem) {
 }
 
 async function fetchPublishedBlogs(): Promise<BlogSitemapItem[]> {
-  try {
-    const res = await fetch(`${getApiBaseUrl()}/blog`, {
-      method: "GET",
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    const data = (await res.json()) as unknown;
-    if (!Array.isArray(data)) return [];
-    return data as BlogSitemapItem[];
-  } catch {
-    return [];
-  }
+  const data = await serverFetchJson<unknown>(getServerApiUrl("/blog"));
+  if (!Array.isArray(data)) return [];
+  return data as BlogSitemapItem[];
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

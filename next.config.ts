@@ -2,12 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    if (process.env.NODE_ENV !== "development") return [];
-    const backend = process.env.API_PROXY_TARGET || "http://127.0.0.1:3000";
+    const backend =
+      process.env.API_PROXY_TARGET ||
+      (process.env.NODE_ENV === "development" ? "http://127.0.0.1:3000" : "");
+    if (!backend) return [];
+    const target = backend.replace(/\/$/, "");
     return [
       {
         source: "/backend-api/:path*",
-        destination: `${backend}/api/:path*`,
+        destination: `${target}/api/:path*`,
       },
     ];
   },
@@ -20,6 +23,11 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "products-customfurnish.s3.ap-south-1.amazonaws.com",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "test-products-customfurnish.s3.ap-southeast-1.amazonaws.com",
         pathname: "/**"
       },
       {
