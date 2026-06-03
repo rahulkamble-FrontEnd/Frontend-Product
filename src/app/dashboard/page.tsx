@@ -3523,6 +3523,7 @@ export default function DashboardPage() {
                       src={tileImageUrl}
                       alt={category.name}
                       fill
+                      unoptimized={isTestS3Url(tileImageUrl)}
                       sizes="203px"
                       priority={index === 0}
                       loading={index === 0 ? "eager" : "lazy"}

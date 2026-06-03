@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { BlogDetailsClient } from "./BlogDetailsClient";
 import type { BlogItem } from "@/lib/api";
+import { getServerApiUrl, serverFetchJson } from "@/lib/server-api-base";
 
 type RouteParams = { slug?: string[] };
 type BlogMetadataResponse = BlogItem & {
@@ -49,15 +50,6 @@ function buildKeywords(blog: BlogMetadataResponse): string[] {
   return Array.from(new Set(keywords));
 }
 
-function getApiBaseUrl() {
-  const authBase =
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    (process.env.NODE_ENV === "development"
-      ? "http://localhost:3000/api/auth"
-      : "https://pmsapi.customfurnish.com/api/auth");
-  return authBase.replace("/auth", "");
-}
-
 function getSiteBaseUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:4200").replace(/\/+$/, "");
 }
@@ -78,27 +70,22 @@ function makeBlogImageUrl(blog: BlogMetadataResponse) {
 
 const fetchBlogForMetadata = cache(async (segments: string[]): Promise<BlogMetadataResponse | null> => {
   if (segments.length < 1 || segments.length > 2) return null;
-  const apiBase = getApiBaseUrl();
   const url =
     segments.length === 2
-      ? `${apiBase}/blog/by-category/${encodeURIComponent(segments[0]!)}${"/"}${encodeURIComponent(segments[1]!)}`
-      : `${apiBase}/blog/${encodeURIComponent(segments[0]!)}`;
+      ? getServerApiUrl(
+          `/blog/by-category/${encodeURIComponent(segments[0]!)}/${encodeURIComponent(segments[1]!)}`,
+        )
+      : getServerApiUrl(`/blog/${encodeURIComponent(segments[0]!)}`);
 
-  const res = await fetch(url, { method: "GET", cache: "no-store" });
-  if (!res.ok) return null;
-  const data = (await res.json()) as BlogMetadataResponse;
-  return data;
+  return serverFetchJson<BlogMetadataResponse>(url);
 });
 
 const fetchRelevantBlogsForSlug = cache(async (slug: string): Promise<BlogItem[]> => {
   const cleanSlug = slug.trim();
   if (!cleanSlug) return [];
-  const res = await fetch(
-    `${getApiBaseUrl()}/blog/${encodeURIComponent(cleanSlug)}/relevant?limit=3`,
-    { method: "GET", cache: "no-store" }
+  const data = await serverFetchJson<unknown>(
+    getServerApiUrl(`/blog/${encodeURIComponent(cleanSlug)}/relevant?limit=3`),
   );
-  if (!res.ok) return [];
-  const data = (await res.json()) as unknown;
   return Array.isArray(data) ? (data as BlogItem[]) : [];
 });
 
