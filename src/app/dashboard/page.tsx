@@ -49,7 +49,6 @@ import {
   type ProductCompareResponse,
   type ShortlistItem,
   type UpdateDesignerSamplePayload,
-  type UpdateDesignerNotePayload,
   type NotificationItem,
   type CategoryMenuItem,
   type TrendingItem,
@@ -394,13 +393,8 @@ export default function DashboardPage() {
   const [savingDesignerReplyId, setSavingDesignerReplyId] = useState<string | null>(null);
   const [designerReplyMsg, setDesignerReplyMsg] = useState("");
   const [designerReplyError, setDesignerReplyError] = useState("");
-  const [designerNoteDraft, setDesignerNoteDraft] = useState("");
-  const [designerNoteProductId, setDesignerNoteProductId] = useState("");
-  const [isCreatingDesignerNote, setIsCreatingDesignerNote] = useState(false);
-  const [designerNoteMsg, setDesignerNoteMsg] = useState("");
-  const [designerNoteError, setDesignerNoteError] = useState("");
-  const [designerNoteDrafts, setDesignerNoteDrafts] = useState<Record<string, string>>({});
-  const [savingDesignerNoteId, setSavingDesignerNoteId] = useState<string | null>(null);
+  // Designer Notes UI hidden for now — keep setter for per-product reply sync
+  const [, setDesignerNoteDrafts] = useState<Record<string, string>>({});
   const [designerRecommendationDrafts, setDesignerRecommendationDrafts] = useState<Record<string, string>>({});
   const [designerRecommendationProductSelections, setDesignerRecommendationProductSelections] = useState<Record<string, string>>({});
   const [isCreatingDesignerRecommendation, setIsCreatingDesignerRecommendation] = useState(false);
@@ -1379,12 +1373,7 @@ export default function DashboardPage() {
     setSavingDesignerReplyId(null);
     setDesignerReplyMsg("");
     setDesignerReplyError("");
-    setDesignerNoteDraft("");
-    setDesignerNoteProductId("");
-    setDesignerNoteMsg("");
-    setDesignerNoteError("");
     setDesignerNoteDrafts({});
-    setSavingDesignerNoteId(null);
     setDesignerRecommendationDrafts({});
     setDesignerRecommendationProductSelections({});
     setCreatingDesignerRecommendationShortlistId(null);
@@ -1563,101 +1552,6 @@ export default function DashboardPage() {
       setDesignerReplyError(err instanceof Error ? err.message : "Failed to save reply.");
     } finally {
       setSavingDesignerReplyId(null);
-    }
-  };
-
-  const handleCreateDesignerNote = async () => {
-    setDesignerNoteError("");
-    setDesignerNoteMsg("");
-    if (userRole !== "designer") {
-      setDesignerNoteError("Only designer can add notes.");
-      return;
-    }
-    const customerId = selectedDesignerCustomerId.trim();
-    if (!customerId) {
-      setDesignerNoteError("Customer id is required.");
-      return;
-    }
-    const note = designerNoteDraft.trim();
-    if (!note) {
-      setDesignerNoteError("Note is required.");
-      return;
-    }
-
-    const payload: CreateDesignerNotePayload = {
-      customerId,
-      note,
-      ...(designerNoteProductId.trim() ? { productId: designerNoteProductId.trim() } : {}),
-    };
-
-    setIsCreatingDesignerNote(true);
-    try {
-      const created = await createDesignerNote(payload);
-      setDesignerCustomerDetails((prev) =>
-        prev
-          ? {
-              ...prev,
-              notes: [created, ...(Array.isArray(prev.notes) ? prev.notes : [])],
-            }
-          : prev
-      );
-      if (typeof created.id === "string") {
-        setDesignerNoteDrafts((prev) => ({ ...prev, [created.id as string]: getDesignerNoteText(created) }));
-      }
-      setDesignerNoteDraft("");
-      setDesignerNoteProductId("");
-      setDesignerNoteMsg("Designer note added successfully.");
-    } catch (err: unknown) {
-      setDesignerNoteError(err instanceof Error ? err.message : "Failed to add designer note.");
-    } finally {
-      setIsCreatingDesignerNote(false);
-    }
-  };
-
-  const handleUpdateDesignerNote = async (noteId: string) => {
-    setDesignerNoteError("");
-    setDesignerNoteMsg("");
-    if (userRole !== "designer") {
-      setDesignerNoteError("Only designer can update notes.");
-      return;
-    }
-    const id = noteId.trim();
-    if (!id) {
-      setDesignerNoteError("Note id is required.");
-      return;
-    }
-    const note = (designerNoteDrafts[id] ?? "").trim();
-    if (!note) {
-      setDesignerNoteError("Note is required.");
-      return;
-    }
-
-    const payload: UpdateDesignerNotePayload = { note };
-
-    setSavingDesignerNoteId(id);
-    try {
-      const updated = await updateDesignerNote(id, payload);
-      setDesignerCustomerDetails((prev) =>
-        prev
-          ? {
-              ...prev,
-              notes: prev.notes.map((item) =>
-                item.id === id
-                  ? {
-                      ...item,
-                      ...updated,
-                    }
-                  : item
-              ),
-            }
-          : prev
-      );
-      setDesignerNoteDrafts((prev) => ({ ...prev, [id]: getDesignerNoteText(updated) }));
-      setDesignerNoteMsg("Designer note updated successfully.");
-    } catch (err: unknown) {
-      setDesignerNoteError(err instanceof Error ? err.message : "Failed to update designer note.");
-    } finally {
-      setSavingDesignerNoteId(null);
     }
   };
 
@@ -5062,10 +4956,7 @@ export default function DashboardPage() {
             setSavingDesignerReplyId(null);
             setDesignerReplyError("");
             setDesignerReplyMsg("");
-            setDesignerNoteError("");
-            setDesignerNoteMsg("");
             setDesignerNoteDrafts({});
-            setSavingDesignerNoteId(null);
             setDesignerRecommendationError("");
             setDesignerRecommendationMsg("");
           }}
@@ -5090,10 +4981,7 @@ export default function DashboardPage() {
                   setSavingDesignerSampleId(null);
                   setDesignerSampleError("");
                   setDesignerSampleMsg("");
-                  setDesignerNoteError("");
-                  setDesignerNoteMsg("");
                   setDesignerNoteDrafts({});
-                  setSavingDesignerNoteId(null);
                   setDesignerRecommendationError("");
                   setDesignerRecommendationMsg("");
                 }}
@@ -5152,12 +5040,12 @@ export default function DashboardPage() {
 
                   <div className="space-y-3 sm:space-y-6 lg:col-span-2">
                     <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Shortlist</div>
                           <div className="mt-1 text-xs text-gray-500 sm:text-sm">Products saved by this customer.</div>
                         </div>
-                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
+                        <div className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
                           {designerCustomerDetails.shortlist.length} Items
                         </div>
                       </div>
@@ -5236,13 +5124,13 @@ export default function DashboardPage() {
                                       <div className="mt-1">{item.customerNote || "-"}</div>
                                     </div>
                                     <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
-                                      <div className="flex items-center justify-between gap-3">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Reply</div>
                                         <button
                                           type="button"
                                           disabled={savingDesignerReplyId === item.id}
                                           onClick={() => handleSaveDesignerReply(item.id, item.productId)}
-                                          className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                          className="shrink-0 whitespace-nowrap rounded-full border border-gray-300 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:py-1 sm:text-[10px] sm:tracking-widest"
                                         >
                                           {savingDesignerReplyId === item.id ? "Saving..." : "Save Reply"}
                                         </button>
@@ -5259,8 +5147,8 @@ export default function DashboardPage() {
                                         className="mt-2 block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                                       />
                                     </div>
-                                    <div className="mt-3 flex flex-wrap items-end gap-3 rounded-xl bg-white p-3">
-                                      <div className="min-w-[180px] flex-1">
+                                    <div className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-3 sm:flex-row sm:flex-wrap sm:items-end">
+                                      <div className="min-w-0 flex-1 sm:min-w-[180px]">
                                         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sample Status</div>
                                         <select
                                           value={designerSampleDrafts[item.id] ?? item.sampleStatus ?? "none"}
@@ -5291,15 +5179,15 @@ export default function DashboardPage() {
                                         type="button"
                                         disabled={savingDesignerSampleId === item.id}
                                         onClick={() => handleUpdateDesignerSample(item.id)}
-                                        className="rounded-full border border-[#0468a3] bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-[#0468a3] disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="w-full shrink-0 whitespace-nowrap rounded-full border border-[#0468a3] bg-white px-4 py-2 text-[9px] font-black uppercase tracking-[0.08em] text-[#0468a3] disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:text-[10px] sm:tracking-widest"
                                       >
                                         {savingDesignerSampleId === item.id ? "Saving..." : "Update Sample"}
                                       </button>
                                     </div>
                                     <div className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-700">
-                                      <div className="flex items-center justify-between gap-3">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
                                         <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
-                                        <div className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                        <div className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-600 sm:text-[10px] sm:tracking-widest">
                                           {itemRecommendations.length} Added
                                         </div>
                                       </div>
@@ -5344,7 +5232,7 @@ export default function DashboardPage() {
                                               item.productId
                                             )
                                           }
-                                          className="rounded-full bg-[#0468a3] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                          className="w-full whitespace-nowrap rounded-full bg-[#0468a3] px-4 py-2 text-[9px] font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:text-[10px] sm:tracking-widest"
                                         >
                                           {isCreatingDesignerRecommendation && creatingDesignerRecommendationShortlistId === item.id
                                             ? "Saving..."
@@ -5384,12 +5272,12 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Recommendations</div>
                           <div className="mt-1 text-sm text-gray-500">Use each shortlist card above to add product-wise recommendations.</div>
                         </div>
-                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                        <div className="shrink-0 self-start whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:text-[10px] sm:tracking-widest">
                           {totalDesignerRecommendations} Added
                         </div>
                       </div>
@@ -5405,13 +5293,14 @@ export default function DashboardPage() {
                       )}
                     </div>
 
+                    {/* Designer Notes — hidden for now
                     <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
                           <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Designer Notes</div>
                           <div className="mt-1 text-sm text-gray-500">Use Designer Reply inside each shortlist item above for product-wise customer replies.</div>
                         </div>
-                        <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-gray-700">
+                        <div className="shrink-0 self-start whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:text-[10px] sm:tracking-widest">
                           {designerCustomerDetails.notes.length} Notes
                         </div>
                       </div>
@@ -5466,8 +5355,8 @@ export default function DashboardPage() {
                         ) : (
                           designerCustomerDetails.notes.map((note, index) => (
                             <div key={String(note.id ?? index)} className="rounded-xl bg-gray-50 p-4">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                                <div className="min-w-0 flex-1">
                                   <textarea
                                     value={typeof note.id === "string" ? (designerNoteDrafts[note.id] ?? getDesignerNoteText(note)) : getDesignerNoteText(note)}
                                     onChange={(e) => {
@@ -5485,7 +5374,7 @@ export default function DashboardPage() {
                                     type="button"
                                     disabled={savingDesignerNoteId === note.id}
                                     onClick={() => handleUpdateDesignerNote(note.id as string)}
-                                    className="rounded-full border border-gray-300 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                                    className="w-full shrink-0 whitespace-nowrap rounded-full border border-gray-300 bg-white px-3 py-2 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:text-[10px] sm:tracking-widest"
                                   >
                                     {savingDesignerNoteId === note.id ? "Saving..." : "Save"}
                                   </button>
@@ -5503,6 +5392,7 @@ export default function DashboardPage() {
                         )}
                       </div>
                     </div>
+                    */}
                   </div>
                 </div>
               ) : (
