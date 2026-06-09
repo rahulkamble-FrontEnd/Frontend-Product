@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import CommonStoreHeader from "@/components/common-store-header";
 import {
   getBlogs,
@@ -158,6 +158,15 @@ export default function ProductDetailsPage() {
   const [relevantArticles, setRelevantArticles] = useState<BlogItem[]>([]);
   const [isLoadingRelevantArticles, setIsLoadingRelevantArticles] = useState(false);
   const [relevantArticlesError, setRelevantArticlesError] = useState("");
+  const relevantArticlesScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollRelevantArticles = (direction: "left" | "right") => {
+    if (!relevantArticlesScrollRef.current) return;
+    relevantArticlesScrollRef.current.scrollBy({
+      left: direction === "left" ? -300 : 300,
+      behavior: "smooth",
+    });
+  };
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -1068,10 +1077,34 @@ export default function ProductDetailsPage() {
             )}
           </section>
           <section className="mt-10">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[28px] sm:leading-[34px]">
                 Relevant Articles
               </h2>
+              {relevantArticles.length > 0 && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => scrollRelevantArticles("left")}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white transition-colors hover:bg-[#8A6A3A] sm:h-10 sm:w-10"
+                    aria-label="Previous relevant article"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRelevantArticles("right")}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white transition-colors hover:bg-[#8A6A3A] sm:h-10 sm:w-10"
+                    aria-label="Next relevant article"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             {relevantArticlesError && (
@@ -1081,26 +1114,34 @@ export default function ProductDetailsPage() {
             )}
 
             {isLoadingRelevantArticles ? (
-              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
-                Loading relevant articles...
+              <div className="flex gap-3 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div
+                    key={`relevant-article-loading-${idx}`}
+                    className="h-[220px] w-[150px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
+                  />
+                ))}
               </div>
             ) : relevantArticles.length === 0 ? (
               <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
                 No relevant articles found.
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
-                {relevantArticles.slice(0, 8).map((item, idx) => (
+              <div
+                ref={relevantArticlesScrollRef}
+                className="flex gap-3 overflow-x-auto scroll-smooth pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5"
+              >
+                {relevantArticles.map((item, idx) => (
                   <RelevantArticleCard
                     key={item.id}
-                    className="w-full"
+                    className="h-[220px] w-[150px] max-w-[calc(100vw-2rem)] flex-shrink-0 sm:h-[332px] sm:w-[280px] sm:max-w-[280px]"
                     title={item.title}
                     imageUrl={getBlogImageUrl(item)}
                     imageAlt={item.title}
                     href={blogPublicPath(item)}
                     priority={idx === 0}
                     unoptimized
-                    sizes="(max-width: 640px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                    sizes="(max-width: 1024px) 150px, 280px"
                   />
                 ))}
               </div>
