@@ -249,6 +249,7 @@ export default function DashboardPage() {
   const [bulkUploadMsg, setBulkUploadMsg] = useState("");
   const [bulkUploadError, setBulkUploadError] = useState("");
   const [bulkUploadFailedSkus, setBulkUploadFailedSkus] = useState<string[]>([]);
+  const [bulkUploadSucceeded, setBulkUploadSucceeded] = useState(false);
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
@@ -1889,6 +1890,7 @@ export default function DashboardPage() {
     setBulkUploadMsg("");
     setBulkUploadError("");
     setBulkUploadFailedSkus([]);
+    setBulkUploadSucceeded(false);
     setBulkUploadFile(null);
     setBulkUploadImagesZipFile(null);
     setIsBulkUploadModalOpen(true);
@@ -1905,6 +1907,7 @@ export default function DashboardPage() {
 
     setBulkUploadMsg("");
     setBulkUploadError("");
+    setBulkUploadSucceeded(false);
 
     const fileName = file.name.toLowerCase();
     if (!fileName.endsWith(".xlsx")) {
@@ -1933,6 +1936,7 @@ export default function DashboardPage() {
           ) ?? [];
 
         setBulkUploadFailedSkus(failedSkus);
+        setBulkUploadSucceeded(false);
         setBulkUploadMsg(
           `Bulk upload failed (all-or-nothing). Rows: ${result.totalRows}, Failed: ${result.failedCount}. None were created.`
         );
@@ -1940,12 +1944,14 @@ export default function DashboardPage() {
         setBulkUploadError(`Some rows failed: ${firstError}`);
       } else {
         setBulkUploadFailedSkus([]);
+        setBulkUploadSucceeded(true);
         setBulkUploadMsg(
           `Bulk upload completed. Rows: ${result.totalRows}, Created: ${result.createdCount}`
         );
       }
       await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
+      setBulkUploadSucceeded(false);
       setBulkUploadError(
         err instanceof Error ? err.message : "Bulk product upload failed."
       );
@@ -6391,6 +6397,8 @@ export default function DashboardPage() {
                   setIsBulkUploadModalOpen(false);
                   setBulkUploadError("");
                   setBulkUploadMsg("");
+                  setBulkUploadFailedSkus([]);
+                  setBulkUploadSucceeded(false);
                   setBulkUploadFile(null);
                   setBulkUploadImagesZipFile(null);
                 }}
@@ -6414,6 +6422,7 @@ export default function DashboardPage() {
                     const selected = e.target.files?.[0] ?? null;
                     setBulkUploadFile(selected);
                     setBulkUploadError("");
+                    setBulkUploadSucceeded(false);
                   }}
                 />
                 <p className="mt-2 text-[11px] font-bold text-gray-500">
@@ -6449,6 +6458,7 @@ export default function DashboardPage() {
                     const selected = e.target.files?.[0] ?? null;
                     setBulkUploadImagesZipFile(selected);
                     setBulkUploadError("");
+                    setBulkUploadSucceeded(false);
                   }}
                 />
                 <p className="mt-2 text-[11px] font-bold text-gray-500">
@@ -6485,10 +6495,14 @@ export default function DashboardPage() {
 
               <button
                 type="submit"
-                disabled={isBulkUploadingProducts}
+                disabled={isBulkUploadingProducts || bulkUploadSucceeded}
                 className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
               >
-                {isBulkUploadingProducts ? "Uploading..." : "Upload"}
+                {isBulkUploadingProducts
+                  ? "Uploading..."
+                  : bulkUploadSucceeded
+                    ? "Uploaded"
+                    : "Upload"}
               </button>
             </form>
           </div>
