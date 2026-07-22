@@ -6381,8 +6381,8 @@ export default function DashboardPage() {
 
       {isBulkUploadModalOpen && (
         <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-8 shadow-2xl">
-            <div className="mb-6 flex items-center justify-between">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-4 flex shrink-0 items-center justify-between sm:mb-6">
               <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">
                 Bulk Upload Products
               </h2>
@@ -6400,7 +6400,8 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <form onSubmit={handleBulkUploadSubmit} className="space-y-4">
+            <form onSubmit={handleBulkUploadSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
                   XLSX File
@@ -6466,8 +6467,13 @@ export default function DashboardPage() {
                 </div>
               )}
               {bulkUploadFailedSkus.length > 0 && (
-                <div className="text-xs font-bold text-gray-900 bg-yellow-50 p-3 rounded-lg text-center">
-                  Not uploaded SKUs: {bulkUploadFailedSkus.join(", ")}
+                <div className="rounded-lg bg-yellow-50 p-3">
+                  <div className="text-xs font-bold text-gray-900">
+                    Not uploaded SKUs ({bulkUploadFailedSkus.length}):
+                  </div>
+                  <div className="mt-2 max-h-40 overflow-y-auto text-xs font-bold text-gray-900">
+                    {bulkUploadFailedSkus.join(", ")}
+                  </div>
                 </div>
               )}
               {bulkUploadMsg && (
@@ -6475,11 +6481,12 @@ export default function DashboardPage() {
                   {bulkUploadMsg}
                 </div>
               )}
+              </div>
 
               <button
                 type="submit"
                 disabled={isBulkUploadingProducts}
-                className="w-full rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 mt-4"
+                className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
               >
                 {isBulkUploadingProducts ? "Uploading..." : "Upload"}
               </button>
