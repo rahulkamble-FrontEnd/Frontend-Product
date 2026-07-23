@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /**
+   * Only applies when /backend-api rewrites are active (local + Amplify staging).
+   * Production Amplify calls pmsapi directly (no rewrite), so this does not change prod traffic.
+   * Default proxy body limit is 10MB; bulk-upload xlsx+zip is often much larger.
+   */
+  experimental: {
+    proxyClientMaxBodySize: "300mb",
+    proxyTimeout: 10 * 60 * 1000, // 10 minutes for large multipart bulk uploads
+  },
   async rewrites() {
     const backend =
       process.env.API_PROXY_TARGET ||
