@@ -6,11 +6,11 @@ frontend:
         - npm ci
     build:
       commands:
-        # Only "staging" branch uses test API proxy. All other branches (main/prod) use prod API.
+        # Staging: call staging API over HTTPS directly (avoids Amplify/CloudFront 413 on large uploads).
+        # All other branches (main/prod) keep calling pmsapi — do not change that path.
         - |
           if [ "$AWS_BRANCH" = "staging" ]; then
-            echo "NEXT_PUBLIC_API_BASE_URL=/backend-api/auth" >> .env.production
-            echo "API_PROXY_TARGET=http://13.212.52.223:3000" >> .env.production
+            echo "NEXT_PUBLIC_API_BASE_URL=https://staging-pmsapi.customfurnish.com/api/auth" >> .env.production
             echo "NEXT_PUBLIC_S3_IMAGE_BASE_URL=https://test-products-customfurnish.s3.ap-southeast-1.amazonaws.com" >> .env.production
             echo "NEXT_PUBLIC_SITE_URL=https://staging.d1fxytyprexnok.amplifyapp.com" >> .env.production
           else
