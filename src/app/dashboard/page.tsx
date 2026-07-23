@@ -3717,22 +3717,22 @@ export default function DashboardPage() {
                 See how we transform spaces into beautiful homes.
               </p>
             </div>
-            <div className="absolute bottom-0 right-0 flex items-center gap-2 sm:top-1/2 sm:-translate-y-1/2">
+            <div className="mt-3 flex justify-end gap-2 sm:absolute sm:bottom-0 sm:right-0 sm:mt-0 sm:top-1/2 sm:-translate-y-1/2">
               <button
                 type="button"
                 onClick={() => scrollShowcaseDesigns("left")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Scroll showcase designs left"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m15 18-6-6 6-6"/></svg>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               <button
                 type="button"
                 onClick={() => scrollShowcaseDesigns("right")}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
                 aria-label="Scroll showcase designs right"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="sm:h-[18px] sm:w-[18px]"><path d="m9 18 6-6-6-6"/></svg>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </button>
             </div>
           </div>
