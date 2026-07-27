@@ -12,9 +12,10 @@ frontend:
           if [ "$AWS_BRANCH" = "staging" ]; then
             echo "NEXT_PUBLIC_API_BASE_URL=https://staging-pmsapi.customfurnish.com/api/auth" >> .env.production
             echo "NEXT_PUBLIC_S3_IMAGE_BASE_URL=https://test-products-customfurnish.s3.ap-southeast-1.amazonaws.com" >> .env.production
-            echo "NEXT_PUBLIC_SITE_URL=https://staging.d1fxytyprexnok.amplifyapp.com" >> .env.production
+            echo "NEXT_PUBLIC_SITE_URL=https://productstg.customfurnish.in" >> .env.production
           else
             echo "NEXT_PUBLIC_API_BASE_URL=https://pmsapi.customfurnish.com/api/auth" >> .env.production
+            echo "NEXT_PUBLIC_SITE_URL=https://product.customfurnish.com" >> .env.production
             export API_PROXY_TARGET=""
           fi
         - npm run build
