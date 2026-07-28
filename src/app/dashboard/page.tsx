@@ -429,6 +429,20 @@ export default function DashboardPage() {
       .toLowerCase()
       .replace(/\b[a-z]/g, (char) => char.toUpperCase());
 
+  const formatCustomerProductDisplayTitle = (
+    name: string | null | undefined,
+    productSlug: string | null | undefined,
+  ) => {
+    const normalizedName = (name ?? "").trim().toUpperCase();
+    const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
+    const displayName = nameWithoutLeadingNumber || normalizedName;
+    const slug = (productSlug ?? "").trim();
+    const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
+    const code = codeMatch?.[1]?.toUpperCase() ?? "";
+    if (!displayName) return code;
+    return code ? `${displayName} ${code}` : displayName;
+  };
+
   const truncateText = (value: string, maxChars: number) => {
     const normalized = value.trim();
     if (normalized.length <= maxChars) return normalized;
@@ -4798,7 +4812,12 @@ export default function DashboardPage() {
                               {shortlistedProduct?.materialType || "Shortlisted Product"}
                             </div>
                             <div className="mt-1 text-[20px] font-black leading-snug text-gray-900 sm:text-base">
-                              {shortlistedProduct?.name || item.productId}
+                              {shortlistedProduct
+                                ? formatCustomerProductDisplayTitle(
+                                    shortlistedProduct.name,
+                                    shortlistedProduct.slug,
+                                  )
+                                : item.productId}
                             </div>
                             {shortlistedProduct && (
                               <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">

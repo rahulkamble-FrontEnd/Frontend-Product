@@ -123,6 +123,17 @@ function formatProductName(value: string | null | undefined) {
     .join(" ");
 }
 
+function formatProductCardTitle(product: ProductListItem) {
+  const normalizedName = formatProductName(product.name);
+  const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
+  const displayName = nameWithoutLeadingNumber || normalizedName;
+  const slug = (product.slug ?? "").trim();
+  const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
+  const code = codeMatch?.[1]?.toUpperCase() ?? "";
+  if (!displayName) return code;
+  return code ? `${displayName} ${code}` : displayName;
+}
+
 type SortValue = "newest" | "name_asc" | "name_desc";
 const PRODUCTS_PAGE_LIMIT = 100;
 
@@ -764,7 +775,9 @@ export default function CategoryProductsPage() {
                         </div>
                         <div className="p-2.5 sm:p-3 bg-[#e8dfd0]">
                           <div className="line-clamp-1 text-[11px] font-black uppercase tracking-wider text-gray-800 sm:text-xs">
-                            {formatProductName(product.name)}
+                            {userRole === "customer"
+                              ? formatProductCardTitle(product)
+                              : formatProductName(product.name)}
                           </div>
                           <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             {shouldShowBrand

@@ -68,6 +68,20 @@ function formatProductName(value: string | null | undefined) {
   return text.toUpperCase();
 }
 
+function formatProductDisplayTitle(
+  name: string | null | undefined,
+  productSlug: string | null | undefined,
+) {
+  const normalizedName = formatProductName(name);
+  const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
+  const displayName = nameWithoutLeadingNumber || normalizedName;
+  const slug = (productSlug ?? "").trim();
+  const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
+  const code = codeMatch?.[1]?.toUpperCase() ?? "";
+  if (!displayName) return code;
+  return code ? `${displayName} ${code}` : displayName;
+}
+
 function formatCategoryName(value: string | null | undefined) {
   const text = (value ?? "").trim();
   if (!text) return "";
@@ -477,12 +491,16 @@ export default function ProductDetailsPage() {
   };
 
   if (!userName) return null;
+  const productDisplayTitle =
+    userRole === "customer"
+      ? formatProductDisplayTitle(product?.name, product?.slug)
+      : formatProductName(product?.name);
 
   return (
     <div className="min-h-screen bg-[#f3eee5] font-sans text-gray-900">
       <CommonStoreHeader
         pageTitle=""
-        breadcrumbText={`HOME  >  ${product?.name ?? "Product Details"}`}
+        breadcrumbText={`HOME  >  ${productDisplayTitle || "Product Details"}`}
         breadcrumbItems={[
           { label: "HOME", href: "/dashboard" },
           ...(product?.categories?.[0]?.slug
@@ -493,7 +511,7 @@ export default function ProductDetailsPage() {
                 },
               ]
             : []),
-          { label: formatProductName(product?.name) || "Product Details" },
+          { label: productDisplayTitle || "Product Details" },
         ]}
         userName={userName}
         userRole={userRole}
@@ -619,7 +637,7 @@ export default function ProductDetailsPage() {
                   {product.materialType || "Product"}
                 </div>
                 <h1 className="mt-2 text-[22px] font-bold leading-[28px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
-                  {formatProductName(product.name)}
+                  {productDisplayTitle}
                 </h1>
                 <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
