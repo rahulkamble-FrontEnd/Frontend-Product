@@ -253,6 +253,7 @@ export default function DashboardPage() {
   const [isBulkUploadModalOpen, setIsBulkUploadModalOpen] = useState(false);
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
+  const bulkUploadInFlightRef = useRef(false);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
   const latestProductsScrollRef = useRef<HTMLDivElement | null>(null);
   const showcaseDesignsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -1912,6 +1913,15 @@ export default function DashboardPage() {
 
   const handleBulkUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Block double-submit while API is running or after a successful upload.
+    if (
+      bulkUploadInFlightRef.current ||
+      isBulkUploadingProducts ||
+      bulkUploadSucceeded
+    ) {
+      return;
+    }
+
     const file = bulkUploadFile;
     const imagesZip = bulkUploadImagesZipFile;
     if (!file) {
@@ -1936,6 +1946,7 @@ export default function DashboardPage() {
       }
     }
 
+    bulkUploadInFlightRef.current = true;
     setIsBulkUploadingProducts(true);
     try {
       const result = await bulkUploadProducts(file, imagesZip);
@@ -1944,7 +1955,7 @@ export default function DashboardPage() {
           Array.from(
             new Set(
               result.errors
-                ?.map((e) => e.sku)
+                ?.map((errItem) => errItem.sku)
                 .filter((sku): sku is string => Boolean(sku)) ?? [],
             ),
           ) ?? [];
@@ -1970,6 +1981,7 @@ export default function DashboardPage() {
         err instanceof Error ? err.message : "Bulk product upload failed."
       );
     } finally {
+      bulkUploadInFlightRef.current = false;
       setIsBulkUploadingProducts(false);
     }
   };
@@ -3292,7 +3304,18 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    {isBulkUploadingProducts ? "Uploading..." : "Bulk Upload"}
+                    {isBulkUploadingProducts ? (
+                      <span className="inline-flex items-center">
+                        Uploading
+                        <span className="upload-dots" aria-hidden="true">
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                      </span>
+                    ) : (
+                      "Bulk Upload"
+                    )}
                   </button>
                 </div>
               )}
@@ -6413,6 +6436,7 @@ export default function DashboardPage() {
               </h2>
               <button
                 onClick={() => {
+                  if (isBulkUploadingProducts) return;
                   setIsBulkUploadModalOpen(false);
                   setBulkUploadError("");
                   setBulkUploadMsg("");
@@ -6421,7 +6445,9 @@ export default function DashboardPage() {
                   setBulkUploadFile(null);
                   setBulkUploadImagesZipFile(null);
                 }}
-                className="text-gray-400 hover:text-black"
+                disabled={isBulkUploadingProducts}
+                className="text-gray-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Close bulk upload"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
               </button>
@@ -6436,8 +6462,10 @@ export default function DashboardPage() {
                 <input
                   type="file"
                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  disabled={isBulkUploadingProducts || bulkUploadSucceeded}
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner disabled:cursor-not-allowed disabled:opacity-60"
                   onChange={(e) => {
+                    if (isBulkUploadingProducts || bulkUploadSucceeded) return;
                     const selected = e.target.files?.[0] ?? null;
                     setBulkUploadFile(selected);
                     setBulkUploadError("");
@@ -6472,8 +6500,10 @@ export default function DashboardPage() {
                 <input
                   type="file"
                   accept=".zip,application/zip,application/x-zip-compressed"
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                  disabled={isBulkUploadingProducts || bulkUploadSucceeded}
+                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner disabled:cursor-not-allowed disabled:opacity-60"
                   onChange={(e) => {
+                    if (isBulkUploadingProducts || bulkUploadSucceeded) return;
                     const selected = e.target.files?.[0] ?? null;
                     setBulkUploadImagesZipFile(selected);
                     setBulkUploadError("");
@@ -6515,13 +6545,23 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={isBulkUploadingProducts || bulkUploadSucceeded}
-                className="mt-4 w-full shrink-0 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:opacity-50"
+                className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={isBulkUploadingProducts}
               >
-                {isBulkUploadingProducts
-                  ? "Uploading..."
-                  : bulkUploadSucceeded
-                    ? "Uploaded"
-                    : "Upload"}
+                {isBulkUploadingProducts ? (
+                  <>
+                    <span>Uploading</span>
+                    <span className="upload-dots" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </>
+                ) : bulkUploadSucceeded ? (
+                  "Uploaded"
+                ) : (
+                  "Upload"
+                )}
               </button>
             </form>
           </div>
