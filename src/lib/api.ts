@@ -1087,6 +1087,146 @@ export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
   return response.json() as Promise<BulkUploadProductsResponse>;
 }
 
+export type DataPrepConvertOptions = {
+  categoryId: string;
+  finishType?: string;
+  status?: string;
+  materialType?: string;
+  description?: string;
+  bookName?: string;
+  brand?: string;
+  dimensions?: string;
+  packName?: string;
+};
+
+export type DataPrepConvertResult = {
+  blob: Blob | null;
+  savedDirectly: boolean;
+  fileName: string;
+  summary: {
+    matched: number;
+    skippedNoImage: number;
+    orphanImages: number;
+    vendorRows: number;
+    categoryId: string;
+    categoryName: string;
+  };
+};
+
+export type DataPrepSaveHandle = {
+  createWritable: () => Promise<WritableStream<Uint8Array>>;
+};
+
+export async function convertDataPrepPack(
+  file: File,
+  imagesZip: File,
+  options: DataPrepConvertOptions,
+  saveHandle?: DataPrepSaveHandle | null,
+): Promise<DataPrepConvertResult> {
+  if (!(file instanceof File)) {
+    throw new Error("Vendor XLSX file is required");
+  }
+  if (!(imagesZip instanceof File)) {
+    throw new Error("Images ZIP is required");
+  }
+  if (!options.categoryId?.trim()) {
+    throw new Error("Category is required");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("imagesZip", imagesZip);
+  formData.append("categoryId", options.categoryId.trim());
+  if (options.finishType) formData.append("finishType", options.finishType);
+  if (options.status) formData.append("status", options.status);
+  if (options.materialType) formData.append("materialType", options.materialType);
+  if (options.description) formData.append("description", options.description);
+  if (options.bookName) formData.append("bookName", options.bookName);
+  if (options.brand) formData.append("brand", options.brand);
+  if (options.dimensions) formData.append("dimensions", options.dimensions);
+  if (options.packName) formData.append("packName", options.packName);
+
+  // Next's development rewrite can proxy the large multipart request, but may
+  // close the response while streaming the generated ZIP back to the browser.
+  // Call Nest directly in local development; CORS is enabled for localhost:4200.
+  const isLocalBrowser =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+  const dataPrepUrl =
+    process.env.NODE_ENV === "development" && isLocalBrowser
+      ? "/local-backend-api/products/data-prep"
+      : `${getApiRoot()}/products/data-prep`;
+
+  let response: Response;
+  try {
+    response = await fetch(dataPrepUrl, {
+      method: "POST",
+      headers: bearerOnlyHeaders(),
+      body: formData,
+      credentials: "include",
+    });
+  } catch {
+    // Browsers report a generic network error when the selected files can no
+    // longer be read from disk (moved/deleted after picking) or when there is
+    // not enough free disk space to buffer the generated pack.
+    throw new Error(
+      "Upload failed before reaching the server. Re-select the XLSX and ZIP files (they must still exist on disk) and make sure the drive has enough free space, then try again.",
+    );
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = Array.isArray(errorData.message)
+      ? errorData.message.join(", ")
+      : errorData.message;
+    throw new Error(message || "Data prep conversion failed");
+  }
+
+  let blob: Blob | null = null;
+  let savedDirectly = false;
+  if (saveHandle && response.body) {
+    try {
+      const writable = await saveHandle.createWritable();
+      await response.body.pipeTo(writable);
+      savedDirectly = true;
+    } catch {
+      throw new Error(
+        "The pack was generated but could not be written to the selected location. Choose a drive with free space and try again.",
+      );
+    }
+  } else {
+    try {
+      blob = await response.blob();
+    } catch {
+      throw new Error(
+        "The pack was generated but could not be saved by the browser. Use Chrome/Edge native save or free up disk space and try again.",
+      );
+    }
+  }
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const matchedName = /filename="?([^"]+)"?/i.exec(disposition)?.[1];
+  const categoryNameHeader = response.headers.get("X-Data-Prep-Category-Name");
+
+  return {
+    blob,
+    savedDirectly,
+    fileName: matchedName || "data-prep-pack.zip",
+    summary: {
+      matched: Number(response.headers.get("X-Data-Prep-Matched") || 0),
+      skippedNoImage: Number(
+        response.headers.get("X-Data-Prep-Skipped-No-Image") || 0,
+      ),
+      orphanImages: Number(response.headers.get("X-Data-Prep-Orphans") || 0),
+      vendorRows: Number(response.headers.get("X-Data-Prep-Vendor-Rows") || 0),
+      categoryId: response.headers.get("X-Data-Prep-Category-Id") || options.categoryId,
+      categoryName: categoryNameHeader
+        ? decodeURIComponent(categoryNameHeader)
+        : "",
+    },
+  };
+}
+
 export async function uploadProductImage(productId: string, imageFile: File) {
   const formData = new FormData();
   formData.append('image', imageFile);

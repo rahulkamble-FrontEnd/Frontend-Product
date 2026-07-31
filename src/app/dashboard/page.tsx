@@ -2808,6 +2808,18 @@ export default function DashboardPage() {
                         >
                           Bulk Upload
                         </button>
+                        {userRole === "admin" ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProductsMenuOpen(false);
+                              router.push("/data-prep");
+                            }}
+                            className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                          >
+                            Data Prep Tool
+                          </button>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -3317,6 +3329,18 @@ export default function DashboardPage() {
                       "Bulk Upload"
                     )}
                   </button>
+                  {userRole === "admin" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProductsMenuOpen(false);
+                        router.push("/data-prep");
+                      }}
+                      className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                    >
+                      Data Prep Tool
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>

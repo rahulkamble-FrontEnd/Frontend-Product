@@ -14,14 +14,21 @@ const nextConfig: NextConfig = {
     const backend =
       process.env.API_PROXY_TARGET ||
       (process.env.NODE_ENV === "development" ? "http://127.0.0.1:3000" : "");
-    if (!backend) return [];
-    const target = backend.replace(/\/$/, "");
-    return [
-      {
+    const rewrites = [];
+    if (process.env.NODE_ENV === "development") {
+      rewrites.push({
+        source: "/local-backend-api/:path*",
+        destination: "http://127.0.0.1:3000/api/:path*",
+      });
+    }
+    if (backend) {
+      const target = backend.replace(/\/$/, "");
+      rewrites.push({
         source: "/backend-api/:path*",
         destination: `${target}/api/:path*`,
-      },
-    ];
+      });
+    }
+    return rewrites;
   },
   images: {
     formats: ["image/avif", "image/webp"],
