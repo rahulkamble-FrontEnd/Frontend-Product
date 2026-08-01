@@ -651,7 +651,7 @@ export default function ProductDetailsPage() {
                      BRAND: {product.brand}
                     </span>
                   ) : null}
-                  {product.imsId ? (
+                  {userRole !== "customer" && product.imsId ? (
                     <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
                       IMSID: {product.imsId}
                     </span>
@@ -662,10 +662,14 @@ export default function ProductDetailsPage() {
               <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
                 <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">Technical Specifications</div>
                 <div className="grid grid-cols-2 gap-y-2.5 border-t border-[#dacdbb] pt-3 text-[11px] sm:gap-y-3 sm:text-[12px]">
-                  {userRole === "customer" && (
+                  {userRole !== "customer" && (
                     <>
                       <div className="text-[#968e84]">IMS ID</div>
                       <div className="font-semibold text-[#3f3a33]">{product.imsId || "-"}</div>
+                    </>
+                  )}
+                  {userRole === "customer" && (
+                    <>
                       <div className="text-[#968e84]">Application</div>
                       <div className="font-semibold text-[#3f3a33]">{product.application || "-"}</div>
                     </>
