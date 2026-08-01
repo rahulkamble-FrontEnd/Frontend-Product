@@ -4816,7 +4816,8 @@ export default function DashboardPage() {
                             <span className="inline-flex items-center rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                               {item.sampleStatus}
                             </span>
-                            {item.sampleRequested && (
+                            {item.sampleRequested &&
+                              (item.sampleStatus ?? "").trim().toLowerCase() !== "ready" && (
                               <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-amber-700 sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
                                 Sample Requested
                               </span>
