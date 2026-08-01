@@ -410,6 +410,7 @@ export async function getProducts(params?: {
   categoryType?: "material" | "furniture";
   q?: string;
   brand?: string;
+  finishType?: string;
   thickness?: string;
   colorName?: string;
   includeImages?: boolean;
@@ -425,6 +426,7 @@ export async function getProducts(params?: {
   if (params?.categoryType) url.searchParams.set('categoryType', params.categoryType);
   if (params?.q) url.searchParams.set('q', params.q);
   if (params?.brand) url.searchParams.set('brand', params.brand);
+  if (params?.finishType) url.searchParams.set('finishType', params.finishType);
   if (params?.thickness) url.searchParams.set('thickness', params.thickness);
   if (params?.colorName) url.searchParams.set('colorName', params.colorName);
   if (typeof params?.includeImages === 'boolean') url.searchParams.set('includeImages', String(params.includeImages));
