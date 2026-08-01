@@ -345,6 +345,12 @@ export default function DashboardPage() {
     includeImages: true,
     includeCategories: false
   });
+  const [productFilterFacets, setProductFilterFacets] = useState<{
+    finishes: string[];
+    brands: string[];
+    thicknesses: string[];
+    colors: string[];
+  }>({ finishes: [], brands: [], thicknesses: [], colors: [] });
 
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
@@ -979,9 +985,10 @@ export default function DashboardPage() {
         categoryType: appliedFilters.categoryType || undefined,
         categoryId: appliedFilters.categoryId?.trim() || undefined,
         q: appliedFilters.q?.trim() || undefined,
-        brand: undefined,
-        thickness: undefined,
-        colorName: undefined,
+        brand: appliedFilters.brands.join(",") || undefined,
+        finishType: appliedFilters.finishTypes.join(",") || undefined,
+        thickness: appliedFilters.thicknesses.join(",") || undefined,
+        colorName: appliedFilters.colors.join(",") || undefined,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
@@ -997,6 +1004,38 @@ export default function DashboardPage() {
       setIsLoadingProducts(false);
     }
   }, [appliedFilters, productsLimit, productsPage]);
+
+  /**
+   * Filter options must cover the whole result set, not just the current page,
+   * so they are fetched without the attribute filters applied.
+   */
+  const loadProductFilterFacets = useCallback(async () => {
+    try {
+      const res = await getProducts({
+        page: 1,
+        limit: 1,
+        status: appliedFilters.status || undefined,
+        categoryType: appliedFilters.categoryType || undefined,
+        categoryId: appliedFilters.categoryId?.trim() || undefined,
+        q: appliedFilters.q?.trim() || undefined,
+        includeImages: false,
+        includeCategories: false,
+      });
+      setProductFilterFacets({
+        finishes: res.filters?.finishes ?? [],
+        brands: res.filters?.brands ?? [],
+        thicknesses: res.filters?.thicknesses ?? [],
+        colors: res.filters?.colors ?? [],
+      });
+    } catch {
+      setProductFilterFacets({ finishes: [], brands: [], thicknesses: [], colors: [] });
+    }
+  }, [
+    appliedFilters.status,
+    appliedFilters.categoryType,
+    appliedFilters.categoryId,
+    appliedFilters.q,
+  ]);
 
   const loadLatestProducts = useCallback(async () => {
     setIsLoadingLatestProducts(true);
@@ -1078,6 +1117,10 @@ export default function DashboardPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    loadProductFilterFacets();
+  }, [loadProductFilterFacets]);
 
   useEffect(() => {
     setBulkTagSelectedIds((prev) => {
@@ -2382,52 +2425,57 @@ export default function DashboardPage() {
     });
   };
 
+  const buildFilterOptions = (
+    facetValues: string[],
+    pageValues: string[],
+    selectedValues: Set<string>,
+  ) =>
+    Array.from(
+      new Set(
+        [...facetValues, ...pageValues, ...selectedValues]
+          .map((value) => (value ?? "").trim())
+          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
+      ),
+    ).sort((a, b) => a.localeCompare(b));
+
   const availableBrandFilters = useMemo(
     () =>
-      Array.from(
-        new Set(
-          products
-            .map((product) => (product.brand ?? "").trim())
-            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [products],
+      buildFilterOptions(
+        productFilterFacets.brands,
+        products.map((product) => product.brand ?? ""),
+        filterBrands,
+      ),
+    [productFilterFacets.brands, products, filterBrands],
   );
 
   const availableFinishTypeFilters = useMemo(
     () =>
-      Array.from(
-        new Set(
-          products
-            .map((product) => (product.finishType ?? "").trim())
-            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [products],
+      buildFilterOptions(
+        productFilterFacets.finishes,
+        products.map((product) => product.finishType ?? ""),
+        filterFinishTypes,
+      ),
+    [productFilterFacets.finishes, products, filterFinishTypes],
   );
 
   const availableThicknessFilters = useMemo(
     () =>
-      Array.from(
-        new Set(
-          products
-            .map((product) => (product.thickness ?? "").trim())
-            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [products],
+      buildFilterOptions(
+        productFilterFacets.thicknesses,
+        products.map((product) => product.thickness ?? ""),
+        filterThicknesses,
+      ),
+    [productFilterFacets.thicknesses, products, filterThicknesses],
   );
 
   const availableColorFilters = useMemo(
     () =>
-      Array.from(
-        new Set(
-          products
-            .map((product) => (product.colorName ?? "").trim())
-            .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-        ),
-      ).sort((a, b) => a.localeCompare(b)),
-    [products],
+      buildFilterOptions(
+        productFilterFacets.colors,
+        products.map((product) => product.colorName ?? ""),
+        filterColors,
+      ),
+    [productFilterFacets.colors, products, filterColors],
   );
 
   const visibleDashboardProducts = useMemo(
