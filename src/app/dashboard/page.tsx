@@ -12,6 +12,7 @@ import {
   createCategory,
   createProduct,
   bulkUploadProducts,
+  bulkUpdateProductsFromXlsx,
   uploadProductImages,
   bindProductCategories,
   linkProductTag,
@@ -254,6 +255,14 @@ export default function DashboardPage() {
   const [bulkUploadFile, setBulkUploadFile] = useState<File | null>(null);
   const [bulkUploadImagesZipFile, setBulkUploadImagesZipFile] = useState<File | null>(null);
   const bulkUploadInFlightRef = useRef(false);
+  const [isBulkUpdateXlsxModalOpen, setIsBulkUpdateXlsxModalOpen] = useState(false);
+  const [bulkUpdateXlsxFile, setBulkUpdateXlsxFile] = useState<File | null>(null);
+  const [isBulkUpdatingFromXlsx, setIsBulkUpdatingFromXlsx] = useState(false);
+  const [bulkUpdateXlsxMsg, setBulkUpdateXlsxMsg] = useState("");
+  const [bulkUpdateXlsxError, setBulkUpdateXlsxError] = useState("");
+  const [bulkUpdateXlsxSucceeded, setBulkUpdateXlsxSucceeded] = useState(false);
+  const [bulkUpdateXlsxNotFoundSkus, setBulkUpdateXlsxNotFoundSkus] = useState<string[]>([]);
+  const bulkUpdateXlsxInFlightRef = useRef(false);
   const categoryTilesScrollRef = useRef<HTMLDivElement | null>(null);
   const latestProductsScrollRef = useRef<HTMLDivElement | null>(null);
   const showcaseDesignsScrollRef = useRef<HTMLDivElement | null>(null);
@@ -289,6 +298,7 @@ export default function DashboardPage() {
     setIsProductModalOpen(false);
     setIsUploadImageModalOpen(false);
     setIsBulkUploadModalOpen(false);
+    setIsBulkUpdateXlsxModalOpen(false);
     setIsBindCategoriesOpen(false);
     setIsProductTagsOpen(false);
   };
@@ -2029,6 +2039,90 @@ export default function DashboardPage() {
     }
   };
 
+  const triggerBulkUpdateXlsxPicker = () => {
+    if (!canManageProductData) {
+      setBulkUpdateXlsxError("Only admin or dataadmin can bulk update products.");
+      return;
+    }
+    setBulkUpdateXlsxMsg("");
+    setBulkUpdateXlsxError("");
+    setBulkUpdateXlsxNotFoundSkus([]);
+    setBulkUpdateXlsxSucceeded(false);
+    setBulkUpdateXlsxFile(null);
+    setIsBulkUpdateXlsxModalOpen(true);
+  };
+
+  const handleBulkUpdateXlsxSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      bulkUpdateXlsxInFlightRef.current ||
+      isBulkUpdatingFromXlsx ||
+      bulkUpdateXlsxSucceeded
+    ) {
+      return;
+    }
+
+    const file = bulkUpdateXlsxFile;
+    if (!file) {
+      setBulkUpdateXlsxError("Please select an .xlsx file to upload.");
+      return;
+    }
+
+    setBulkUpdateXlsxMsg("");
+    setBulkUpdateXlsxError("");
+    setBulkUpdateXlsxSucceeded(false);
+
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith(".xlsx")) {
+      setBulkUpdateXlsxError("Please upload an .xlsx file.");
+      return;
+    }
+
+    bulkUpdateXlsxInFlightRef.current = true;
+    setIsBulkUpdatingFromXlsx(true);
+    try {
+      const result = await bulkUpdateProductsFromXlsx(file);
+      const notFoundSkus =
+        Array.from(
+          new Set(
+            result.notFound
+              ?.map((item) => item.sku)
+              .filter((sku): sku is string => Boolean(sku)) ?? [],
+          ),
+        ) ?? [];
+      setBulkUpdateXlsxNotFoundSkus(notFoundSkus);
+
+      const summary = [
+        `Rows: ${result.totalRows}`,
+        `Updated: ${result.updatedCount}`,
+        `Not found: ${result.notFoundCount}`,
+        `Skipped: ${result.skippedCount}`,
+        `Failed: ${result.failedCount}`,
+      ].join(", ");
+
+      if (result.failedCount > 0) {
+        setBulkUpdateXlsxSucceeded(false);
+        setBulkUpdateXlsxMsg(
+          `Bulk update failed (all-or-nothing). ${summary}. None were updated.`,
+        );
+        const firstError = result.errors?.[0]?.message || "Some rows failed.";
+        setBulkUpdateXlsxError(`Some rows failed: ${firstError}`);
+      } else {
+        setBulkUpdateXlsxSucceeded(true);
+        setBulkUpdateXlsxMsg(`Bulk update completed. ${summary}`);
+      }
+      await Promise.all([loadProducts(), loadLatestProducts()]);
+    } catch (err: unknown) {
+      setBulkUpdateXlsxSucceeded(false);
+      setBulkUpdateXlsxError(
+        err instanceof Error ? err.message : "Bulk product update from XLSX failed.",
+      );
+    } finally {
+      bulkUpdateXlsxInFlightRef.current = false;
+      setIsBulkUpdatingFromXlsx(false);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -2856,6 +2950,16 @@ export default function DashboardPage() {
                         >
                           Bulk Upload
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
+                            triggerBulkUpdateXlsxPicker();
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Bulk Update from XLSX
+                        </button>
                         {userRole === "admin" ? (
                           <button
                             type="button"
@@ -3375,6 +3479,27 @@ export default function DashboardPage() {
                       </span>
                     ) : (
                       "Bulk Upload"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      triggerBulkUpdateXlsxPicker();
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    {isBulkUpdatingFromXlsx ? (
+                      <span className="inline-flex items-center">
+                        Updating
+                        <span className="upload-dots" aria-hidden="true">
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                      </span>
+                    ) : (
+                      "Bulk Update from XLSX"
                     )}
                   </button>
                   {userRole === "admin" ? (
@@ -6634,6 +6759,117 @@ export default function DashboardPage() {
                   "Uploaded"
                 ) : (
                   "Upload"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isBulkUpdateXlsxModalOpen && (
+        <div className="fixed inset-0 z-[700] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-4 flex shrink-0 items-center justify-between sm:mb-6">
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#0468a3]">
+                Bulk Update from XLSX
+              </h2>
+              <button
+                onClick={() => {
+                  if (isBulkUpdatingFromXlsx) return;
+                  setIsBulkUpdateXlsxModalOpen(false);
+                  setBulkUpdateXlsxError("");
+                  setBulkUpdateXlsxMsg("");
+                  setBulkUpdateXlsxNotFoundSkus([]);
+                  setBulkUpdateXlsxSucceeded(false);
+                  setBulkUpdateXlsxFile(null);
+                }}
+                disabled={isBulkUpdatingFromXlsx}
+                className="text-gray-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Close bulk update from xlsx"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleBulkUpdateXlsxSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    XLSX File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    disabled={isBulkUpdatingFromXlsx || bulkUpdateXlsxSucceeded}
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner disabled:cursor-not-allowed disabled:opacity-60"
+                    onChange={(e) => {
+                      if (isBulkUpdatingFromXlsx || bulkUpdateXlsxSucceeded) return;
+                      const selected = e.target.files?.[0] ?? null;
+                      setBulkUpdateXlsxFile(selected);
+                      setBulkUpdateXlsxError("");
+                      setBulkUpdateXlsxSucceeded(false);
+                    }}
+                  />
+                  <p className="mt-2 text-[11px] font-bold text-gray-500">
+                    Match existing products by <span className="font-black">sku</span> only.
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-500">
+                    Empty cells are skipped (existing values are not cleared).
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-500">
+                    All-or-nothing: if any row fails, nothing is updated.
+                  </p>
+                  <p className="mt-1 text-[11px] font-bold text-gray-500">
+                    Required: <span className="font-black">sku</span>. Optional: brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, ratings, bestUsedFor, pros, cons, status.
+                  </p>
+                  {bulkUpdateXlsxFile && (
+                    <div className="mt-1 text-[11px] font-bold text-gray-600">
+                      Selected: {bulkUpdateXlsxFile.name}
+                    </div>
+                  )}
+                </div>
+
+                {bulkUpdateXlsxError && (
+                  <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+                    {bulkUpdateXlsxError}
+                  </div>
+                )}
+                {bulkUpdateXlsxNotFoundSkus.length > 0 && (
+                  <div className="rounded-lg bg-yellow-50 p-3">
+                    <div className="text-xs font-bold text-gray-900">
+                      SKUs not found ({bulkUpdateXlsxNotFoundSkus.length}):
+                    </div>
+                    <div className="mt-2 max-h-40 overflow-y-auto text-xs font-bold text-gray-900">
+                      {bulkUpdateXlsxNotFoundSkus.join(", ")}
+                    </div>
+                  </div>
+                )}
+                {bulkUpdateXlsxMsg && (
+                  <div className="text-xs font-bold text-green-700 bg-green-50 p-3 rounded-lg text-center">
+                    {bulkUpdateXlsxMsg}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isBulkUpdatingFromXlsx || bulkUpdateXlsxSucceeded}
+                className="mt-4 flex w-full shrink-0 items-center justify-center gap-1 rounded-full bg-[#0468a3] py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md transition-transform active:scale-95 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-60"
+                aria-busy={isBulkUpdatingFromXlsx}
+              >
+                {isBulkUpdatingFromXlsx ? (
+                  <>
+                    <span>Updating</span>
+                    <span className="upload-dots" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </>
+                ) : bulkUpdateXlsxSucceeded ? (
+                  "Updated"
+                ) : (
+                  "Update"
                 )}
               </button>
             </form>
