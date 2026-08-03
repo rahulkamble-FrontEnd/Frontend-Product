@@ -1089,6 +1089,45 @@ export async function bulkUploadProducts(file: File, imagesZip?: File | null) {
   return response.json() as Promise<BulkUploadProductsResponse>;
 }
 
+export type BulkUpdateFromXlsxResponse = {
+  totalRows: number;
+  updatedCount: number;
+  notFoundCount: number;
+  skippedCount: number;
+  failedCount: number;
+  updated: Array<{ row: number; id: string; sku: string; fields: string[] }>;
+  notFound: Array<{ row: number; sku: string }>;
+  skipped: Array<{ row: number; sku?: string; message: string }>;
+  errors: Array<{ row: number; sku?: string; message: string }>;
+};
+
+export async function bulkUpdateProductsFromXlsx(file: File) {
+  if (!(file instanceof File)) {
+    throw new Error("XLSX file is required");
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${getApiAuthBase().replace("/auth", "")}/products/bulk-update-xlsx`,
+    {
+      method: "POST",
+      headers: bearerOnlyHeaders(),
+      body: formData,
+      credentials: "include",
+    },
+  );
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const message = Array.isArray(errorData.message)
+      ? errorData.message.join(", ")
+      : errorData.message;
+    throw new Error(message || "Bulk product update from XLSX failed");
+  }
+  return response.json() as Promise<BulkUpdateFromXlsxResponse>;
+}
+
 export type DataPrepConvertOptions = {
   categoryId: string;
   finishType?: string;
