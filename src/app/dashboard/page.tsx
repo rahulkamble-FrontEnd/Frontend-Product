@@ -6820,7 +6820,7 @@ export default function DashboardPage() {
                     All-or-nothing: if any row fails, nothing is updated.
                   </p>
                   <p className="mt-1 text-[11px] font-bold text-gray-500">
-                    Required: <span className="font-black">sku</span>. Optional: brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, ratings, bestUsedFor, pros, cons, status.
+                    Required: <span className="font-black">sku</span>. Optional: imsId, brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, ratings, bestUsedFor, pros, cons, status.
                   </p>
                   {bulkUpdateXlsxFile && (
                     <div className="mt-1 text-[11px] font-bold text-gray-600">
