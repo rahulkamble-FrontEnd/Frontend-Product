@@ -21,6 +21,7 @@ import {
   type UpdateProductResponse,
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
+import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -72,14 +73,7 @@ function formatProductDisplayTitle(
   name: string | null | undefined,
   productSlug: string | null | undefined,
 ) {
-  const normalizedName = formatProductName(name);
-  const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
-  const displayName = nameWithoutLeadingNumber || normalizedName;
-  const slug = (productSlug ?? "").trim();
-  const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
-  const code = codeMatch?.[1]?.toUpperCase() ?? "";
-  if (!displayName) return code;
-  return code ? `${displayName} ${code}` : displayName;
+  return formatCustomerProductTitle(name, productSlug);
 }
 
 function formatCategoryName(value: string | null | undefined) {
@@ -1072,7 +1066,12 @@ export default function ProductDetailsPage() {
                         </div>
                         <div className="bg-[#e8dfd0] px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
                           <div className="text-[11px] font-semibold leading-tight tracking-tight text-[#2f2a24] sm:text-[16px]">
-                            {truncateText(formatProductName(item.name), 24)}
+                            {truncateText(
+                              userRole === "customer"
+                                ? formatProductDisplayTitle(item.name, item.slug)
+                                : formatProductName(item.name),
+                              24,
+                            )}
                           </div>
                           {/* <div className="mt-1 text-[12px] text-[#6d665d]">
                             {item.description || "Classic Oak Natural"}

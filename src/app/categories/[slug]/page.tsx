@@ -14,6 +14,7 @@ import {
   type ProductListItem,
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
+import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -124,14 +125,7 @@ function formatProductName(value: string | null | undefined) {
 }
 
 function formatProductCardTitle(product: ProductListItem) {
-  const normalizedName = formatProductName(product.name);
-  const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
-  const displayName = nameWithoutLeadingNumber || normalizedName;
-  const slug = (product.slug ?? "").trim();
-  const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
-  const code = codeMatch?.[1]?.toUpperCase() ?? "";
-  if (!displayName) return code;
-  return code ? `${displayName} ${code}` : displayName;
+  return formatCustomerProductTitle(product.name, product.slug);
 }
 
 type SortValue = "newest" | "name_asc" | "name_desc";
