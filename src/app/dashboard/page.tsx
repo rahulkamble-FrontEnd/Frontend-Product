@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
 import { trendingItemHref } from "@/lib/trending-path";
+import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import {
   logout,
   createUser,
@@ -449,16 +450,7 @@ export default function DashboardPage() {
   const formatCustomerProductDisplayTitle = (
     name: string | null | undefined,
     productSlug: string | null | undefined,
-  ) => {
-    const normalizedName = (name ?? "").trim().toUpperCase();
-    const nameWithoutLeadingNumber = normalizedName.replace(/^\d+\s+/, "").trim();
-    const displayName = nameWithoutLeadingNumber || normalizedName;
-    const slug = (productSlug ?? "").trim();
-    const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
-    const code = codeMatch?.[1]?.toUpperCase() ?? "";
-    if (!displayName) return code;
-    return code ? `${displayName} ${code}` : displayName;
-  };
+  ) => formatCustomerProductTitle(name, productSlug);
 
   const truncateText = (value: string, maxChars: number) => {
     const normalized = value.trim();
