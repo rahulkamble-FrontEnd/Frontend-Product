@@ -2925,6 +2925,16 @@ export default function DashboardPage() {
                           type="button"
                           onClick={() => {
                             setIsProductsMenuOpen(false);
+                            router.push("/dashboard/edit-bulk-update");
+                          }}
+                          className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                        >
+                          Edit Bulk Product
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProductsMenuOpen(false);
                             closeAdminActionModals();
                             setIsUploadImageModalOpen(true);
                           }}
