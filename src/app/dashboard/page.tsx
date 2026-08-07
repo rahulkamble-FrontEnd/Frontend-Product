@@ -155,6 +155,18 @@ function resolveCategoryTileImageUrl(slug: string, categoryName?: string | null)
   return null;
 }
 
+function sortFilterValues(values: Set<string>) {
+  return Array.from(values)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/** JSON array encoding — safer when values contain commas */
+function toJsonMultiFilter(values: string[]) {
+  return values.length > 0 ? JSON.stringify(values) : undefined;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -224,7 +236,10 @@ export default function DashboardPage() {
     pageNumber: "",
     application: "",
     materialType: "",
+    finishType: "",
     colorName: "",
+    colorHex: "",
+    thickness: "",
     dimensions: "",
     status: "draft",
     performanceRating: 4 as number | "",
@@ -332,6 +347,11 @@ export default function DashboardPage() {
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
+  const [filterBookNames, setFilterBookNames] = useState<Set<string>>(new Set());
+  const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(new Set());
+  const [filterDimensions, setFilterDimensions] = useState<Set<string>>(new Set());
+  const [filterApplications, setFilterApplications] = useState<Set<string>>(new Set());
+  const [filterDescriptions, setFilterDescriptions] = useState<Set<string>>(new Set());
   const [isMobileProductFiltersOpen, setIsMobileProductFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
@@ -342,6 +362,11 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }>({
@@ -353,6 +378,11 @@ export default function DashboardPage() {
     brands: [],
     thicknesses: [],
     colors: [],
+    bookNames: [],
+    materialTypes: [],
+    dimensions: [],
+    applications: [],
+    descriptions: [],
     includeImages: true,
     includeCategories: false
   });
@@ -361,7 +391,22 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
-  }>({ finishes: [], brands: [], thicknesses: [], colors: [] });
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
+  }>({
+    finishes: [],
+    brands: [],
+    thicknesses: [],
+    colors: [],
+    bookNames: [],
+    materialTypes: [],
+    dimensions: [],
+    applications: [],
+    descriptions: [],
+  });
 
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
@@ -901,6 +946,11 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }) =>
@@ -913,6 +963,11 @@ export default function DashboardPage() {
       f.brands.join(","),
       f.thicknesses.join(","),
       f.colors.join(","),
+      f.bookNames.join("\u0001"),
+      f.materialTypes.join(","),
+      f.dimensions.join("\u0001"),
+      f.applications.join("\u0001"),
+      f.descriptions.join("\u0001"),
       f.includeImages ? "1" : "0",
       f.includeCategories ? "1" : "0",
     ].join("|");
@@ -923,10 +978,15 @@ export default function DashboardPage() {
       categoryType: filterCategoryType,
       categoryId: (filterCategoryId || selectedParentCategoryId).trim(),
       q: filterQ.trim(),
-      finishTypes: Array.from(filterFinishTypes).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      brands: Array.from(filterBrands).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      thicknesses: Array.from(filterThicknesses).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      colors: Array.from(filterColors).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      finishTypes: sortFilterValues(filterFinishTypes),
+      brands: sortFilterValues(filterBrands),
+      thicknesses: sortFilterValues(filterThicknesses),
+      colors: sortFilterValues(filterColors),
+      bookNames: sortFilterValues(filterBookNames),
+      materialTypes: sortFilterValues(filterMaterialTypes),
+      dimensions: sortFilterValues(filterDimensions),
+      applications: sortFilterValues(filterApplications),
+      descriptions: sortFilterValues(filterDescriptions),
       includeImages: filterIncludeImages,
       includeCategories: filterIncludeCategories,
     }),
@@ -940,6 +1000,11 @@ export default function DashboardPage() {
       filterBrands,
       filterThicknesses,
       filterColors,
+      filterBookNames,
+      filterMaterialTypes,
+      filterDimensions,
+      filterApplications,
+      filterDescriptions,
       filterIncludeImages,
       filterIncludeCategories,
     ]
@@ -967,7 +1032,21 @@ export default function DashboardPage() {
       setAppliedFilters(next);
     }, 450);
     return () => window.clearTimeout(handle);
-  }, [filterQ, filterCategoryId, filterFinishTypes, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
+  }, [
+    filterQ,
+    filterCategoryId,
+    filterFinishTypes,
+    filterBrands,
+    filterThicknesses,
+    filterColors,
+    filterBookNames,
+    filterMaterialTypes,
+    filterDimensions,
+    filterApplications,
+    filterDescriptions,
+    appliedFilters,
+    buildAppliedFilters,
+  ]);
 
   useEffect(() => {
     const next = buildAppliedFilters();
@@ -991,6 +1070,13 @@ export default function DashboardPage() {
         finishType: appliedFilters.finishTypes.join(",") || undefined,
         thickness: appliedFilters.thicknesses.join(",") || undefined,
         colorName: appliedFilters.colors.join(",") || undefined,
+        bookName: toJsonMultiFilter(appliedFilters.bookNames),
+        materialType: appliedFilters.materialTypes.join(",") || undefined,
+        dimensions: toJsonMultiFilter(appliedFilters.dimensions),
+        application: toJsonMultiFilter(appliedFilters.applications),
+        description: toJsonMultiFilter(appliedFilters.descriptions),
+        // Images checkbox: checked = only with images, unchecked = only without images
+        hasImages: appliedFilters.includeImages,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
@@ -1028,9 +1114,24 @@ export default function DashboardPage() {
         brands: res.filters?.brands ?? [],
         thicknesses: res.filters?.thicknesses ?? [],
         colors: res.filters?.colors ?? [],
+        bookNames: res.filters?.bookNames ?? [],
+        materialTypes: res.filters?.materialTypes ?? [],
+        dimensions: res.filters?.dimensions ?? [],
+        applications: res.filters?.applications ?? [],
+        descriptions: res.filters?.descriptions ?? [],
       });
     } catch {
-      setProductFilterFacets({ finishes: [], brands: [], thicknesses: [], colors: [] });
+      setProductFilterFacets({
+        finishes: [],
+        brands: [],
+        thicknesses: [],
+        colors: [],
+        bookNames: [],
+        materialTypes: [],
+        dimensions: [],
+        applications: [],
+        descriptions: [],
+      });
     }
   }, [
     appliedFilters.status,
@@ -1780,6 +1881,12 @@ export default function DashboardPage() {
       return;
     }
 
+    if (createSelectedCategoryIds.size === 0) {
+      setIsCreatingProduct(false);
+      setProductError("Please select at least one sub-category. It is required to create the product slug.");
+      return;
+    }
+
     const splitList = (value: string) =>
       value
         .split(/\r?\n|,/g)
@@ -1797,7 +1904,10 @@ export default function DashboardPage() {
         pageNumber: newProductData.pageNumber || undefined,
         application: newProductData.application || undefined,
         materialType: newProductData.materialType.trim() || undefined,
+        finishType: newProductData.finishType.trim() || undefined,
         colorName: newProductData.colorName.trim() || undefined,
+        colorHex: newProductData.colorHex.trim() || undefined,
+        thickness: newProductData.thickness.trim() || undefined,
         dimensions: newProductData.dimensions.trim() || undefined,
         status: newProductData.status,
         performanceRating:
@@ -1809,7 +1919,8 @@ export default function DashboardPage() {
         maintenanceRating:
           newProductData.maintenanceRating === "" ? undefined : Number(newProductData.maintenanceRating),
         pros: splitList(newProductData.prosText),
-        cons: splitList(newProductData.consText)
+        cons: splitList(newProductData.consText),
+        categoryIds: Array.from(createSelectedCategoryIds),
       };
 
       const created = await createProduct(payload);
@@ -1822,19 +1933,9 @@ export default function DashboardPage() {
         setCreatedProductImages(uploadedImages);
       }
 
-      let bindNote = "";
-      if (createSelectedCategoryIds.size > 0) {
-        if (!created?.id) {
-          throw new Error("Product created, but product id is missing so category binding cannot continue.");
-        }
-        try {
-          const bound = await bindProductCategories(created.id, Array.from(createSelectedCategoryIds));
-          bindNote = ` • Categories added: ${bound.added}`;
-        } catch (err: unknown) {
-          bindNote = " • Category bind failed";
-          setProductError(err instanceof Error ? err.message : "Failed to bind categories.");
-        }
-      }
+      const bindNote = createSelectedCategoryIds.size > 0
+        ? ` • Categories linked: ${createSelectedCategoryIds.size}`
+        : "";
 
       let tagLinkNote = "";
       if (createSelectedTagIds.size > 0) {
@@ -1875,7 +1976,10 @@ export default function DashboardPage() {
         pageNumber: "",
         application: "",
         materialType: "",
+        finishType: "",
         colorName: "",
+        colorHex: "",
+        thickness: "",
         dimensions: "",
         status: "draft",
         performanceRating: 4,
@@ -2564,6 +2668,56 @@ export default function DashboardPage() {
     [productFilterFacets.colors, products, filterColors],
   );
 
+  const availableBookNameFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.bookNames,
+        products.map((product) => product.bookName ?? ""),
+        filterBookNames,
+      ),
+    [productFilterFacets.bookNames, products, filterBookNames],
+  );
+
+  const availableMaterialTypeFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.materialTypes,
+        products.map((product) => product.materialType ?? ""),
+        filterMaterialTypes,
+      ),
+    [productFilterFacets.materialTypes, products, filterMaterialTypes],
+  );
+
+  const availableDimensionFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.dimensions,
+        products.map((product) => product.dimensions ?? ""),
+        filterDimensions,
+      ),
+    [productFilterFacets.dimensions, products, filterDimensions],
+  );
+
+  const availableApplicationFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.applications,
+        products.map((product) => product.application ?? ""),
+        filterApplications,
+      ),
+    [productFilterFacets.applications, products, filterApplications],
+  );
+
+  const availableDescriptionFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.descriptions,
+        products.map((product) => product.description ?? ""),
+        filterDescriptions,
+      ),
+    [productFilterFacets.descriptions, products, filterDescriptions],
+  );
+
   const visibleDashboardProducts = useMemo(
     () =>
       products.filter((product) => {
@@ -2583,9 +2737,40 @@ export default function DashboardPage() {
           const color = (product.colorName ?? "").trim();
           if (!color || !appliedFilters.colors.includes(color)) return false;
         }
+        if (appliedFilters.bookNames.length > 0) {
+          const bookName = (product.bookName ?? "").trim();
+          if (!bookName || !appliedFilters.bookNames.includes(bookName)) return false;
+        }
+        if (appliedFilters.materialTypes.length > 0) {
+          const materialType = (product.materialType ?? "").trim();
+          if (!materialType || !appliedFilters.materialTypes.includes(materialType)) return false;
+        }
+        if (appliedFilters.dimensions.length > 0) {
+          const dimensions = (product.dimensions ?? "").trim();
+          if (!dimensions || !appliedFilters.dimensions.includes(dimensions)) return false;
+        }
+        if (appliedFilters.applications.length > 0) {
+          const application = (product.application ?? "").trim();
+          if (!application || !appliedFilters.applications.includes(application)) return false;
+        }
+        if (appliedFilters.descriptions.length > 0) {
+          const description = (product.description ?? "").trim();
+          if (!description || !appliedFilters.descriptions.includes(description)) return false;
+        }
         return true;
       }),
-    [products, appliedFilters.finishTypes, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
+    [
+      products,
+      appliedFilters.finishTypes,
+      appliedFilters.brands,
+      appliedFilters.thicknesses,
+      appliedFilters.colors,
+      appliedFilters.bookNames,
+      appliedFilters.materialTypes,
+      appliedFilters.dimensions,
+      appliedFilters.applications,
+      appliedFilters.descriptions,
+    ],
   );
 
   const visibleDashboardProductIds = useMemo(
@@ -2919,7 +3104,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Manage Product
+                          Manage Products
                         </button>
                         <button
                           type="button"
@@ -2929,7 +3114,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Edit Bulk Product
+                          Bulk Edit Products
                         </button>
                         <button
                           type="button"
@@ -2940,7 +3125,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Upload Image
+                          Upload Images
                         </button>
                         <button
                           type="button"
@@ -2950,7 +3135,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Bulk Upload
+                          Bulk Create (XLSX)
                         </button>
                         <button
                           type="button"
@@ -2960,9 +3145,9 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Bulk Update from XLSX
+                          Bulk Update (XLSX)
                         </button>
-                        {userRole === "admin" ? (
+                        {false && userRole === "admin" ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -3449,7 +3634,17 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Manage Product
+                    Manage Products
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      router.push("/dashboard/edit-bulk-update");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Bulk Edit Products
                   </button>
                   <button
                     type="button"
@@ -3460,7 +3655,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Upload Image
+                    Upload Images
                   </button>
                   <button
                     type="button"
@@ -3480,7 +3675,7 @@ export default function DashboardPage() {
                         </span>
                       </span>
                     ) : (
-                      "Bulk Upload"
+                      "Bulk Create (XLSX)"
                     )}
                   </button>
                   <button
@@ -3501,10 +3696,10 @@ export default function DashboardPage() {
                         </span>
                       </span>
                     ) : (
-                      "Bulk Update from XLSX"
+                      "Bulk Update (XLSX)"
                     )}
                   </button>
-                  {userRole === "admin" ? (
+                  {false && userRole === "admin" ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -4144,7 +4339,7 @@ export default function DashboardPage() {
                 </span>
              </div>
              <h3 className="text-[34px] font-black uppercase italic leading-none tracking-tighter text-[#0f172a] sm:text-3xl lg:text-4xl">
-                Karigari Laminates
+                CustomFurnish
              </h3>
             </div>
           </section>
@@ -4327,13 +4522,18 @@ export default function DashboardPage() {
                   </select>
                   <select
                     value={productsLimit}
-                    onChange={(e) => setProductsLimit(Number(e.target.value))}
+                    onChange={(e) => {
+                      setProductsPage(1);
+                      setProductsLimit(Number(e.target.value));
+                    }}
                     className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
+                    <option value={300}>300</option>
+                    <option value={400}>400</option>
                   </select>
 
                   <div className="rounded-xl border border-[#cbbca6] bg-[#f4eee5] p-3">
@@ -4374,27 +4574,6 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
-                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableFinishTypeFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No finish options</div>
-                      ) : (
-                        availableFinishTypeFilters.map((finishType) => (
-                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
-                            <input
-                              type="checkbox"
-                              checked={filterFinishTypes.has(finishType)}
-                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
-                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                            />
-                            <span className="truncate">{finishType}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Brand</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableBrandFilters.length === 0 ? (
@@ -4416,20 +4595,62 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Book Name</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableThicknessFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No thickness options</div>
+                      {availableBookNameFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No book name options</div>
                       ) : (
-                        availableThicknessFilters.map((thickness) => (
-                          <label key={thickness} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                        availableBookNameFilters.map((bookName) => (
+                          <label key={bookName} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
                             <input
                               type="checkbox"
-                              checked={filterThicknesses.has(thickness)}
-                              onChange={() => toggleSetFilterValue(setFilterThicknesses, thickness)}
+                              checked={filterBookNames.has(bookName)}
+                              onChange={() => toggleSetFilterValue(setFilterBookNames, bookName)}
                               className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
                             />
-                            <span className="truncate">{thickness}</span>
+                            <span className="truncate" title={bookName}>{bookName}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Material Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableMaterialTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No material type options</div>
+                      ) : (
+                        availableMaterialTypeFilters.map((materialType) => (
+                          <label key={materialType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterMaterialTypes.has(materialType)}
+                              onChange={() => toggleSetFilterValue(setFilterMaterialTypes, materialType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{materialType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableFinishTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No finish options</div>
+                      ) : (
+                        availableFinishTypeFilters.map((finishType) => (
+                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterFinishTypes.has(finishType)}
+                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{finishType}</span>
                           </label>
                         ))
                       )}
@@ -4458,16 +4679,105 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableThicknessFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No thickness options</div>
+                      ) : (
+                        availableThicknessFilters.map((thickness) => (
+                          <label key={thickness} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterThicknesses.has(thickness)}
+                              onChange={() => toggleSetFilterValue(setFilterThicknesses, thickness)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{thickness}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Dimensions</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableDimensionFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No dimension options</div>
+                      ) : (
+                        availableDimensionFilters.map((dimensions) => (
+                          <label key={dimensions} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterDimensions.has(dimensions)}
+                              onChange={() => toggleSetFilterValue(setFilterDimensions, dimensions)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={dimensions}>{dimensions}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Application</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableApplicationFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No application options</div>
+                      ) : (
+                        availableApplicationFilters.map((application) => (
+                          <label key={application} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterApplications.has(application)}
+                              onChange={() => toggleSetFilterValue(setFilterApplications, application)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={application}>{application}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Description</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableDescriptionFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No description options</div>
+                      ) : (
+                        availableDescriptionFilters.map((description) => (
+                          <label key={description} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterDescriptions.has(description)}
+                              onChange={() => toggleSetFilterValue(setFilterDescriptions, description)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={description}>{description}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Include</div>
                     <div className="mt-3 space-y-2">
-                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                        <input
-                          type="checkbox"
-                          checked={filterIncludeImages}
-                          onChange={(e) => setFilterIncludeImages(e.target.checked)}
-                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                        />
-                        Images
+                      <label className="flex flex-col gap-1 text-sm text-[#3d4f67]">
+                        <span className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={filterIncludeImages}
+                            onChange={(e) => setFilterIncludeImages(e.target.checked)}
+                            className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                          />
+                          Images
+                        </span>
+                        <span className="pl-6 text-[11px] text-[#8a7d73]">
+                          {filterIncludeImages ? "Show products with images" : "Show products without images"}
+                        </span>
                       </label>
                       <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
                         <input
@@ -5968,7 +6278,7 @@ export default function DashboardPage() {
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Bind Sub-Categories (Optional)
+                    Bind Sub-Categories (Required)
                   </label>
                   <button
                     type="button"
@@ -6046,20 +6356,19 @@ export default function DashboardPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">IMS ID</label>
-                  <input
-                    type="text"
-                    required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.imsId}
-                    onChange={(e) => setNewProductData({ ...newProductData, imsId: e.target.value })}
-                    placeholder="e.g. IMS-1001"
-                  />
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">IMS ID</label>
+                    <input
+                      type="text"
+                      required
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.imsId}
+                      onChange={(e) => setNewProductData({ ...newProductData, imsId: e.target.value })}
+                      placeholder="e.g. IMS-1001"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
+                <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
@@ -6077,221 +6386,254 @@ export default function DashboardPage() {
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
-                    <select
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
+                    <input
+                      type="text"
+                      required
                       className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                      value={newProductData.status}
-                      onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                    </select>
+                      value={newProductData.brand}
+                      onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
+                      placeholder="e.g. RusticHome"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Book Name</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.bookName}
+                      onChange={(e) => setNewProductData({ ...newProductData, bookName: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Page Number</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.pageNumber}
+                      onChange={(e) => setNewProductData({ ...newProductData, pageNumber: e.target.value })}
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
-                  <input
-                    type="text"
-                    required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.brand}
-                    onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
-                    placeholder="e.g. RusticHome"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.materialType}
-                    onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
-                    placeholder="e.g. Sheesham Wood"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Book Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.bookName}
-                    onChange={(e) => setNewProductData({ ...newProductData, bookName: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Page Number</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.pageNumber}
-                    onChange={(e) => setNewProductData({ ...newProductData, pageNumber: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Application</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.application}
-                    onChange={(e) => setNewProductData({ ...newProductData, application: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.colorName}
-                    onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
-                    placeholder="e.g. Natural Brown"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.dimensions}
-                    onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
-                    placeholder="e.g. 100cm x 60cm x 45cm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
-                <textarea
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                  value={newProductData.description}
-                  onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
-                  placeholder="A sturdy and elegant coffee table made from solid sheesham wood."
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Product Images (Required, min 1 max 3)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files ?? []);
-                    setCreateProductImageFiles((prev) => {
-                      const merged = [...prev, ...picked];
-                      const deduped = Array.from(
-                        new Map(
-                          merged.map((file) => [
-                            `${file.name}-${file.size}-${file.lastModified}`,
-                            file,
-                          ]),
-                        ).values(),
-                      );
-                      return deduped.slice(0, 3);
-                    });
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <div className="mt-1 text-[10px] font-semibold text-gray-500">
-                  You can select up to 3 images (multiple picks supported).
-                </div>
-                {createProductImageFiles.length > 0 && (
-                  <div className="mt-2 text-[11px] font-bold text-gray-500">
-                    Selected:{" "}
-                    {createProductImageFiles.map((file) => file.name).join(", ")}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.materialType}
+                      onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
+                      placeholder="e.g. Sheesham Wood"
+                    />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Finish Type</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.finishType}
+                      onChange={(e) => setNewProductData({ ...newProductData, finishType: e.target.value })}
+                      placeholder="e.g. Matte"
+                    />
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.performanceRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.colorName}
+                      onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
+                      placeholder="e.g. Natural Brown"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Hex</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.colorHex}
+                      onChange={(e) => setNewProductData({ ...newProductData, colorHex: e.target.value })}
+                      placeholder="#RRGGBB"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Thickness</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.thickness}
+                      onChange={(e) => setNewProductData({ ...newProductData, thickness: e.target.value })}
+                      placeholder="e.g. 18mm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.durabilityRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.priceCategory}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.maintenanceRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.dimensions}
+                      onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
+                      placeholder="e.g. 100cm x 60cm x 45cm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Application</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.application}
+                      onChange={(e) => setNewProductData({ ...newProductData, application: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
                   <textarea
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                    value={newProductData.prosText}
-                    onChange={(e) => setNewProductData({ ...newProductData, prosText: e.target.value })}
-                    placeholder={"Strong build\nNatural finish\nCompact design"}
+                    value={newProductData.description}
+                    onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
+                    placeholder="A sturdy and elegant coffee table made from solid sheesham wood."
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.performanceRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.durabilityRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
+                    <input
+                      type="number"
+                      step="1"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.priceCategory}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.maintenanceRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros</label>
+                    <textarea
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                      value={newProductData.prosText}
+                      onChange={(e) => setNewProductData({ ...newProductData, prosText: e.target.value })}
+                      placeholder={"Strong build\nNatural finish\nCompact design"}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons</label>
+                    <textarea
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                      value={newProductData.consText}
+                      onChange={(e) => setNewProductData({ ...newProductData, consText: e.target.value })}
+                      placeholder={"Needs polishing over time"}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons</label>
-                  <textarea
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                    value={newProductData.consText}
-                    onChange={(e) => setNewProductData({ ...newProductData, consText: e.target.value })}
-                    placeholder={"Needs polishing over time"}
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Product Images (Required, min 1 max 3)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    onChange={(e) => {
+                      const picked = Array.from(e.target.files ?? []);
+                      setCreateProductImageFiles((prev) => {
+                        const merged = [...prev, ...picked];
+                        const deduped = Array.from(
+                          new Map(
+                            merged.map((file) => [
+                              `${file.name}-${file.size}-${file.lastModified}`,
+                              file,
+                            ]),
+                          ).values(),
+                        );
+                        return deduped.slice(0, 3);
+                      });
+                      e.currentTarget.value = "";
+                    }}
                   />
+                  <div className="mt-1 text-[10px] font-semibold text-gray-500">
+                    You can select up to 3 images (multiple picks supported).
+                  </div>
+                  {createProductImageFiles.length > 0 && (
+                    <div className="mt-2 text-[11px] font-bold text-gray-500">
+                      Selected:{" "}
+                      {createProductImageFiles.map((file) => file.name).join(", ")}
+                    </div>
+                  )}
                 </div>
-              </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner md:max-w-xs"
+                    value={newProductData.status}
+                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
 
                 {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
                 {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}

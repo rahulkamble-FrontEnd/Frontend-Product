@@ -100,7 +100,10 @@ export type CreateProductPayload = {
   pageNumber?: string;
   application?: string;
   materialType?: string;
+  finishType?: string;
   colorName?: string;
+  colorHex?: string;
+  thickness?: string;
   dimensions?: string;
   status: string;
   performanceRating?: number;
@@ -109,6 +112,7 @@ export type CreateProductPayload = {
   maintenanceRating?: number;
   pros: string[];
   cons: string[];
+  categoryIds?: string[];
 };
 
 export type ProductImageUploadResponse = {
@@ -431,6 +435,7 @@ export async function getProducts(params?: {
   withoutFields?: string;
   includeImages?: boolean;
   includeCategories?: boolean;
+  hasImages?: boolean;
   sortBy?: "createdAt" | "updatedAt" | "name";
   sortOrder?: "asc" | "desc";
 }) {
@@ -456,6 +461,7 @@ export async function getProducts(params?: {
   if (params?.withoutFields) url.searchParams.set('withoutFields', params.withoutFields);
   if (typeof params?.includeImages === 'boolean') url.searchParams.set('includeImages', String(params.includeImages));
   if (typeof params?.includeCategories === 'boolean') url.searchParams.set('includeCategories', String(params.includeCategories));
+  if (typeof params?.hasImages === 'boolean') url.searchParams.set('hasImages', String(params.hasImages));
   if (params?.sortBy) url.searchParams.set('sortBy', params.sortBy);
   if (params?.sortOrder) url.searchParams.set('sortOrder', params.sortOrder);
 

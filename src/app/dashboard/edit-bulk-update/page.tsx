@@ -676,7 +676,7 @@ export default function EditBulkUpdatePage() {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Admin</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">
-              Edit Bulk Product
+              Bulk Edit Products
             </h1>
             <p className="mt-1 text-sm text-[#7a7069]">
               Mark products across pages, enable fields, and apply the same values to all selected.
