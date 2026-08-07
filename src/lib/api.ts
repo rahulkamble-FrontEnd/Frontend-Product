@@ -177,8 +177,15 @@ export type ProductListResponse = {
   filters?: {
     finishes?: string[];
     brands?: string[];
+    materialTypes?: string[];
     thicknesses?: string[];
     colors?: string[];
+    descriptions?: string[];
+    bookNames?: string[];
+    pageNumbers?: string[];
+    applications?: string[];
+    colorHexes?: string[];
+    dimensions?: string[];
   };
 };
 
@@ -410,9 +417,18 @@ export async function getProducts(params?: {
   categoryType?: "material" | "furniture";
   q?: string;
   brand?: string;
+  materialType?: string;
   finishType?: string;
   thickness?: string;
   colorName?: string;
+  description?: string;
+  bookName?: string;
+  pageNumber?: string;
+  application?: string;
+  colorHex?: string;
+  dimensions?: string;
+  withFields?: string;
+  withoutFields?: string;
   includeImages?: boolean;
   includeCategories?: boolean;
   sortBy?: "createdAt" | "updatedAt" | "name";
@@ -426,9 +442,18 @@ export async function getProducts(params?: {
   if (params?.categoryType) url.searchParams.set('categoryType', params.categoryType);
   if (params?.q) url.searchParams.set('q', params.q);
   if (params?.brand) url.searchParams.set('brand', params.brand);
+  if (params?.materialType) url.searchParams.set('materialType', params.materialType);
   if (params?.finishType) url.searchParams.set('finishType', params.finishType);
   if (params?.thickness) url.searchParams.set('thickness', params.thickness);
   if (params?.colorName) url.searchParams.set('colorName', params.colorName);
+  if (params?.description) url.searchParams.set('description', params.description);
+  if (params?.bookName) url.searchParams.set('bookName', params.bookName);
+  if (params?.pageNumber) url.searchParams.set('pageNumber', params.pageNumber);
+  if (params?.application) url.searchParams.set('application', params.application);
+  if (params?.colorHex) url.searchParams.set('colorHex', params.colorHex);
+  if (params?.dimensions) url.searchParams.set('dimensions', params.dimensions);
+  if (params?.withFields) url.searchParams.set('withFields', params.withFields);
+  if (params?.withoutFields) url.searchParams.set('withoutFields', params.withoutFields);
   if (typeof params?.includeImages === 'boolean') url.searchParams.set('includeImages', String(params.includeImages));
   if (typeof params?.includeCategories === 'boolean') url.searchParams.set('includeCategories', String(params.includeCategories));
   if (params?.sortBy) url.searchParams.set('sortBy', params.sortBy);
@@ -885,14 +910,23 @@ export type BulkUpdateProductsPayload = {
   productIds: string[];
   status?: "draft" | "active" | "archived" | "published";
   brand?: string;
+  description?: string;
+  bookName?: string;
+  pageNumber?: string;
+  application?: string;
   materialType?: string;
   finishType?: string;
   colorName?: string;
+  colorHex?: string;
   thickness?: string;
   dimensions?: string;
   performanceRating?: number;
   durabilityRating?: number;
+  priceCategory?: number;
   maintenanceRating?: number;
+  bestUsedFor?: string[];
+  pros?: string[];
+  cons?: string[];
 };
 
 export type BulkUpdateProductsResponse = {
@@ -907,11 +941,29 @@ export async function bulkUpdateProducts(payload: BulkUpdateProductsPayload) {
   if (ids.length === 0) throw new Error("At least one product id is required");
 
   const body: Record<string, unknown> = { productIds: ids };
-  const stringKeys: Array<keyof Omit<BulkUpdateProductsPayload, "productIds" | "status">> = [
+  const stringKeys: Array<
+    keyof Omit<
+      BulkUpdateProductsPayload,
+      | "productIds"
+      | "status"
+      | "performanceRating"
+      | "durabilityRating"
+      | "priceCategory"
+      | "maintenanceRating"
+      | "bestUsedFor"
+      | "pros"
+      | "cons"
+    >
+  > = [
     "brand",
+    "description",
+    "bookName",
+    "pageNumber",
+    "application",
     "materialType",
     "finishType",
     "colorName",
+    "colorHex",
     "thickness",
     "dimensions",
   ];
@@ -928,8 +980,17 @@ export async function bulkUpdateProducts(payload: BulkUpdateProductsPayload) {
   if (typeof payload.durabilityRating === "number" && Number.isFinite(payload.durabilityRating)) {
     body.durabilityRating = payload.durabilityRating;
   }
+  if (typeof payload.priceCategory === "number" && Number.isFinite(payload.priceCategory)) {
+    body.priceCategory = payload.priceCategory;
+  }
   if (typeof payload.maintenanceRating === "number" && Number.isFinite(payload.maintenanceRating)) {
     body.maintenanceRating = payload.maintenanceRating;
+  }
+  const arrayKeys: Array<"bestUsedFor" | "pros" | "cons"> = ["bestUsedFor", "pros", "cons"];
+  for (const key of arrayKeys) {
+    const raw = payload[key];
+    if (!Array.isArray(raw)) continue;
+    body[key] = raw.map((item) => String(item).trim()).filter(Boolean);
   }
 
   if (Object.keys(body).length <= 1) {
