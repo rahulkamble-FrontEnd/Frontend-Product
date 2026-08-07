@@ -2925,7 +2925,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Manage Product
+                          Manage Products
                         </button>
                         <button
                           type="button"
@@ -2935,7 +2935,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Edit Bulk Product
+                          Bulk Edit Products
                         </button>
                         <button
                           type="button"
@@ -2946,7 +2946,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Upload Image
+                          Upload Images
                         </button>
                         <button
                           type="button"
@@ -2956,7 +2956,7 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Bulk Upload
+                          Bulk Create (XLSX)
                         </button>
                         <button
                           type="button"
@@ -2966,9 +2966,9 @@ export default function DashboardPage() {
                           }}
                           className="w-full px-4 py-3 text-left text-[11px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                         >
-                          Bulk Update from XLSX
+                          Bulk Update (XLSX)
                         </button>
-                        {userRole === "admin" ? (
+                        {false && userRole === "admin" ? (
                           <button
                             type="button"
                             onClick={() => {
@@ -3455,7 +3455,17 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Manage Product
+                    Manage Products
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProductsMenuOpen(false);
+                      router.push("/dashboard/edit-bulk-update");
+                    }}
+                    className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
+                  >
+                    Bulk Edit Products
                   </button>
                   <button
                     type="button"
@@ -3466,7 +3476,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full px-3 py-3 text-left text-[10px] font-black uppercase tracking-widest text-gray-700 hover:bg-gray-50"
                   >
-                    Upload Image
+                    Upload Images
                   </button>
                   <button
                     type="button"
@@ -3486,7 +3496,7 @@ export default function DashboardPage() {
                         </span>
                       </span>
                     ) : (
-                      "Bulk Upload"
+                      "Bulk Create (XLSX)"
                     )}
                   </button>
                   <button
@@ -3507,10 +3517,10 @@ export default function DashboardPage() {
                         </span>
                       </span>
                     ) : (
-                      "Bulk Update from XLSX"
+                      "Bulk Update (XLSX)"
                     )}
                   </button>
-                  {userRole === "admin" ? (
+                  {false && userRole === "admin" ? (
                     <button
                       type="button"
                       onClick={() => {
