@@ -155,6 +155,18 @@ function resolveCategoryTileImageUrl(slug: string, categoryName?: string | null)
   return null;
 }
 
+function sortFilterValues(values: Set<string>) {
+  return Array.from(values)
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/** JSON array encoding — safer when values contain commas */
+function toJsonMultiFilter(values: string[]) {
+  return values.length > 0 ? JSON.stringify(values) : undefined;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -335,6 +347,11 @@ export default function DashboardPage() {
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
+  const [filterBookNames, setFilterBookNames] = useState<Set<string>>(new Set());
+  const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(new Set());
+  const [filterDimensions, setFilterDimensions] = useState<Set<string>>(new Set());
+  const [filterApplications, setFilterApplications] = useState<Set<string>>(new Set());
+  const [filterDescriptions, setFilterDescriptions] = useState<Set<string>>(new Set());
   const [isMobileProductFiltersOpen, setIsMobileProductFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
@@ -345,6 +362,11 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }>({
@@ -356,6 +378,11 @@ export default function DashboardPage() {
     brands: [],
     thicknesses: [],
     colors: [],
+    bookNames: [],
+    materialTypes: [],
+    dimensions: [],
+    applications: [],
+    descriptions: [],
     includeImages: true,
     includeCategories: false
   });
@@ -364,7 +391,22 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
-  }>({ finishes: [], brands: [], thicknesses: [], colors: [] });
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
+  }>({
+    finishes: [],
+    brands: [],
+    thicknesses: [],
+    colors: [],
+    bookNames: [],
+    materialTypes: [],
+    dimensions: [],
+    applications: [],
+    descriptions: [],
+  });
 
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
@@ -904,6 +946,11 @@ export default function DashboardPage() {
     brands: string[];
     thicknesses: string[];
     colors: string[];
+    bookNames: string[];
+    materialTypes: string[];
+    dimensions: string[];
+    applications: string[];
+    descriptions: string[];
     includeImages: boolean;
     includeCategories: boolean;
   }) =>
@@ -916,6 +963,11 @@ export default function DashboardPage() {
       f.brands.join(","),
       f.thicknesses.join(","),
       f.colors.join(","),
+      f.bookNames.join("\u0001"),
+      f.materialTypes.join(","),
+      f.dimensions.join("\u0001"),
+      f.applications.join("\u0001"),
+      f.descriptions.join("\u0001"),
       f.includeImages ? "1" : "0",
       f.includeCategories ? "1" : "0",
     ].join("|");
@@ -926,10 +978,15 @@ export default function DashboardPage() {
       categoryType: filterCategoryType,
       categoryId: (filterCategoryId || selectedParentCategoryId).trim(),
       q: filterQ.trim(),
-      finishTypes: Array.from(filterFinishTypes).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      brands: Array.from(filterBrands).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      thicknesses: Array.from(filterThicknesses).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
-      colors: Array.from(filterColors).map((value) => value.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+      finishTypes: sortFilterValues(filterFinishTypes),
+      brands: sortFilterValues(filterBrands),
+      thicknesses: sortFilterValues(filterThicknesses),
+      colors: sortFilterValues(filterColors),
+      bookNames: sortFilterValues(filterBookNames),
+      materialTypes: sortFilterValues(filterMaterialTypes),
+      dimensions: sortFilterValues(filterDimensions),
+      applications: sortFilterValues(filterApplications),
+      descriptions: sortFilterValues(filterDescriptions),
       includeImages: filterIncludeImages,
       includeCategories: filterIncludeCategories,
     }),
@@ -943,6 +1000,11 @@ export default function DashboardPage() {
       filterBrands,
       filterThicknesses,
       filterColors,
+      filterBookNames,
+      filterMaterialTypes,
+      filterDimensions,
+      filterApplications,
+      filterDescriptions,
       filterIncludeImages,
       filterIncludeCategories,
     ]
@@ -970,7 +1032,21 @@ export default function DashboardPage() {
       setAppliedFilters(next);
     }, 450);
     return () => window.clearTimeout(handle);
-  }, [filterQ, filterCategoryId, filterFinishTypes, filterBrands, filterThicknesses, filterColors, appliedFilters, buildAppliedFilters]);
+  }, [
+    filterQ,
+    filterCategoryId,
+    filterFinishTypes,
+    filterBrands,
+    filterThicknesses,
+    filterColors,
+    filterBookNames,
+    filterMaterialTypes,
+    filterDimensions,
+    filterApplications,
+    filterDescriptions,
+    appliedFilters,
+    buildAppliedFilters,
+  ]);
 
   useEffect(() => {
     const next = buildAppliedFilters();
@@ -994,6 +1070,11 @@ export default function DashboardPage() {
         finishType: appliedFilters.finishTypes.join(",") || undefined,
         thickness: appliedFilters.thicknesses.join(",") || undefined,
         colorName: appliedFilters.colors.join(",") || undefined,
+        bookName: toJsonMultiFilter(appliedFilters.bookNames),
+        materialType: appliedFilters.materialTypes.join(",") || undefined,
+        dimensions: toJsonMultiFilter(appliedFilters.dimensions),
+        application: toJsonMultiFilter(appliedFilters.applications),
+        description: toJsonMultiFilter(appliedFilters.descriptions),
         // Images checkbox: checked = only with images, unchecked = only without images
         hasImages: appliedFilters.includeImages,
         includeImages: appliedFilters.includeImages,
@@ -1033,9 +1114,24 @@ export default function DashboardPage() {
         brands: res.filters?.brands ?? [],
         thicknesses: res.filters?.thicknesses ?? [],
         colors: res.filters?.colors ?? [],
+        bookNames: res.filters?.bookNames ?? [],
+        materialTypes: res.filters?.materialTypes ?? [],
+        dimensions: res.filters?.dimensions ?? [],
+        applications: res.filters?.applications ?? [],
+        descriptions: res.filters?.descriptions ?? [],
       });
     } catch {
-      setProductFilterFacets({ finishes: [], brands: [], thicknesses: [], colors: [] });
+      setProductFilterFacets({
+        finishes: [],
+        brands: [],
+        thicknesses: [],
+        colors: [],
+        bookNames: [],
+        materialTypes: [],
+        dimensions: [],
+        applications: [],
+        descriptions: [],
+      });
     }
   }, [
     appliedFilters.status,
@@ -2572,6 +2668,56 @@ export default function DashboardPage() {
     [productFilterFacets.colors, products, filterColors],
   );
 
+  const availableBookNameFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.bookNames,
+        products.map((product) => product.bookName ?? ""),
+        filterBookNames,
+      ),
+    [productFilterFacets.bookNames, products, filterBookNames],
+  );
+
+  const availableMaterialTypeFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.materialTypes,
+        products.map((product) => product.materialType ?? ""),
+        filterMaterialTypes,
+      ),
+    [productFilterFacets.materialTypes, products, filterMaterialTypes],
+  );
+
+  const availableDimensionFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.dimensions,
+        products.map((product) => product.dimensions ?? ""),
+        filterDimensions,
+      ),
+    [productFilterFacets.dimensions, products, filterDimensions],
+  );
+
+  const availableApplicationFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.applications,
+        products.map((product) => product.application ?? ""),
+        filterApplications,
+      ),
+    [productFilterFacets.applications, products, filterApplications],
+  );
+
+  const availableDescriptionFilters = useMemo(
+    () =>
+      buildFilterOptions(
+        productFilterFacets.descriptions,
+        products.map((product) => product.description ?? ""),
+        filterDescriptions,
+      ),
+    [productFilterFacets.descriptions, products, filterDescriptions],
+  );
+
   const visibleDashboardProducts = useMemo(
     () =>
       products.filter((product) => {
@@ -2591,9 +2737,40 @@ export default function DashboardPage() {
           const color = (product.colorName ?? "").trim();
           if (!color || !appliedFilters.colors.includes(color)) return false;
         }
+        if (appliedFilters.bookNames.length > 0) {
+          const bookName = (product.bookName ?? "").trim();
+          if (!bookName || !appliedFilters.bookNames.includes(bookName)) return false;
+        }
+        if (appliedFilters.materialTypes.length > 0) {
+          const materialType = (product.materialType ?? "").trim();
+          if (!materialType || !appliedFilters.materialTypes.includes(materialType)) return false;
+        }
+        if (appliedFilters.dimensions.length > 0) {
+          const dimensions = (product.dimensions ?? "").trim();
+          if (!dimensions || !appliedFilters.dimensions.includes(dimensions)) return false;
+        }
+        if (appliedFilters.applications.length > 0) {
+          const application = (product.application ?? "").trim();
+          if (!application || !appliedFilters.applications.includes(application)) return false;
+        }
+        if (appliedFilters.descriptions.length > 0) {
+          const description = (product.description ?? "").trim();
+          if (!description || !appliedFilters.descriptions.includes(description)) return false;
+        }
         return true;
       }),
-    [products, appliedFilters.finishTypes, appliedFilters.brands, appliedFilters.thicknesses, appliedFilters.colors],
+    [
+      products,
+      appliedFilters.finishTypes,
+      appliedFilters.brands,
+      appliedFilters.thicknesses,
+      appliedFilters.colors,
+      appliedFilters.bookNames,
+      appliedFilters.materialTypes,
+      appliedFilters.dimensions,
+      appliedFilters.applications,
+      appliedFilters.descriptions,
+    ],
   );
 
   const visibleDashboardProductIds = useMemo(
@@ -4469,6 +4646,111 @@ export default function DashboardPage() {
                               className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
                             />
                             <span className="truncate">{color}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Book Name</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableBookNameFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No book name options</div>
+                      ) : (
+                        availableBookNameFilters.map((bookName) => (
+                          <label key={bookName} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterBookNames.has(bookName)}
+                              onChange={() => toggleSetFilterValue(setFilterBookNames, bookName)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={bookName}>{bookName}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Material Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableMaterialTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No material type options</div>
+                      ) : (
+                        availableMaterialTypeFilters.map((materialType) => (
+                          <label key={materialType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterMaterialTypes.has(materialType)}
+                              onChange={() => toggleSetFilterValue(setFilterMaterialTypes, materialType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{materialType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Dimensions</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableDimensionFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No dimension options</div>
+                      ) : (
+                        availableDimensionFilters.map((dimensions) => (
+                          <label key={dimensions} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterDimensions.has(dimensions)}
+                              onChange={() => toggleSetFilterValue(setFilterDimensions, dimensions)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={dimensions}>{dimensions}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Application</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableApplicationFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No application options</div>
+                      ) : (
+                        availableApplicationFilters.map((application) => (
+                          <label key={application} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterApplications.has(application)}
+                              onChange={() => toggleSetFilterValue(setFilterApplications, application)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={application}>{application}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Description</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableDescriptionFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No description options</div>
+                      ) : (
+                        availableDescriptionFilters.map((description) => (
+                          <label key={description} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterDescriptions.has(description)}
+                              onChange={() => toggleSetFilterValue(setFilterDescriptions, description)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate" title={description}>{description}</span>
                           </label>
                         ))
                       )}
