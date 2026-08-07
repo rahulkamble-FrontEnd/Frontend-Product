@@ -994,6 +994,8 @@ export default function DashboardPage() {
         finishType: appliedFilters.finishTypes.join(",") || undefined,
         thickness: appliedFilters.thicknesses.join(",") || undefined,
         colorName: appliedFilters.colors.join(",") || undefined,
+        // Images checkbox: checked = only with images, unchecked = only without images
+        hasImages: appliedFilters.includeImages,
         includeImages: appliedFilters.includeImages,
         includeCategories: appliedFilters.includeCategories,
       });
@@ -4476,14 +4478,19 @@ export default function DashboardPage() {
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Include</div>
                     <div className="mt-3 space-y-2">
-                      <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
-                        <input
-                          type="checkbox"
-                          checked={filterIncludeImages}
-                          onChange={(e) => setFilterIncludeImages(e.target.checked)}
-                          className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                        />
-                        Images
+                      <label className="flex flex-col gap-1 text-sm text-[#3d4f67]">
+                        <span className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={filterIncludeImages}
+                            onChange={(e) => setFilterIncludeImages(e.target.checked)}
+                            className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                          />
+                          Images
+                        </span>
+                        <span className="pl-6 text-[11px] text-[#8a7d73]">
+                          {filterIncludeImages ? "Show products with images" : "Show products without images"}
+                        </span>
                       </label>
                       <label className="flex items-center gap-2.5 text-sm text-[#3d4f67]">
                         <input
