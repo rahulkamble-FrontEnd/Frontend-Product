@@ -224,7 +224,10 @@ export default function DashboardPage() {
     pageNumber: "",
     application: "",
     materialType: "",
+    finishType: "",
     colorName: "",
+    colorHex: "",
+    thickness: "",
     dimensions: "",
     status: "draft",
     performanceRating: 4 as number | "",
@@ -1780,6 +1783,12 @@ export default function DashboardPage() {
       return;
     }
 
+    if (createSelectedCategoryIds.size === 0) {
+      setIsCreatingProduct(false);
+      setProductError("Please select at least one sub-category. It is required to create the product slug.");
+      return;
+    }
+
     const splitList = (value: string) =>
       value
         .split(/\r?\n|,/g)
@@ -1797,7 +1806,10 @@ export default function DashboardPage() {
         pageNumber: newProductData.pageNumber || undefined,
         application: newProductData.application || undefined,
         materialType: newProductData.materialType.trim() || undefined,
+        finishType: newProductData.finishType.trim() || undefined,
         colorName: newProductData.colorName.trim() || undefined,
+        colorHex: newProductData.colorHex.trim() || undefined,
+        thickness: newProductData.thickness.trim() || undefined,
         dimensions: newProductData.dimensions.trim() || undefined,
         status: newProductData.status,
         performanceRating:
@@ -1809,7 +1821,8 @@ export default function DashboardPage() {
         maintenanceRating:
           newProductData.maintenanceRating === "" ? undefined : Number(newProductData.maintenanceRating),
         pros: splitList(newProductData.prosText),
-        cons: splitList(newProductData.consText)
+        cons: splitList(newProductData.consText),
+        categoryIds: Array.from(createSelectedCategoryIds),
       };
 
       const created = await createProduct(payload);
@@ -1822,19 +1835,9 @@ export default function DashboardPage() {
         setCreatedProductImages(uploadedImages);
       }
 
-      let bindNote = "";
-      if (createSelectedCategoryIds.size > 0) {
-        if (!created?.id) {
-          throw new Error("Product created, but product id is missing so category binding cannot continue.");
-        }
-        try {
-          const bound = await bindProductCategories(created.id, Array.from(createSelectedCategoryIds));
-          bindNote = ` • Categories added: ${bound.added}`;
-        } catch (err: unknown) {
-          bindNote = " • Category bind failed";
-          setProductError(err instanceof Error ? err.message : "Failed to bind categories.");
-        }
-      }
+      const bindNote = createSelectedCategoryIds.size > 0
+        ? ` • Categories linked: ${createSelectedCategoryIds.size}`
+        : "";
 
       let tagLinkNote = "";
       if (createSelectedTagIds.size > 0) {
@@ -1875,7 +1878,10 @@ export default function DashboardPage() {
         pageNumber: "",
         application: "",
         materialType: "",
+        finishType: "",
         colorName: "",
+        colorHex: "",
+        thickness: "",
         dimensions: "",
         status: "draft",
         performanceRating: 4,
@@ -5968,7 +5974,7 @@ export default function DashboardPage() {
               <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
                 <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                    Bind Sub-Categories (Optional)
+                    Bind Sub-Categories (Required)
                   </label>
                   <button
                     type="button"
@@ -6046,20 +6052,19 @@ export default function DashboardPage() {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div className="md:col-span-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">IMS ID</label>
-                  <input
-                    type="text"
-                    required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.imsId}
-                    onChange={(e) => setNewProductData({ ...newProductData, imsId: e.target.value })}
-                    placeholder="e.g. IMS-1001"
-                  />
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">IMS ID</label>
+                    <input
+                      type="text"
+                      required
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.imsId}
+                      onChange={(e) => setNewProductData({ ...newProductData, imsId: e.target.value })}
+                      placeholder="e.g. IMS-1001"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="md:col-span-2">
+                <div>
                   <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
                   <input
                     type="text"
@@ -6077,221 +6082,254 @@ export default function DashboardPage() {
                     placeholder="e.g. Classic Sheesham Wood Coffee Table"
                   />
                 </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
-                    <select
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
+                    <input
+                      type="text"
+                      required
                       className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                      value={newProductData.status}
-                      onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                    </select>
+                      value={newProductData.brand}
+                      onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
+                      placeholder="e.g. RusticHome"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Book Name</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.bookName}
+                      onChange={(e) => setNewProductData({ ...newProductData, bookName: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Page Number</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.pageNumber}
+                      onChange={(e) => setNewProductData({ ...newProductData, pageNumber: e.target.value })}
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
-                  <input
-                    type="text"
-                    required
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.brand}
-                    onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
-                    placeholder="e.g. RusticHome"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.materialType}
-                    onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
-                    placeholder="e.g. Sheesham Wood"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Book Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.bookName}
-                    onChange={(e) => setNewProductData({ ...newProductData, bookName: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Page Number</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.pageNumber}
-                    onChange={(e) => setNewProductData({ ...newProductData, pageNumber: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Application</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.application}
-                    onChange={(e) => setNewProductData({ ...newProductData, application: e.target.value })}
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.colorName}
-                    onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
-                    placeholder="e.g. Natural Brown"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
-                  <input
-                    type="text"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.dimensions}
-                    onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
-                    placeholder="e.g. 100cm x 60cm x 45cm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
-                <textarea
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                  value={newProductData.description}
-                  onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
-                  placeholder="A sturdy and elegant coffee table made from solid sheesham wood."
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  Product Images (Required, min 1 max 3)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files ?? []);
-                    setCreateProductImageFiles((prev) => {
-                      const merged = [...prev, ...picked];
-                      const deduped = Array.from(
-                        new Map(
-                          merged.map((file) => [
-                            `${file.name}-${file.size}-${file.lastModified}`,
-                            file,
-                          ]),
-                        ).values(),
-                      );
-                      return deduped.slice(0, 3);
-                    });
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <div className="mt-1 text-[10px] font-semibold text-gray-500">
-                  You can select up to 3 images (multiple picks supported).
-                </div>
-                {createProductImageFiles.length > 0 && (
-                  <div className="mt-2 text-[11px] font-bold text-gray-500">
-                    Selected:{" "}
-                    {createProductImageFiles.map((file) => file.name).join(", ")}
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.materialType}
+                      onChange={(e) => setNewProductData({ ...newProductData, materialType: e.target.value })}
+                      placeholder="e.g. Sheesham Wood"
+                    />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Finish Type</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.finishType}
+                      onChange={(e) => setNewProductData({ ...newProductData, finishType: e.target.value })}
+                      placeholder="e.g. Matte"
+                    />
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.performanceRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.colorName}
+                      onChange={(e) => setNewProductData({ ...newProductData, colorName: e.target.value })}
+                      placeholder="e.g. Natural Brown"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Hex</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.colorHex}
+                      onChange={(e) => setNewProductData({ ...newProductData, colorHex: e.target.value })}
+                      placeholder="#RRGGBB"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Thickness</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.thickness}
+                      onChange={(e) => setNewProductData({ ...newProductData, thickness: e.target.value })}
+                      placeholder="e.g. 18mm"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.durabilityRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
-                  <input
-                    type="number"
-                    step="1"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.priceCategory}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={newProductData.maintenanceRating}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
-                    }}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.dimensions}
+                      onChange={(e) => setNewProductData({ ...newProductData, dimensions: e.target.value })}
+                      placeholder="e.g. 100cm x 60cm x 45cm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Application</label>
+                    <input
+                      type="text"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.application}
+                      onChange={(e) => setNewProductData({ ...newProductData, application: e.target.value })}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
                   <textarea
                     className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                    value={newProductData.prosText}
-                    onChange={(e) => setNewProductData({ ...newProductData, prosText: e.target.value })}
-                    placeholder={"Strong build\nNatural finish\nCompact design"}
+                    value={newProductData.description}
+                    onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
+                    placeholder="A sturdy and elegant coffee table made from solid sheesham wood."
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.performanceRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, performanceRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.durabilityRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, durabilityRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
+                    <input
+                      type="number"
+                      step="1"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.priceCategory}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, priceCategory: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={newProductData.maintenanceRating}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setNewProductData({ ...newProductData, maintenanceRating: v === "" ? "" : Number(v) });
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros</label>
+                    <textarea
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                      value={newProductData.prosText}
+                      onChange={(e) => setNewProductData({ ...newProductData, prosText: e.target.value })}
+                      placeholder={"Strong build\nNatural finish\nCompact design"}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons</label>
+                    <textarea
+                      className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
+                      value={newProductData.consText}
+                      onChange={(e) => setNewProductData({ ...newProductData, consText: e.target.value })}
+                      placeholder={"Needs polishing over time"}
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons</label>
-                  <textarea
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner min-h-[90px]"
-                    value={newProductData.consText}
-                    onChange={(e) => setNewProductData({ ...newProductData, consText: e.target.value })}
-                    placeholder={"Needs polishing over time"}
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                    Product Images (Required, min 1 max 3)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    onChange={(e) => {
+                      const picked = Array.from(e.target.files ?? []);
+                      setCreateProductImageFiles((prev) => {
+                        const merged = [...prev, ...picked];
+                        const deduped = Array.from(
+                          new Map(
+                            merged.map((file) => [
+                              `${file.name}-${file.size}-${file.lastModified}`,
+                              file,
+                            ]),
+                          ).values(),
+                        );
+                        return deduped.slice(0, 3);
+                      });
+                      e.currentTarget.value = "";
+                    }}
                   />
+                  <div className="mt-1 text-[10px] font-semibold text-gray-500">
+                    You can select up to 3 images (multiple picks supported).
+                  </div>
+                  {createProductImageFiles.length > 0 && (
+                    <div className="mt-2 text-[11px] font-bold text-gray-500">
+                      Selected:{" "}
+                      {createProductImageFiles.map((file) => file.name).join(", ")}
+                    </div>
+                  )}
                 </div>
-              </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                  <select
+                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner md:max-w-xs"
+                    value={newProductData.status}
+                    onChange={(e) => setNewProductData({ ...newProductData, status: e.target.value })}
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                  </select>
+                </div>
 
                 {productError && <div className="rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{productError}</div>}
                 {productMsg && <div className="rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">{productMsg}</div>}

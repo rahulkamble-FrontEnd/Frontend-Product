@@ -100,7 +100,10 @@ export type CreateProductPayload = {
   pageNumber?: string;
   application?: string;
   materialType?: string;
+  finishType?: string;
   colorName?: string;
+  colorHex?: string;
+  thickness?: string;
   dimensions?: string;
   status: string;
   performanceRating?: number;
@@ -109,6 +112,7 @@ export type CreateProductPayload = {
   maintenanceRating?: number;
   pros: string[];
   cons: string[];
+  categoryIds?: string[];
 };
 
 export type ProductImageUploadResponse = {
