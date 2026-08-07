@@ -4339,7 +4339,7 @@ export default function DashboardPage() {
                 </span>
              </div>
              <h3 className="text-[34px] font-black uppercase italic leading-none tracking-tighter text-[#0f172a] sm:text-3xl lg:text-4xl">
-                Karigari Laminates
+                CustomFurnish
              </h3>
             </div>
           </section>
@@ -4522,13 +4522,18 @@ export default function DashboardPage() {
                   </select>
                   <select
                     value={productsLimit}
-                    onChange={(e) => setProductsLimit(Number(e.target.value))}
+                    onChange={(e) => {
+                      setProductsPage(1);
+                      setProductsLimit(Number(e.target.value));
+                    }}
                     className="w-full rounded-md border border-[#cbbca6] bg-white px-3 py-2 text-sm"
                   >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
                     <option value={100}>100</option>
+                    <option value={300}>300</option>
+                    <option value={400}>400</option>
                   </select>
 
                   <div className="rounded-xl border border-[#cbbca6] bg-[#f4eee5] p-3">
@@ -4569,27 +4574,6 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
-                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableFinishTypeFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No finish options</div>
-                      ) : (
-                        availableFinishTypeFilters.map((finishType) => (
-                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
-                            <input
-                              type="checkbox"
-                              checked={filterFinishTypes.has(finishType)}
-                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
-                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                            />
-                            <span className="truncate">{finishType}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Brand</div>
                     <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
                       {availableBrandFilters.length === 0 ? (
@@ -4604,48 +4588,6 @@ export default function DashboardPage() {
                               className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
                             />
                             <span className="truncate">{brand}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
-                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableThicknessFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No thickness options</div>
-                      ) : (
-                        availableThicknessFilters.map((thickness) => (
-                          <label key={thickness} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
-                            <input
-                              type="checkbox"
-                              checked={filterThicknesses.has(thickness)}
-                              onChange={() => toggleSetFilterValue(setFilterThicknesses, thickness)}
-                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                            />
-                            <span className="truncate">{thickness}</span>
-                          </label>
-                        ))
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
-                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Color</div>
-                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableColorFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No color options</div>
-                      ) : (
-                        availableColorFilters.map((color) => (
-                          <label key={color} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
-                            <input
-                              type="checkbox"
-                              checked={filterColors.has(color)}
-                              onChange={() => toggleSetFilterValue(setFilterColors, color)}
-                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                            />
-                            <span className="truncate">{color}</span>
                           </label>
                         ))
                       )}
@@ -4688,6 +4630,69 @@ export default function DashboardPage() {
                               className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
                             />
                             <span className="truncate">{materialType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Finish Type</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableFinishTypeFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No finish options</div>
+                      ) : (
+                        availableFinishTypeFilters.map((finishType) => (
+                          <label key={finishType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterFinishTypes.has(finishType)}
+                              onChange={() => toggleSetFilterValue(setFilterFinishTypes, finishType)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{finishType}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Color</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableColorFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No color options</div>
+                      ) : (
+                        availableColorFilters.map((color) => (
+                          <label key={color} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterColors.has(color)}
+                              onChange={() => toggleSetFilterValue(setFilterColors, color)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{color}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Thickness</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableThicknessFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No thickness options</div>
+                      ) : (
+                        availableThicknessFilters.map((thickness) => (
+                          <label key={thickness} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterThicknesses.has(thickness)}
+                              onChange={() => toggleSetFilterValue(setFilterThicknesses, thickness)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{thickness}</span>
                           </label>
                         ))
                       )}
