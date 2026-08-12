@@ -167,6 +167,9 @@ function toJsonMultiFilter(values: string[]) {
   return values.length > 0 ? JSON.stringify(values) : undefined;
 }
 
+const PRODUCT_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
@@ -2018,10 +2021,10 @@ export default function DashboardPage() {
       return;
     }
 
-    const productId = uploadProductId.trim();
-    if (!productId) {
+    const productQuery = uploadProductId.trim();
+    if (!productQuery) {
       setIsUploadingImage(false);
-      setUploadError("Product ID is required.");
+      setUploadError("Enter Product ID or Product Name.");
       return;
     }
     if (uploadFiles.length < 1 || uploadFiles.length > 3) {
@@ -2031,6 +2034,28 @@ export default function DashboardPage() {
     }
 
     try {
+      let productId = productQuery;
+      if (!PRODUCT_UUID_RE.test(productQuery)) {
+        const res = await getProducts({
+          q: productQuery,
+          limit: 50,
+          includeImages: false,
+          includeCategories: false,
+        });
+        const matches = (res.items || []).filter(
+          (item) => (item.name ?? "").trim().toLowerCase() === productQuery.toLowerCase(),
+        );
+        if (matches.length === 0) {
+          throw new Error(`No product found with name "${productQuery}".`);
+        }
+        if (matches.length > 1) {
+          throw new Error(
+            `Multiple products named "${productQuery}". Please use Product ID instead.`,
+          );
+        }
+        productId = matches[0].id;
+      }
+
       const uploaded = await uploadProductImages(productId, uploadFiles);
       setUploadedImages(uploaded);
       setUploadMsg(
@@ -6892,14 +6917,16 @@ export default function DashboardPage() {
 
             <form onSubmit={handleUploadProductImage} className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product ID</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  Product ID or Product Name
+                </label>
                 <input
                   type="text"
                   required
                   className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
                   value={uploadProductId}
                   onChange={(e) => setUploadProductId(e.target.value)}
-                  placeholder="e.g. 0a3a16c9-ad60-43f0-b2cf-b6f4e39ffb3e"
+                  placeholder="UUID or product name"
                 />
               </div>
 
