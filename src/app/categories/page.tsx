@@ -68,7 +68,7 @@ export default function CategoriesPage() {
     const storedRole = localStorage.getItem("userRole");
     const storedName = localStorage.getItem("userName");
 
-    if (!storedName || storedRole !== "admin") {
+    if (!storedName || (storedRole !== "admin" && storedRole !== "dataadmin")) {
       router.push("/dashboard");
     } else {
       setUserRole(storedRole);
@@ -193,7 +193,7 @@ export default function CategoriesPage() {
     }
   };
 
-  if (userRole !== "admin") return null;
+  if (userRole !== "admin" && userRole !== "dataadmin") return null;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">

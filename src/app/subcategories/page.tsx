@@ -60,7 +60,7 @@ export default function SubcategoriesPage() {
   useEffect(() => {
     const storedRole = localStorage.getItem("userRole");
     const storedName = localStorage.getItem("userName");
-    if (!storedName || storedRole !== "admin") {
+    if (!storedName || (storedRole !== "admin" && storedRole !== "dataadmin")) {
       router.push("/dashboard");
       return;
     }
@@ -174,7 +174,7 @@ export default function SubcategoriesPage() {
     }
   };
 
-  if (userRole !== "admin") return null;
+  if (userRole !== "admin" && userRole !== "dataadmin") return null;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
