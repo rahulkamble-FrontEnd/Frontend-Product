@@ -177,7 +177,7 @@ export default function DashboardPage() {
   const canManageProductData = userRole === "admin" || userRole === "dataadmin";
   const canManageUsers = userRole === "admin";
   const canViewBlogsNav = userRole !== "dataadmin";
-  const canManageCategoryMasters = userRole === "admin";
+  const canManageCategoryMasters = userRole === "admin" || userRole === "dataadmin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
@@ -6239,7 +6239,6 @@ export default function DashboardPage() {
                   }
                 >
                   <option value="material">Material</option>
-                  <option value="furniture">Furniture</option>
                 </select>
               </div>
 
