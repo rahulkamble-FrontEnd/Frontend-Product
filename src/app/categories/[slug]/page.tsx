@@ -129,7 +129,22 @@ function formatProductCardTitle(product: ProductListItem) {
 }
 
 type SortValue = "newest" | "name_asc" | "name_desc";
-const PRODUCTS_PAGE_LIMIT = 100;
+const PRODUCTS_PAGE_LIMIT = 48;
+
+type ProductListFilters = NonNullable<
+  Awaited<ReturnType<typeof getProducts>>["filters"]
+>;
+
+function setToCsv(values: Set<string>) {
+  const items = Array.from(values).map((value) => value.trim()).filter(Boolean);
+  return items.length > 0 ? items.join(",") : undefined;
+}
+
+function sortParamsForValue(sortBy: SortValue) {
+  if (sortBy === "name_asc") return { sortBy: "name" as const, sortOrder: "asc" as const };
+  if (sortBy === "name_desc") return { sortBy: "name" as const, sortOrder: "desc" as const };
+  return { sortBy: "createdAt" as const, sortOrder: "desc" as const };
+}
 
 export default function CategoryProductsPage() {
   const params = useParams<{ slug: string }>();
@@ -140,8 +155,12 @@ export default function CategoryProductsPage() {
   const [userRole, setUserRole] = useState("");
   const [category, setCategory] = useState<CategoryDetails | null>(null);
   const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [productsPage, setProductsPage] = useState(1);
+  const [apiFilters, setApiFilters] = useState<ProductListFilters>({});
   const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingRelevantBlogs, setIsLoadingRelevantBlogs] = useState(false);
   const [relevantBlogsError, setRelevantBlogsError] = useState("");
@@ -163,6 +182,8 @@ export default function CategoryProductsPage() {
   const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const shouldShowBrand = userRole !== "customer";
+  const totalProductPages = Math.max(1, Math.ceil(productsTotal / PRODUCTS_PAGE_LIMIT));
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -176,82 +197,103 @@ export default function CategoryProductsPage() {
 
   useEffect(() => {
     if (!userName || !slug) return;
-    const loadData = async () => {
-      setIsLoading(true);
+
+    let cancelled = false;
+    const loadCategory = async () => {
+      setIsCategoryLoading(true);
       setError("");
+      setCategory(null);
+      setProducts([]);
+      setProductsTotal(0);
+      setProductsPage(1);
+      setApiFilters({});
+      setSelectedBrands(new Set());
+      setSelectedFinishTypes(new Set());
+      setSelectedColors(new Set());
+      setSelectedThicknesses(new Set());
+      setSelectedSubcategoryId("");
+
       try {
         const categoryData = await getCategoryBySlug(slug);
-        setCategory(categoryData);
-
-        const categoryId = categoryData?.id?.trim();
-        if (!categoryId) {
-          setProducts([]);
-          return;
+        if (!cancelled) {
+          setCategory(categoryData);
         }
-        const fetchAllProductsForCategory = async (targetCategoryId: string) => {
-          const firstPage = await getProducts({
-            categoryId: targetCategoryId,
-            status: "active",
-            includeImages: true,
-            includeCategories: true,
-            page: 1,
-            limit: PRODUCTS_PAGE_LIMIT,
-          });
-
-          let allItems = [...(Array.isArray(firstPage.items) ? firstPage.items : [])];
-          const total = Number(firstPage.total ?? allItems.length);
-          const limit = Number(firstPage.limit ?? PRODUCTS_PAGE_LIMIT);
-
-          if (total > allItems.length && limit > 0) {
-            const totalPages = Math.ceil(total / limit);
-            for (let page = 2; page <= totalPages; page++) {
-              const nextPage = await getProducts({
-                categoryId: targetCategoryId,
-                status: "active",
-                includeImages: true,
-                includeCategories: true,
-                page,
-                limit,
-              });
-              allItems = allItems.concat(
-                Array.isArray(nextPage.items) ? nextPage.items : [],
-              );
-            }
-          }
-
-          return allItems;
-        };
-
-        const childCategoryIds = Array.isArray(categoryData.children)
-          ? categoryData.children
-              .map((child) => child?.id?.trim())
-              .filter((value): value is string => Boolean(value))
-          : [];
-        const categoryIdsToLoad = Array.from(
-          new Set([categoryId, ...childCategoryIds]),
-        );
-
-        const productsByCategory = await Promise.all(
-          categoryIdsToLoad.map((targetCategoryId) =>
-            fetchAllProductsForCategory(targetCategoryId),
-          ),
-        );
-
-        const merged = productsByCategory.flat();
-        const deduped = Array.from(
-          new Map(merged.map((item) => [item.id, item])).values(),
-        );
-        setProducts(deduped);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Failed to load category products.");
-        setCategory(null);
-        setProducts([]);
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to load category.");
+          setCategory(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsCategoryLoading(false);
+        }
       }
     };
-    loadData();
+
+    loadCategory();
+    return () => {
+      cancelled = true;
+    };
   }, [slug, userName]);
+
+  useEffect(() => {
+    const categoryId = category?.id?.trim();
+    if (!userName || !categoryId) return;
+
+    let cancelled = false;
+    const loadProducts = async () => {
+      setIsProductsLoading(true);
+      setError("");
+
+      try {
+        const activeCategoryId = selectedSubcategoryId || categoryId;
+        const response = await getProducts({
+          categoryId: activeCategoryId,
+          status: "active",
+          includeImages: true,
+          page: productsPage,
+          limit: PRODUCTS_PAGE_LIMIT,
+          brand: shouldShowBrand ? setToCsv(selectedBrands) : undefined,
+          finishType: setToCsv(selectedFinishTypes),
+          thickness: setToCsv(selectedThicknesses),
+          colorName: setToCsv(selectedColors),
+          ...sortParamsForValue(sortBy),
+        });
+
+        if (!cancelled) {
+          setProducts(Array.isArray(response.items) ? response.items : []);
+          setProductsTotal(Number(response.total ?? 0));
+          setApiFilters(response.filters ?? {});
+        }
+      } catch (err: unknown) {
+        if (!cancelled) {
+          setProducts([]);
+          setProductsTotal(0);
+          setError(err instanceof Error ? err.message : "Failed to load category products.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsProductsLoading(false);
+        }
+      }
+    };
+
+    loadProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    userName,
+    category?.id,
+    productsPage,
+    selectedSubcategoryId,
+    selectedBrands,
+    selectedFinishTypes,
+    selectedColors,
+    selectedThicknesses,
+    sortBy,
+    shouldShowBrand,
+  ]);
 
   useEffect(() => {
     if (!userName || !slug || !category?.id) return;
@@ -279,7 +321,6 @@ export default function CategoryProductsPage() {
     loadRelevantBlogs();
   }, [slug, userName, category?.id]);
 
-  const shouldShowBrand = userRole !== "customer";
   const availableSubcategories = useMemo(() => {
     const children = Array.isArray(category?.children) ? category.children : [];
     return children
@@ -290,112 +331,31 @@ export default function CategoryProductsPage() {
       .filter((item) => item.id && item.name);
   }, [category]);
 
-  const availableBrands = useMemo(() => {
-    return Array.from(
-      new Set(
-        products
-          .map((product) => (product.brand ?? "").trim())
-          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-      ),
-    ).sort((a, b) => a.localeCompare(b));
-  }, [products]);
+  const availableBrands = useMemo(
+    () => [...(apiFilters?.brands ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
 
-  const availableThicknesses = useMemo(() => {
-    return Array.from(
-      new Set(
-        products
-          .map((product) => (product.thickness ?? "").trim())
-          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-      ),
-    ).sort((a, b) => a.localeCompare(b));
-  }, [products]);
+  const availableThicknesses = useMemo(
+    () => [...(apiFilters?.thicknesses ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
 
-  const availableFinishTypes = useMemo(() => {
-    return Array.from(
-      new Set(
-        products
-          .map((product) => (product.finishType ?? "").trim())
-          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-      ),
-    ).sort((a, b) => a.localeCompare(b));
-  }, [products]);
+  const availableFinishTypes = useMemo(
+    () => [...(apiFilters?.finishes ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
 
-  const availableColors = useMemo(() => {
-    return Array.from(
-      new Set(
-        products
-          .map((product) => (product.colorName ?? "").trim())
-          .filter((value) => Boolean(value) && /[a-z0-9]/i.test(value)),
-      ),
-    ).sort((a, b) => a.localeCompare(b));
-  }, [products]);
-
-  const filteredProducts = useMemo(() => {
-    let next = [...products];
-
-    if (shouldShowBrand && selectedBrands.size > 0) {
-      next = next.filter((product) => {
-        const brand = (product.brand ?? "").trim();
-        return brand ? selectedBrands.has(brand) : false;
-      });
-    }
-
-    if (selectedFinishTypes.size > 0) {
-      next = next.filter((product) => {
-        const finishType = (product.finishType ?? "").trim();
-        return finishType ? selectedFinishTypes.has(finishType) : false;
-      });
-    }
-
-    if (selectedThicknesses.size > 0) {
-      next = next.filter((product) => {
-        const thickness = (product.thickness ?? "").trim();
-        return thickness ? selectedThicknesses.has(thickness) : false;
-      });
-    }
-
-    if (selectedColors.size > 0) {
-      next = next.filter((product) => {
-        const color = (product.colorName ?? "").trim();
-        return color ? selectedColors.has(color) : false;
-      });
-    }
-
-    if (selectedSubcategoryId) {
-      next = next.filter((product) => {
-        const productWithCategories = product as ProductListItem & {
-          categories?: Array<{ categoryId?: string; id?: string }>;
-        };
-        const linkedCategoryIds = (productWithCategories.categories ?? [])
-          .map((cat) => cat.categoryId || cat.id || "")
-          .filter(Boolean);
-        return linkedCategoryIds.includes(selectedSubcategoryId);
-      });
-    }
-
-    next.sort((a, b) => {
-      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
-      if (sortBy === "name_desc") return b.name.localeCompare(a.name);
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    return next;
-  }, [
-    products,
-    selectedBrands,
-    selectedFinishTypes,
-    selectedColors,
-    selectedThicknesses,
-    selectedSubcategoryId,
-    sortBy,
-    shouldShowBrand,
-  ]);
+  const availableColors = useMemo(
+    () => [...(apiFilters?.colors ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
 
   const productImageMap = useMemo(() => {
     return Object.fromEntries(
-      filteredProducts.map((product) => [product.id, getProductImageUrls(product)]),
+      products.map((product) => [product.id, getProductImageUrls(product)]),
     ) as Record<string, string[]>;
-  }, [filteredProducts]);
+  }, [products]);
 
   useEffect(() => {
     if (Object.keys(productImageMap).length === 0) {
@@ -429,6 +389,8 @@ export default function CategoryProductsPage() {
     else next.add(value);
     return next;
   };
+
+  const resetProductsPage = () => setProductsPage(1);
 
   if (!userName) return null;
 
@@ -489,16 +451,19 @@ export default function CategoryProductsPage() {
               </div>
               <div className="mt-4 space-y-3">
                 {availableBrands.length === 0 ? (
-                  <div className="text-xs text-gray-400">No brand options</div>
+                  <div className="text-xs text-gray-400">
+                    {isProductsLoading ? "Loading brand options..." : "No brand options"}
+                  </div>
                 ) : (
                   availableBrands.map((brand) => (
                     <label key={brand} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
                       <input
                         type="checkbox"
                         checked={selectedBrands.has(brand)}
-                        onChange={() =>
-                          setSelectedBrands((prev) => toggleSetValue(prev, brand))
-                        }
+                        onChange={() => {
+                          setSelectedBrands((prev) => toggleSetValue(prev, brand));
+                          resetProductsPage();
+                        }}
                         className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                       />
                       <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{brand}</span>
@@ -515,7 +480,9 @@ export default function CategoryProductsPage() {
             </div>
             <div className="mt-4 space-y-3">
               {availableFinishTypes.length === 0 ? (
-                <div className="text-xs text-gray-400">No finish options</div>
+                <div className="text-xs text-gray-400">
+                  {isProductsLoading ? "Loading finish options..." : "No finish options"}
+                </div>
               ) : (
                 availableFinishTypes.map((finishType) => (
                   <label
@@ -525,11 +492,12 @@ export default function CategoryProductsPage() {
                     <input
                       type="checkbox"
                       checked={selectedFinishTypes.has(finishType)}
-                      onChange={() =>
+                      onChange={() => {
                         setSelectedFinishTypes((prev) =>
                           toggleSetValue(prev, finishType),
-                        )
-                      }
+                        );
+                        resetProductsPage();
+                      }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
                     <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{finishType}</span>
@@ -545,7 +513,9 @@ export default function CategoryProductsPage() {
             </div>
             <div className="mt-4 space-y-3">
               {availableThicknesses.length === 0 ? (
-                <div className="text-xs text-gray-400">No thickness options</div>
+                <div className="text-xs text-gray-400">
+                  {isProductsLoading ? "Loading thickness options..." : "No thickness options"}
+                </div>
               ) : (
                 availableThicknesses.map((thickness) => (
                   <label
@@ -555,11 +525,12 @@ export default function CategoryProductsPage() {
                     <input
                       type="checkbox"
                       checked={selectedThicknesses.has(thickness)}
-                      onChange={() =>
+                      onChange={() => {
                         setSelectedThicknesses((prev) =>
                           toggleSetValue(prev, thickness),
-                        )
-                      }
+                        );
+                        resetProductsPage();
+                      }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
                     <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{thickness}</span>
@@ -575,7 +546,9 @@ export default function CategoryProductsPage() {
             </div>
             <div className="mt-4 space-y-3">
               {availableColors.length === 0 ? (
-                <div className="text-xs text-gray-400">No color options</div>
+                <div className="text-xs text-gray-400">
+                  {isProductsLoading ? "Loading color options..." : "No color options"}
+                </div>
               ) : (
                 availableColors.map((color) => (
                   <label
@@ -585,9 +558,10 @@ export default function CategoryProductsPage() {
                     <input
                       type="checkbox"
                       checked={selectedColors.has(color)}
-                      onChange={() =>
-                        setSelectedColors((prev) => toggleSetValue(prev, color))
-                      }
+                      onChange={() => {
+                        setSelectedColors((prev) => toggleSetValue(prev, color));
+                        resetProductsPage();
+                      }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
                     <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{color}</span>
@@ -639,7 +613,10 @@ export default function CategoryProductsPage() {
                 </label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortValue)}
+                  onChange={(e) => {
+                    setSortBy(e.target.value as SortValue);
+                    resetProductsPage();
+                  }}
                   className="h-8 w-[122px] rounded-md border border-[#d9cab5] bg-white px-2 text-[10px] font-semibold text-gray-700 sm:h-9 sm:w-auto sm:px-2.5 sm:text-xs"
                 >
                   <option value="newest">Newest</option>
@@ -658,7 +635,10 @@ export default function CategoryProductsPage() {
               <div className="flex items-center gap-2 overflow-x-auto pb-1">
                 <button
                   type="button"
-                  onClick={() => setSelectedSubcategoryId("")}
+                  onClick={() => {
+                    setSelectedSubcategoryId("");
+                    resetProductsPage();
+                  }}
                   className={[
                     "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
                     selectedSubcategoryId
@@ -674,7 +654,10 @@ export default function CategoryProductsPage() {
                     <button
                       key={subcat.id}
                       type="button"
-                      onClick={() => setSelectedSubcategoryId(subcat.id)}
+                      onClick={() => {
+                        setSelectedSubcategoryId(subcat.id);
+                        resetProductsPage();
+                      }}
                       className={[
                         "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
                         isActive
@@ -696,18 +679,30 @@ export default function CategoryProductsPage() {
             </div>
           )}
 
-          {isLoading ? (
+          {isCategoryLoading ? (
+            <div className="rounded-lg border border-[#d9cab5] bg-white p-6 text-sm text-gray-500">
+              Loading category...
+            </div>
+          ) : isProductsLoading && products.length === 0 ? (
             <div className="rounded-lg border border-[#d9cab5] bg-white p-6 text-sm text-gray-500">
               Loading category products...
             </div>
-          ) : filteredProducts.length === 0 ? (
+          ) : products.length === 0 ? (
             <div className="rounded-lg border border-[#d9cab5] bg-white p-6 text-sm text-gray-500">
               No products found for this category/filter.
             </div>
           ) : (
             <>
+              {productsTotal > 0 ? (
+                <div className="mb-4 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  Showing {(productsPage - 1) * PRODUCTS_PAGE_LIMIT + 1}-
+                  {Math.min(productsPage * PRODUCTS_PAGE_LIMIT, productsTotal)} of {productsTotal} products
+                </div>
+              ) : null}
+
+              <div className={isProductsLoading ? "opacity-60" : ""}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
-                {filteredProducts.map((product) => {
+                {products.map((product) => {
                   const imageUrls = productImageMap[product.id] ?? [];
                   const activeImageIndex =
                     imageUrls.length > 0
@@ -791,6 +786,31 @@ export default function CategoryProductsPage() {
                   );
                 })}
               </div>
+              </div>
+
+              {totalProductPages > 1 ? (
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    disabled={productsPage <= 1 || isProductsLoading}
+                    onClick={() => setProductsPage((page) => Math.max(1, page - 1))}
+                    className="rounded-full border border-[#d9cab5] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wide text-[#4d2c1e] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    Page {productsPage} of {totalProductPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={productsPage >= totalProductPages || isProductsLoading}
+                    onClick={() => setProductsPage((page) => Math.min(totalProductPages, page + 1))}
+                    className="rounded-full border border-[#d9cab5] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wide text-[#4d2c1e] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : null}
 
               <div className="mt-8">
                 <div className="mb-3 flex items-center justify-between gap-3">
