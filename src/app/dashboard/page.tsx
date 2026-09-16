@@ -354,7 +354,9 @@ export default function DashboardPage() {
   const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(new Set());
   const [filterDimensions, setFilterDimensions] = useState<Set<string>>(new Set());
   const [filterApplications, setFilterApplications] = useState<Set<string>>(new Set());
-  const [filterDescriptions, setFilterDescriptions] = useState<Set<string>>(new Set());
+  const [filterDescriptionPresence, setFilterDescriptionPresence] = useState<
+    "any" | "with" | "without"
+  >("any");
   const [isMobileProductFiltersOpen, setIsMobileProductFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
@@ -369,7 +371,7 @@ export default function DashboardPage() {
     materialTypes: string[];
     dimensions: string[];
     applications: string[];
-    descriptions: string[];
+    descriptionPresence: "any" | "with" | "without";
     includeImages: boolean;
     includeCategories: boolean;
   }>({
@@ -385,7 +387,7 @@ export default function DashboardPage() {
     materialTypes: [],
     dimensions: [],
     applications: [],
-    descriptions: [],
+    descriptionPresence: "any",
     includeImages: true,
     includeCategories: false
   });
@@ -953,7 +955,7 @@ export default function DashboardPage() {
     materialTypes: string[];
     dimensions: string[];
     applications: string[];
-    descriptions: string[];
+    descriptionPresence: "any" | "with" | "without";
     includeImages: boolean;
     includeCategories: boolean;
   }) =>
@@ -970,7 +972,7 @@ export default function DashboardPage() {
       f.materialTypes.join(","),
       f.dimensions.join("\u0001"),
       f.applications.join("\u0001"),
-      f.descriptions.join("\u0001"),
+      f.descriptionPresence || "any",
       f.includeImages ? "1" : "0",
       f.includeCategories ? "1" : "0",
     ].join("|");
@@ -989,7 +991,7 @@ export default function DashboardPage() {
       materialTypes: sortFilterValues(filterMaterialTypes),
       dimensions: sortFilterValues(filterDimensions),
       applications: sortFilterValues(filterApplications),
-      descriptions: sortFilterValues(filterDescriptions),
+      descriptionPresence: filterDescriptionPresence,
       includeImages: filterIncludeImages,
       includeCategories: filterIncludeCategories,
     }),
@@ -1007,7 +1009,7 @@ export default function DashboardPage() {
       filterMaterialTypes,
       filterDimensions,
       filterApplications,
-      filterDescriptions,
+      filterDescriptionPresence,
       filterIncludeImages,
       filterIncludeCategories,
     ]
@@ -1025,7 +1027,7 @@ export default function DashboardPage() {
     if (filtersKey(next) === filtersKey(appliedFilters)) return;
     setProductsPage(1);
     setAppliedFilters(next);
-  }, [filterStatus, filterCategoryType, filterIncludeImages, filterIncludeCategories, appliedFilters, buildAppliedFilters]);
+  }, [filterStatus, filterCategoryType, filterIncludeImages, filterIncludeCategories, filterDescriptionPresence, appliedFilters, buildAppliedFilters]);
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
@@ -1046,7 +1048,7 @@ export default function DashboardPage() {
     filterMaterialTypes,
     filterDimensions,
     filterApplications,
-    filterDescriptions,
+    filterDescriptionPresence,
     appliedFilters,
     buildAppliedFilters,
   ]);
@@ -1077,7 +1079,10 @@ export default function DashboardPage() {
         materialType: appliedFilters.materialTypes.join(",") || undefined,
         dimensions: toJsonMultiFilter(appliedFilters.dimensions),
         application: toJsonMultiFilter(appliedFilters.applications),
-        description: toJsonMultiFilter(appliedFilters.descriptions),
+        withFields:
+          appliedFilters.descriptionPresence === "with" ? "description" : undefined,
+        withoutFields:
+          appliedFilters.descriptionPresence === "without" ? "description" : undefined,
         // Images checkbox: checked = only with images, unchecked = only without images
         hasImages: appliedFilters.includeImages,
         includeImages: appliedFilters.includeImages,
@@ -2733,15 +2738,11 @@ export default function DashboardPage() {
     [productFilterFacets.applications, products, filterApplications],
   );
 
-  const availableDescriptionFilters = useMemo(
-    () =>
-      buildFilterOptions(
-        productFilterFacets.descriptions,
-        products.map((product) => product.description ?? ""),
-        filterDescriptions,
-      ),
-    [productFilterFacets.descriptions, products, filterDescriptions],
-  );
+  const hasMeaningfulDescription = (value: string | null | undefined) => {
+    const text = (value ?? "").trim();
+    if (!text) return false;
+    return text.toUpperCase() !== "NOT AVAILABLE";
+  };
 
   const visibleDashboardProducts = useMemo(
     () =>
@@ -2778,9 +2779,11 @@ export default function DashboardPage() {
           const application = (product.application ?? "").trim();
           if (!application || !appliedFilters.applications.includes(application)) return false;
         }
-        if (appliedFilters.descriptions.length > 0) {
-          const description = (product.description ?? "").trim();
-          if (!description || !appliedFilters.descriptions.includes(description)) return false;
+        if (appliedFilters.descriptionPresence === "with") {
+          if (!hasMeaningfulDescription(product.description)) return false;
+        }
+        if (appliedFilters.descriptionPresence === "without") {
+          if (hasMeaningfulDescription(product.description)) return false;
         }
         return true;
       }),
@@ -2794,7 +2797,7 @@ export default function DashboardPage() {
       appliedFilters.materialTypes,
       appliedFilters.dimensions,
       appliedFilters.applications,
-      appliedFilters.descriptions,
+      appliedFilters.descriptionPresence,
     ],
   );
 
@@ -4768,22 +4771,35 @@ export default function DashboardPage() {
 
                   <div className="mt-2 border-t border-[#cbbca6] pt-4">
                     <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Description</div>
-                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
-                      {availableDescriptionFilters.length === 0 ? (
-                        <div className="text-xs text-gray-400">No description options</div>
-                      ) : (
-                        availableDescriptionFilters.map((description) => (
-                          <label key={description} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
-                            <input
-                              type="checkbox"
-                              checked={filterDescriptions.has(description)}
-                              onChange={() => toggleSetFilterValue(setFilterDescriptions, description)}
-                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
-                            />
-                            <span className="truncate" title={description}>{description}</span>
-                          </label>
-                        ))
-                      )}
+                    <div className="mt-3 space-y-2">
+                      {(
+                        [
+                          { value: "any" as const, label: "Any" },
+                          { value: "with" as const, label: "With description" },
+                          { value: "without" as const, label: "Without description" },
+                        ] as const
+                      ).map((option) => (
+                        <label
+                          key={option.value}
+                          className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
+                        >
+                          <input
+                            type="radio"
+                            name="description-presence"
+                            checked={filterDescriptionPresence === option.value}
+                            onChange={() => setFilterDescriptionPresence(option.value)}
+                            className="h-4 w-4 border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                          />
+                          <span>{option.label}</span>
+                        </label>
+                      ))}
+                      <div className="pl-6 text-[11px] text-[#8a7d73]">
+                        {filterDescriptionPresence === "any"
+                          ? "Show all products"
+                          : filterDescriptionPresence === "with"
+                            ? "Only products with real description"
+                            : "Empty / NOT AVAILABLE"}
+                      </div>
                     </div>
                   </div>
 
