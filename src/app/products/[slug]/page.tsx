@@ -92,6 +92,17 @@ function truncateText(value: string, maxChars: number) {
   return `${text.slice(0, maxChars)}..`;
 }
 
+function isMeaningfulDescription(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return false;
+  return text.toUpperCase() !== "NOT AVAILABLE";
+}
+
+function asStringList(value: string[] | null | undefined) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => item.trim()).filter(Boolean);
+}
+
 export default function ProductDetailsPage() {
   const params = useParams<{ slug: string }>();
   const slug = typeof params?.slug === "string" ? params.slug : "";
@@ -686,6 +697,45 @@ export default function ProductDetailsPage() {
                   <div className="font-semibold text-[#3f3a33]">{String(product.priceCategory ?? 0)}</div>
                 </div>
               </div>
+
+              {(isMeaningfulDescription(product.description) ||
+                asStringList(product.pros).length > 0 ||
+                asStringList(product.cons).length > 0) && (
+                <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
+                  <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">
+                    Product Overview
+                  </div>
+                  {isMeaningfulDescription(product.description) && (
+                    <p className="text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                      {product.description}
+                    </p>
+                  )}
+                  {asStringList(product.pros).length > 0 && (
+                    <div className={isMeaningfulDescription(product.description) ? "mt-4" : ""}>
+                      <div className="text-[11px] font-black uppercase tracking-widest text-[#8b6b45]">
+                        Pros
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                        {asStringList(product.pros).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {asStringList(product.cons).length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-[#8b6b45]">
+                        Cons
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                        {asStringList(product.cons).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {userRole === "customer" && (
                 <>
