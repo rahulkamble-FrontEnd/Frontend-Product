@@ -228,8 +228,9 @@ export default function ManageProductsPage() {
       const successCount = results.filter((item) => item.ok).length;
       const newlyLinkedCount = results.filter((item) => item.ok && item.linked).length;
       const failedCount = results.length - successCount;
+      const colorLabel = tagName;
       setBulkTagMsg(
-        `"${tagName}" tag processed for ${results.length} selected products. Newly tagged: ${newlyLinkedCount}, already tagged: ${
+        `"${tagName}" applied to ${results.length} product(s). Colour set to ${colorLabel}. Newly tagged: ${newlyLinkedCount}, already tagged: ${
           successCount - newlyLinkedCount
         }, failed: ${failedCount}.`,
       );
@@ -344,7 +345,16 @@ export default function ManageProductsPage() {
                 Bulk tag: {selectedIds.size} selected (this page: {pageIds.filter((id) => selectedIds.has(id)).length} of{" "}
                 {pageIds.length})
               </div>
-              <div className="flex w-full min-w-0 flex-col gap-2 sm:max-w-[280px]">
+              <div className="flex w-full min-w-0 items-center gap-2 sm:max-w-[320px]">
+                <span
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 rounded-full border border-gray-300 shadow-inner"
+                  style={{
+                    backgroundColor:
+                      allTags.find((t) => t.id === bulkTagId)?.hexCode || "#ffffff",
+                  }}
+                  title={allTags.find((t) => t.id === bulkTagId)?.name || "No tag selected"}
+                />
                 <label htmlFor="manage-bulk-tag" className="sr-only">
                   Select tag
                 </label>
@@ -357,7 +367,7 @@ export default function ManageProductsPage() {
                     setBulkTagMsg("");
                   }}
                   disabled={allTags.length === 0}
-                  className="w-full rounded-full border border-gray-200 bg-white px-3 py-2.5 text-[11px] font-bold text-gray-800 shadow-sm disabled:opacity-50"
+                  className="w-full min-w-0 rounded-full border border-gray-200 bg-white px-3 py-2.5 text-[11px] font-bold text-gray-800 shadow-sm disabled:opacity-50"
                 >
                   <option value="">Select tag</option>
                   {allTags.map((tag) => (
