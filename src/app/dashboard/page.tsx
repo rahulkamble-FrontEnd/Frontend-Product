@@ -832,8 +832,10 @@ export default function DashboardPage() {
       const successCount = results.filter((item) => item.ok).length;
       const newlyLinkedCount = results.filter((item) => item.ok && item.linked).length;
       const failedCount = results.length - successCount;
+      const selectedTag = allTags.find((tag) => tag.id === selectedTagId);
+      const colorLabel = selectedTag?.name ?? tagName;
       setBulkTagMsg(
-        `"${tagName}" tag processed for ${results.length} selected products. Newly tagged: ${newlyLinkedCount}, already tagged: ${
+        `"${tagName}" applied to ${results.length} product(s). Colour set to ${colorLabel}. Newly tagged: ${newlyLinkedCount}, already tagged: ${
           successCount - newlyLinkedCount
         }, failed: ${failedCount}.`,
       );
@@ -2534,7 +2536,11 @@ export default function DashboardPage() {
 
     try {
       const result = await linkProductTag(pid, { tagId });
-      setProductTagMsg(result.message || "Tag linked successfully.");
+      const linkedTag = allTags.find((tag) => tag.id === tagId);
+      const colorPart = linkedTag
+        ? ` Product colour set to ${linkedTag.name}.`
+        : " Product colour updated from tag.";
+      setProductTagMsg(`${result.message || "Tag linked successfully."}${colorPart}`);
       await loadLinkedTagsForProduct(pid);
       await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
@@ -2571,7 +2577,9 @@ export default function DashboardPage() {
 
     try {
       const result = await unlinkProductTag(pid, tagId);
-      setProductTagMsg(result.message || "Tag delinked successfully.");
+      setProductTagMsg(
+        `${result.message || "Tag delinked successfully."} Product colour refreshed from remaining tags.`,
+      );
       await loadLinkedTagsForProduct(pid);
       await Promise.all([loadProducts(), loadLatestProducts()]);
     } catch (err: unknown) {
@@ -5032,22 +5040,33 @@ export default function DashboardPage() {
               <div className="text-[11px] font-black uppercase tracking-widest text-gray-500">
                 Bulk Tag: {bulkTagSelectedList.length} selected
               </div>
-              <select
-                value={bulkTagId}
-                onChange={(e) => {
-                  setBulkTagId(e.target.value);
-                  setBulkTagError("");
-                  setBulkTagMsg("");
-                }}
-                className="w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] font-bold text-gray-800 sm:w-auto"
-              >
-                <option value="">Select tag</option>
-                {allTags.map((tag) => (
-                  <option key={tag.id} value={tag.id}>
-                    {tag.name}
-                  </option>
-                ))}
-              </select>
+              <div className="flex w-full items-center gap-2 sm:w-auto">
+                <span
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 rounded-full border border-gray-300 shadow-inner"
+                  style={{
+                    backgroundColor:
+                      allTags.find((tag) => tag.id === bulkTagId)?.hexCode || "#ffffff",
+                  }}
+                  title={allTags.find((tag) => tag.id === bulkTagId)?.name || "No tag selected"}
+                />
+                <select
+                  value={bulkTagId}
+                  onChange={(e) => {
+                    setBulkTagId(e.target.value);
+                    setBulkTagError("");
+                    setBulkTagMsg("");
+                  }}
+                  className="w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-[11px] font-bold text-gray-800 sm:w-auto"
+                >
+                  <option value="">Select tag</option>
+                  {allTags.map((tag) => (
+                    <option key={tag.id} value={tag.id}>
+                      {tag.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
               <button
@@ -6384,8 +6403,12 @@ export default function DashboardPage() {
                                 checked={createSelectedTagIds.has(tag.id)}
                                 onChange={() => toggleCreateTag(tag.id)}
                               />
+                              <span
+                                aria-hidden
+                                className="h-3.5 w-3.5 shrink-0 rounded-full border border-gray-300"
+                                style={{ backgroundColor: tag.hexCode || "#ffffff" }}
+                              />
                               <span className="font-medium">{tag.name}</span>
-                              <span className="ml-auto text-[10px] uppercase tracking-widest text-gray-400">{tag.hexCode}</span>
                             </label>
                           ))}
                         </div>
@@ -6842,8 +6865,13 @@ export default function DashboardPage() {
                     {productLinkedTagIds.map((id) => {
                       const tag = allTags.find((item) => item.id === id);
                       return (
-                        <span key={id} className="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700">
-                          {tag ? `${tag.name} (${tag.hexCode})` : id}
+                        <span key={id} className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-gray-700">
+                          <span
+                            aria-hidden
+                            className="h-3 w-3 rounded-full border border-gray-300"
+                            style={{ backgroundColor: tag?.hexCode || "#ffffff" }}
+                          />
+                          {tag ? tag.name : id}
                         </span>
                       );
                     })}
@@ -6854,19 +6882,29 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
                 <form onSubmit={handleLinkProductTag} className="space-y-3 rounded-xl border border-green-100 bg-green-50/40 p-4">
                   <div className="text-[10px] font-black uppercase tracking-widest text-green-700">Step 2A: Link Tag</div>
-                  <select
-                    className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={selectedLinkTagId}
-                    onChange={(e) => setSelectedLinkTagId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select tag to link</option>
-                    {allTags.map((tag) => (
-                      <option key={tag.id} value={tag.id} disabled={productLinkedTagIds.includes(tag.id)}>
-                        {tag.name} ({tag.hexCode}){productLinkedTagIds.includes(tag.id) ? " - already linked" : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="h-5 w-5 shrink-0 rounded-full border border-gray-300 shadow-inner"
+                      style={{
+                        backgroundColor:
+                          allTags.find((tag) => tag.id === selectedLinkTagId)?.hexCode || "#ffffff",
+                      }}
+                    />
+                    <select
+                      className="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                      value={selectedLinkTagId}
+                      onChange={(e) => setSelectedLinkTagId(e.target.value)}
+                      required
+                    >
+                      <option value="">Select tag to link</option>
+                      {allTags.map((tag) => (
+                        <option key={tag.id} value={tag.id} disabled={productLinkedTagIds.includes(tag.id)}>
+                          {tag.name}{productLinkedTagIds.includes(tag.id) ? " - already linked" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <button
                     type="submit"
                     disabled={isLinkingTag || !productTagProductId.trim() || !selectedLinkTagId}
@@ -6889,7 +6927,7 @@ export default function DashboardPage() {
                       .filter((tag) => productLinkedTagIds.includes(tag.id))
                       .map((tag) => (
                         <option key={tag.id} value={tag.id}>
-                          {tag.name} ({tag.hexCode})
+                          {tag.name}
                         </option>
                       ))}
                   </select>
