@@ -19,6 +19,8 @@ import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
+/** Category page relevant-articles block. Turn back on when this section should return. */
+const SHOW_CATEGORY_RELEVANT_ARTICLES = false;
 
 /** Pinned chip order by category slug. Unlisted chips keep API order. */
 const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
@@ -318,7 +320,7 @@ export default function CategoryProductsPage() {
   ]);
 
   useEffect(() => {
-    if (!userName || !slug || !category?.id) return;
+    if (!SHOW_CATEGORY_RELEVANT_ARTICLES || !userName || !slug || !category?.id) return;
 
     const loadRelevantBlogs = async () => {
       setIsLoadingRelevantBlogs(true);
@@ -853,6 +855,8 @@ export default function CategoryProductsPage() {
                 </div>
               ) : null}
 
+              {/* Relevant Articles hidden on category pages for now. Code kept, not deleted. */}
+              {SHOW_CATEGORY_RELEVANT_ARTICLES ? (
               <div className="mt-8">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-base font-black tracking-tight text-[#b38a50] sm:text-lg">
@@ -924,6 +928,7 @@ export default function CategoryProductsPage() {
                   </div>
                 )}
               </div>
+              ) : null}
             </>
           )}
         </section>
