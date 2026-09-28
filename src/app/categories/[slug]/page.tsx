@@ -23,18 +23,23 @@ const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 /** Pinned chip order by category slug. Unlisted chips keep API order. */
 const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
   "core-materials": [
-    "bwp plywood",
+    "bwp",
     "hdhmr",
     "mdf",
     "prelam hdhmr acrylic",
     "prelam mdf acrylic",
+    "prelam uv coated",
+    "prelam hdhmr matte",
+    "prelam mdf matte",
   ],
   finishes: ["laminates", "acrylic", "pu paints"],
 };
 
 function normalizeSubcategoryName(name: string): string {
   const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
-  return normalized === "laminate" ? "laminates" : normalized;
+  if (normalized === "laminate") return "laminates";
+  if (normalized === "bwp plywood") return "bwp";
+  return normalized;
 }
 
 /** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
