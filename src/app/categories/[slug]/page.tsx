@@ -20,6 +20,19 @@ import { RelevantArticleCard } from "@/components/relevant-article-card";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 
+/** Core Materials chips: these come first; everything else keeps API order. */
+const CORE_MATERIALS_SUBCATEGORY_ORDER = [
+  "bwp plywood",
+  "hdhmr",
+  "mdf",
+  "prelam hdhmr acrylic",
+  "prelam mdf acrylic",
+];
+
+function normalizeSubcategoryName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 /** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
 const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   finishes: "finishes2.webp",
@@ -323,12 +336,33 @@ export default function CategoryProductsPage() {
 
   const availableSubcategories = useMemo(() => {
     const children = Array.isArray(category?.children) ? category.children : [];
-    return children
+    const items = children
       .map((child) => ({
         id: child?.id?.trim() ?? "",
         name: child?.name?.trim() ?? "",
       }))
       .filter((item) => item.id && item.name);
+
+    const isCoreMaterials =
+      (category?.slug ?? "").trim().toLowerCase() === "core-materials";
+    if (!isCoreMaterials) return items;
+
+    const rank = new Map(
+      CORE_MATERIALS_SUBCATEGORY_ORDER.map((name, index) => [name, index]),
+    );
+    return items
+      .map((item, index) => ({ item, index }))
+      .sort((a, b) => {
+        const aRank = rank.get(normalizeSubcategoryName(a.item.name));
+        const bRank = rank.get(normalizeSubcategoryName(b.item.name));
+        const aPinned = aRank !== undefined;
+        const bPinned = bRank !== undefined;
+        if (aPinned && bPinned) return aRank - bRank;
+        if (aPinned) return -1;
+        if (bPinned) return 1;
+        return a.index - b.index;
+      })
+      .map(({ item }) => item);
   }, [category]);
 
   const availableBrands = useMemo(
