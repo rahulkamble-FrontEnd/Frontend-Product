@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
-import { trendingItemHref } from "@/lib/trending-path";
 import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import {
   logout,
@@ -20,7 +18,6 @@ import {
   unlinkProductTag,
   getProducts,
   getProductsCompare,
-  getTrendings,
   getDesignCfEntries,
   getBlogs,
   getTags,
@@ -53,7 +50,6 @@ import {
   type UpdateDesignerSamplePayload,
   type NotificationItem,
   type CategoryMenuItem,
-  type TrendingItem,
   type DesignCfEntry,
   type BlogItem,
   type TagItem,
@@ -191,9 +187,6 @@ export default function DashboardPage() {
   const [isMarkingAllNotificationsRead, setIsMarkingAllNotificationsRead] = useState(false);
   const [notificationsError, setNotificationsError] = useState("");
   const [menuCategories, setMenuCategories] = useState<CategoryMenuItem[]>([]);
-  const [trendingDesigns, setTrendingDesigns] = useState<TrendingItem[]>([]);
-  const [isLoadingTrendingDesigns, setIsLoadingTrendingDesigns] = useState(false);
-  const [trendingDesignsError, setTrendingDesignsError] = useState("");
   const [designCfEntries, setDesignCfEntries] = useState<DesignCfEntry[]>([]);
   const [isLoadingDesignCfEntries, setIsLoadingDesignCfEntries] = useState(false);
   const [designCfEntriesError, setDesignCfEntriesError] = useState("");
@@ -606,10 +599,6 @@ export default function DashboardPage() {
 
   const shortlistCompareSelectedList = Array.from(shortlistCompareSelectedIds);
   const bulkTagSelectedList = Array.from(bulkTagSelectedIds);
-  const trendingCards: Array<TrendingItem | null> = [
-    ...trendingDesigns.slice(0, 4),
-    ...Array.from({ length: Math.max(0, 4 - trendingDesigns.length) }, () => null),
-  ].slice(0, 4);
   const latestProductCards: Array<ProductListItem | null> = [
     ...latestProducts.slice(0, 8),
     ...Array.from({ length: Math.max(0, 8 - latestProducts.length) }, () => null),
@@ -2303,35 +2292,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
-    const loadTrendingDesigns = async () => {
-      setIsLoadingTrendingDesigns(true);
-      setTrendingDesignsError("");
-      try {
-        const data = await getTrendings();
-        if (isMounted) {
-          setTrendingDesigns(Array.isArray(data) ? data.slice(0, 4) : []);
-        }
-      } catch (err: unknown) {
-        if (isMounted) {
-          setTrendingDesigns([]);
-          setTrendingDesignsError(
-            err instanceof Error ? err.message : "Failed to load trending designs.",
-          );
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingTrendingDesigns(false);
-        }
-      }
-    };
-    loadTrendingDesigns();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
     const loadDesignCfEntries = async () => {
       setIsLoadingDesignCfEntries(true);
       setDesignCfEntriesError("");
@@ -3908,99 +3868,87 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section
-        className="py-10 lg:py-14"
-        style={{
-          background:
-            "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
-        }}
-      >
+      <section className="bg-[#F8F0E4] py-10 sm:py-12">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
-                Trending Designs
+          <div className="relative mb-6">
+            <div className="mx-auto max-w-[1449px] text-center">
+              <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
+                Designs done by CustomFurnish
               </h3>
-              <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
-                Get inspired by the latest styles loved by modern homeowners.
+              <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
+                See how we transform spaces into beautiful homes.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => router.push("/trending/manage")}
-              className="hidden text-[12px] font-medium text-white sm:text-[14px]"
-            >
-              View All Designs
-            </button>
+            <div className="mt-3 flex justify-end gap-2 sm:absolute sm:bottom-0 sm:right-0 sm:mt-0 sm:top-1/2 sm:-translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("left")}
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs left"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollShowcaseDesigns("right")}
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
+                aria-label="Scroll showcase designs right"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
           </div>
-
-          {trendingDesignsError && (
-            <div className="mb-4 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
-              {trendingDesignsError}
+          {designCfEntriesError && (
+            <div className="mx-auto mt-4 max-w-[1449px] rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+              {designCfEntriesError}
             </div>
           )}
-
-          {isLoadingTrendingDesigns ? (
-            <div className="rounded-xl bg-white/20 p-4 text-sm text-white">
-              Loading trending designs...
-            </div>
+          <div
+            ref={showcaseDesignsScrollRef}
+            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-8 sm:gap-5"
+          >
+          {isLoadingDesignCfEntries ? (
+            Array.from({ length: 14 }).map((_, idx) => (
+              <div
+                key={`design-cf-loading-${idx}`}
+                className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
+              />
+            ))
           ) : (
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible lg:grid-cols-4">
-              {trendingCards.map((trending, idx) => {
-                  const imageUrl = trending
-                    ? buildProductImageUrl(trending.imageUrl ?? trending.s3Key ?? "")
-                    : "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop";
-                  const title = truncateText(trending?.title || "Modern Minimalist Kitchen", 16);
-                  const tag = trending?.styleTag || "Kitchen";
+          showcaseDesignCards.map((product, idx) => {
+            const imageUrl = CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
+            const showcaseLabels = [
+              "Bed Room Design",
+              "Kitchen Design",
+              "Living Room Design",
+              "Dining Room Design",
+              "Puja Room Design",
+              "Balcony Design",
+              "Guest Room Design",
+              "Study Room Design",
+            ] as const;
+            const label = (product?.title || showcaseLabels[idx] || "Design").trim();
+            const cardImageUrl = product?.coverImageUrl || imageUrl;
 
-                  const cardClassName =
-                    "block h-[270px] w-[190px] flex-shrink-0 overflow-hidden rounded-xl border border-white bg-white p-2 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:h-[430px] sm:w-full sm:max-w-[360px] sm:rounded-2xl sm:p-2.5";
-                  const cardInner = (
-                    <>
-                      <div className="relative h-[180px] w-full overflow-hidden rounded-[10px] bg-[#eadfcf] sm:h-[312px] sm:rounded-[14px]">
-                        {imageUrl ? (
-                          <Image
-                            src={imageUrl}
-                            alt={title}
-                            fill
-                            priority={idx === 0}
-                            loading={idx === 0 ? "eager" : "lazy"}
-                            sizes="(max-width: 1024px) 50vw, 360px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-xs font-semibold text-gray-400">
-                            No image
-                          </div>
-                        )}
-                      </div>
-                      <div className="mt-2">
-                        <span className="inline-flex rounded-sm bg-[#E8D4AE] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#977543] sm:text-[10px]">
-                          {tag}
-                        </span>
-                        <div className="mt-1 line-clamp-2 text-[16px] font-semibold leading-[22px] tracking-normal text-[#977543] sm:text-[26px] sm:leading-[40px]">
-                          {title}
-                        </div>
-                      </div>
-                    </>
-                  );
-
-                  if (trending?.id) {
-                    return (
-                      <Link key={trending.id} href={trendingItemHref(trending.id)} className={cardClassName}>
-                        {cardInner}
-                      </Link>
-                    );
-                  }
-
-                  return (
-                    <article key={`trending-placeholder-${idx}`} className={cardClassName}>
-                      {cardInner}
-                    </article>
-                  );
-                })}
-            </div>
+            return (
+              <article
+                key={product?.id ?? `cf-design-${idx}`}
+                className="h-[230px] w-[170px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
+                onClick={() => {
+                  setActiveDesignPreview({
+                    imageUrl: cardImageUrl,
+                    label,
+                  });
+                }}
+              >
+                <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
+                  <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
+                </div>
+              </article>
+            );
+          })
           )}
+          </div>
         </div>
       </section>
 
@@ -4173,90 +4121,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F0E4] py-10 sm:py-12">
-        <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
-          <div className="relative mb-6">
-            <div className="mx-auto max-w-[1449px] text-center">
-              <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
-                Designs done by CustomFurnish
-              </h3>
-              <p className="mt-2 text-xs text-[#8B6E46] sm:text-sm">
-                See how we transform spaces into beautiful homes.
-              </p>
-            </div>
-            <div className="mt-3 flex justify-end gap-2 sm:absolute sm:bottom-0 sm:right-0 sm:mt-0 sm:top-1/2 sm:-translate-y-1/2">
-              <button
-                type="button"
-                onClick={() => scrollShowcaseDesigns("left")}
-                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
-                aria-label="Scroll showcase designs left"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollShowcaseDesigns("right")}
-                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#9f7a47] text-white aspect-square hover:bg-[#8A6A3A] transition-colors sm:h-10 sm:w-10"
-                aria-label="Scroll showcase designs right"
-              >
-                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </button>
-            </div>
-          </div>
-          {designCfEntriesError && (
-            <div className="mx-auto mt-4 max-w-[1449px] rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
-              {designCfEntriesError}
-            </div>
-          )}
-          <div
-            ref={showcaseDesignsScrollRef}
-            className="mx-auto mt-6 flex w-full max-w-[1449px] gap-3 overflow-x-auto pb-4 scrollbar-hide sm:mt-8 sm:gap-5"
-          >
-          {isLoadingDesignCfEntries ? (
-            Array.from({ length: 14 }).map((_, idx) => (
-              <div
-                key={`design-cf-loading-${idx}`}
-                className="h-[230px] w-[170px] flex-shrink-0 animate-pulse rounded-[20px] bg-[#d8ccbb] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
-              />
-            ))
-          ) : (
-          showcaseDesignCards.map((product, idx) => {
-            const imageUrl = CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-            const showcaseLabels = [
-              "Bed Room Design",
-              "Kitchen Design",
-              "Living Room Design",
-              "Dining Room Design",
-              "Puja Room Design",
-              "Balcony Design",
-              "Guest Room Design",
-              "Study Room Design",
-            ] as const;
-            const label = (product?.title || showcaseLabels[idx] || "Design").trim();
-            const cardImageUrl = product?.coverImageUrl || imageUrl;
-
-            return (
-              <article
-                key={product?.id ?? `cf-design-${idx}`}
-                className="h-[230px] w-[170px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
-                onClick={() => {
-                  setActiveDesignPreview({
-                    imageUrl: cardImageUrl,
-                    label,
-                  });
-                }}
-              >
-                <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
-                  <Image src={cardImageUrl} alt={label} fill sizes="248px" className="object-cover" />
-                </div>
-              </article>
-            );
-          })
-          )}
-          </div>
-        </div>
-      </section>
-
       {activeDesignPreview && (
         <div
           className="fixed inset-0 z-[720] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
@@ -4295,7 +4159,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <section className="bg-[#F8F0E4] pb-12 sm:pb-16">
+      <section className="bg-[#F8F0E4] pt-10 pb-12 sm:pt-16 sm:pb-16">
         <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-12 lg:px-16 2xl:px-20">
           <div className="relative mx-auto flex max-w-[1449px] items-center justify-between">
             <h3 className="text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">

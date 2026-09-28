@@ -20,17 +20,21 @@ import { RelevantArticleCard } from "@/components/relevant-article-card";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 
-/** Core Materials chips: these come first; everything else keeps API order. */
-const CORE_MATERIALS_SUBCATEGORY_ORDER = [
-  "bwp plywood",
-  "hdhmr",
-  "mdf",
-  "prelam hdhmr acrylic",
-  "prelam mdf acrylic",
-];
+/** Pinned chip order by category slug. Unlisted chips keep API order. */
+const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
+  "core-materials": [
+    "bwp plywood",
+    "hdhmr",
+    "mdf",
+    "prelam hdhmr acrylic",
+    "prelam mdf acrylic",
+  ],
+  finishes: ["laminates", "acrylic", "pu paints"],
+};
 
 function normalizeSubcategoryName(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, " ");
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
+  return normalized === "laminate" ? "laminates" : normalized;
 }
 
 /** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
@@ -343,13 +347,11 @@ export default function CategoryProductsPage() {
       }))
       .filter((item) => item.id && item.name);
 
-    const isCoreMaterials =
-      (category?.slug ?? "").trim().toLowerCase() === "core-materials";
-    if (!isCoreMaterials) return items;
+    const pinnedOrder =
+      SUBCATEGORY_ORDER_BY_SLUG[(category?.slug ?? "").trim().toLowerCase()];
+    if (!pinnedOrder) return items;
 
-    const rank = new Map(
-      CORE_MATERIALS_SUBCATEGORY_ORDER.map((name, index) => [name, index]),
-    );
+    const rank = new Map(pinnedOrder.map((name, index) => [name, index]));
     return items
       .map((item, index) => ({ item, index }))
       .sort((a, b) => {
