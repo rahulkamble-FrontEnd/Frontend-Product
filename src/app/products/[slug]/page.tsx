@@ -25,6 +25,8 @@ import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+/** Product page relevant-articles block. Turn back on when this section should return. */
+const SHOW_PRODUCT_RELEVANT_ARTICLES = false;
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -325,7 +327,7 @@ export default function ProductDetailsPage() {
   }, [product?.id]);
 
   useEffect(() => {
-    if (!product?.id) return;
+    if (!SHOW_PRODUCT_RELEVANT_ARTICLES || !product?.id) return;
 
     const loadRelevantArticles = async () => {
       const categoryIds = Array.from(
@@ -1147,6 +1149,7 @@ export default function ProductDetailsPage() {
               </div>
             )}
           </section>
+          {SHOW_PRODUCT_RELEVANT_ARTICLES ? (
           <section className="mt-10">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[28px] sm:leading-[34px]">
@@ -1218,6 +1221,7 @@ export default function ProductDetailsPage() {
               </div>
             )}
           </section>
+          ) : null}
           </>
         )}
       </main>

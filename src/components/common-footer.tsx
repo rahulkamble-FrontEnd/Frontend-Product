@@ -28,14 +28,14 @@ function slugifyFooterCategoryLabel(label: string): string {
     .replace(/^-|-$/g, "");
 }
 
-const SHOP_NAV_LABELS = [
-  "Core materials",
-  "Laminates",
-  "Wall Decorative",
-  "Counter Tops",
-  "Flooring & Tiles",
-  "Lighting",
-] as const;
+const SHOP_NAV_ITEMS: Array<{ label: string; slugLabel?: string }> = [
+  { label: "Core materials" },
+  { label: "Laminates" },
+  { label: "Wall Decoratives", slugLabel: "Wall Decorative" },
+  { label: "Counter Tops" },
+  { label: "Flooring & Tiles" },
+  { label: "Lighting" },
+];
 
 export default function CommonFooter({ hideNewsletter = false }: CommonFooterProps) {
   const [email, setEmail] = useState("");
@@ -80,9 +80,9 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
     { label: "FAQs", href: "/faqs" },
   ];
 
-  const shopLinks: FooterLink[] = SHOP_NAV_LABELS.map((label) => ({
-    label,
-    href: `/categories/${slugifyFooterCategoryLabel(label)}`,
+  const shopLinks: FooterLink[] = SHOP_NAV_ITEMS.map((item) => ({
+    label: item.label,
+    href: `/categories/${slugifyFooterCategoryLabel(item.slugLabel ?? item.label)}`,
   }));
 
   const experienceCentreAddress =

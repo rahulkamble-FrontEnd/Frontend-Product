@@ -6,9 +6,15 @@ import { useEffect, useState } from "react";
 import StoreHeaderUserBar from "@/components/store-header-user-bar";
 import { getCategoryMenu, type CategoryMenuItem } from "@/lib/api";
 
+const NAV_LABEL_OVERRIDES: Record<string, string> = {
+  "wall decorative": "Wall Decoratives",
+};
+
 function formatLabel(value: string | null | undefined) {
   const text = (value ?? "").trim();
   if (!text) return "";
+  const override = NAV_LABEL_OVERRIDES[text.toLowerCase().replace(/\s+/g, " ")];
+  if (override) return override;
   return text
     .toLowerCase()
     .split(/\s+/)
