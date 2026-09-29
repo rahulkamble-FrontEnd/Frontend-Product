@@ -160,6 +160,7 @@ export type ProductListItem = {
   colorName: string;
   colorHex: string | null;
   thickness: string | null;
+  watt?: string | null;
   dimensions: string;
   performanceRating: number;
   durabilityRating: number;
@@ -183,6 +184,7 @@ export type ProductListResponse = {
     brands?: string[];
     materialTypes?: string[];
     thicknesses?: string[];
+    watts?: string[];
     colors?: string[];
     descriptions?: string[];
     bookNames?: string[];
@@ -214,6 +216,7 @@ export type ProductCompareItem = {
   finishType: string | null;
   colorName: string;
   thickness: string | null;
+  watt?: string | null;
   dimensions: string;
   performanceRating: number;
   durabilityRating: number;
@@ -424,6 +427,7 @@ export async function getProducts(params?: {
   materialType?: string;
   finishType?: string;
   thickness?: string;
+  watt?: string;
   colorName?: string;
   description?: string;
   bookName?: string;
@@ -450,6 +454,7 @@ export async function getProducts(params?: {
   if (params?.materialType) url.searchParams.set('materialType', params.materialType);
   if (params?.finishType) url.searchParams.set('finishType', params.finishType);
   if (params?.thickness) url.searchParams.set('thickness', params.thickness);
+  if (params?.watt) url.searchParams.set('watt', params.watt);
   if (params?.colorName) url.searchParams.set('colorName', params.colorName);
   if (params?.description) url.searchParams.set('description', params.description);
   if (params?.bookName) url.searchParams.set('bookName', params.bookName);
@@ -895,6 +900,7 @@ export type UpdateProductPayload = {
   colorName: string;
   colorHex: string | null;
   thickness: string | null;
+  watt?: string | null;
   dimensions: string;
   performanceRating: number;
   durabilityRating: number;
