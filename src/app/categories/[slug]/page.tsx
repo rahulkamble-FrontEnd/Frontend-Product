@@ -75,6 +75,7 @@ const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   "handles-and-knobs": "Handels.webp",
   knobs: "Handels.webp",
   "wall-decorative": "wall panels1.webp",
+  "wall-decoratives": "wall panels1.webp",
   "wall-decorative-panels": "wall panels1.webp",
   "wall-panels": "wall panels1.webp",
   "wall-panels-and-cladding": "wall panels1.webp",
@@ -103,11 +104,14 @@ function normalizeCategoryBannerKey(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+/** Bump when a category banner file is replaced in S3 under the same name. */
+const CATEGORY_BANNER_VERSION = "20260929";
+
 function categoryBannerS3Url(fileName: string) {
   const path = ["category banner", "categories banner", fileName]
     .map((segment) => encodeURIComponent(segment))
     .join("/");
-  return `${BLOG_IMAGE_BASE_URL}/${path}`;
+  return `${BLOG_IMAGE_BASE_URL}/${path}?v=${CATEGORY_BANNER_VERSION}`;
 }
 
 function resolveCategoryBannerUrl(slug: string, categoryName?: string | null) {
