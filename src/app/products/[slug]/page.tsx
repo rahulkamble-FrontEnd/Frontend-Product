@@ -689,6 +689,12 @@ export default function ProductDetailsPage() {
                   <div className="font-semibold text-[#3f3a33]">{product.finishType || "-"}</div>
                   <div className="text-[#968e84]">Thickness</div>
                   <div className="font-semibold text-[#3f3a33]">{product.thickness || "-"}</div>
+                  {product.watt ? (
+                    <>
+                      <div className="text-[#968e84]">Watt</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.watt}</div>
+                    </>
+                  ) : null}
                   <div className="text-[#968e84]">Performance</div>
                   <div className="font-semibold text-[#3f3a33]">{String(product.performanceRating ?? 0)}</div>
                   <div className="text-[#968e84]">Durability</div>
@@ -1130,8 +1136,8 @@ export default function ProductDetailsPage() {
                           </div> */}
                           <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[9px] uppercase text-[#8f877d] sm:mt-3 sm:text-[10px]">
                             <div>
-                              <div className="font-semibold">Thickness</div>
-                              <div className="font-bold text-[#4b443c]">{item.thickness || "-"}</div>
+                              <div className="font-semibold">{item.watt ? "Watt" : "Thickness"}</div>
+                              <div className="font-bold text-[#4b443c]">{item.watt || item.thickness || "-"}</div>
                             </div>
                             <div>
                               <div className="font-semibold">Finish</div>

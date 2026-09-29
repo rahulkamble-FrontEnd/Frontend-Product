@@ -6964,6 +6964,9 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[11px] font-bold text-gray-500">
                   Required columns: <span className="font-black">imsId</span>, <span className="font-black">name</span>, <span className="font-black">sku</span>
                 </p>
+                <p className="mt-1 text-[11px] font-bold text-gray-500">
+                  Lighting watt: add a <span className="font-black">watt</span> column and write values like <span className="font-black">12W</span>.
+                </p>
                 <a
                   href="/templates/products-bulk-upload-template-latest.xlsx"
                   target="_blank"
@@ -7108,7 +7111,7 @@ export default function DashboardPage() {
                     All-or-nothing: if any row fails, nothing is updated.
                   </p>
                   <p className="mt-1 text-[11px] font-bold text-gray-500">
-                    Required: <span className="font-black">sku</span>. Optional: imsId, brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, dimensions, ratings, bestUsedFor, pros, cons, status.
+                    Required: <span className="font-black">sku</span>. Optional: imsId, brand, description, bookName, pageNumber, application, materialType, finishType, colorName, colorHex, thickness, watt, dimensions, ratings, bestUsedFor, pros, cons, status.
                   </p>
                   {bulkUpdateXlsxFile && (
                     <div className="mt-1 text-[11px] font-bold text-gray-600">
