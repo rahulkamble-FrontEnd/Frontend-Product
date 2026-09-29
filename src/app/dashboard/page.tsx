@@ -158,6 +158,20 @@ function sortFilterValues(values: Set<string>) {
     .sort((a, b) => a.localeCompare(b));
 }
 
+function sortWattOptions(values: string[]): string[] {
+  const numericValue = (value: string) => {
+    const match = value.trim().match(/(\d+(?:\.\d+)?)/);
+    return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+  };
+
+  return [...values].sort((a, b) => {
+    const aNum = numericValue(a);
+    const bNum = numericValue(b);
+    if (aNum !== bNum) return aNum - bNum;
+    return a.localeCompare(b, undefined, { sensitivity: "base" });
+  });
+}
+
 /** JSON array encoding — safer when values contain commas */
 function toJsonMultiFilter(values: string[]) {
   return values.length > 0 ? JSON.stringify(values) : undefined;
@@ -342,6 +356,7 @@ export default function DashboardPage() {
   const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(new Set());
   const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
   const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
+  const [filterWatts, setFilterWatts] = useState<Set<string>>(new Set());
   const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
   const [filterBookNames, setFilterBookNames] = useState<Set<string>>(new Set());
   const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(new Set());
@@ -359,6 +374,7 @@ export default function DashboardPage() {
     finishTypes: string[];
     brands: string[];
     thicknesses: string[];
+    watts: string[];
     colors: string[];
     bookNames: string[];
     materialTypes: string[];
@@ -375,6 +391,7 @@ export default function DashboardPage() {
     finishTypes: [],
     brands: [],
     thicknesses: [],
+    watts: [],
     colors: [],
     bookNames: [],
     materialTypes: [],
@@ -388,6 +405,7 @@ export default function DashboardPage() {
     finishes: string[];
     brands: string[];
     thicknesses: string[];
+    watts: string[];
     colors: string[];
     bookNames: string[];
     materialTypes: string[];
@@ -398,6 +416,7 @@ export default function DashboardPage() {
     finishes: [],
     brands: [],
     thicknesses: [],
+    watts: [],
     colors: [],
     bookNames: [],
     materialTypes: [],
@@ -941,6 +960,7 @@ export default function DashboardPage() {
     finishTypes: string[];
     brands: string[];
     thicknesses: string[];
+    watts: string[];
     colors: string[];
     bookNames: string[];
     materialTypes: string[];
@@ -958,6 +978,7 @@ export default function DashboardPage() {
       f.finishTypes.join(","),
       f.brands.join(","),
       f.thicknesses.join(","),
+      f.watts.join(","),
       f.colors.join(","),
       f.bookNames.join("\u0001"),
       f.materialTypes.join(","),
@@ -977,6 +998,7 @@ export default function DashboardPage() {
       finishTypes: sortFilterValues(filterFinishTypes),
       brands: sortFilterValues(filterBrands),
       thicknesses: sortFilterValues(filterThicknesses),
+      watts: sortWattOptions(Array.from(filterWatts)),
       colors: sortFilterValues(filterColors),
       bookNames: sortFilterValues(filterBookNames),
       materialTypes: sortFilterValues(filterMaterialTypes),
@@ -995,6 +1017,7 @@ export default function DashboardPage() {
       filterFinishTypes,
       filterBrands,
       filterThicknesses,
+      filterWatts,
       filterColors,
       filterBookNames,
       filterMaterialTypes,
@@ -1034,6 +1057,7 @@ export default function DashboardPage() {
     filterFinishTypes,
     filterBrands,
     filterThicknesses,
+    filterWatts,
     filterColors,
     filterBookNames,
     filterMaterialTypes,
@@ -1065,6 +1089,7 @@ export default function DashboardPage() {
         brand: appliedFilters.brands.join(",") || undefined,
         finishType: appliedFilters.finishTypes.join(",") || undefined,
         thickness: appliedFilters.thicknesses.join(",") || undefined,
+        watt: appliedFilters.watts.join(",") || undefined,
         colorName: appliedFilters.colors.join(",") || undefined,
         bookName: toJsonMultiFilter(appliedFilters.bookNames),
         materialType: appliedFilters.materialTypes.join(",") || undefined,
@@ -1112,6 +1137,7 @@ export default function DashboardPage() {
         finishes: res.filters?.finishes ?? [],
         brands: res.filters?.brands ?? [],
         thicknesses: res.filters?.thicknesses ?? [],
+        watts: res.filters?.watts ?? [],
         colors: res.filters?.colors ?? [],
         bookNames: res.filters?.bookNames ?? [],
         materialTypes: res.filters?.materialTypes ?? [],
@@ -1124,6 +1150,7 @@ export default function DashboardPage() {
         finishes: [],
         brands: [],
         thicknesses: [],
+        watts: [],
         colors: [],
         bookNames: [],
         materialTypes: [],
@@ -2656,6 +2683,18 @@ export default function DashboardPage() {
     [productFilterFacets.thicknesses, products, filterThicknesses],
   );
 
+  const availableWattFilters = useMemo(
+    () =>
+      sortWattOptions(
+        buildFilterOptions(
+          productFilterFacets.watts,
+          products.map((product) => product.watt ?? ""),
+          filterWatts,
+        ),
+      ),
+    [productFilterFacets.watts, products, filterWatts],
+  );
+
   const availableColorFilters = useMemo(
     () =>
       buildFilterOptions(
@@ -2727,6 +2766,10 @@ export default function DashboardPage() {
           const thickness = (product.thickness ?? "").trim();
           if (!thickness || !appliedFilters.thicknesses.includes(thickness)) return false;
         }
+        if (appliedFilters.watts.length > 0) {
+          const watt = (product.watt ?? "").trim();
+          if (!watt || !appliedFilters.watts.includes(watt)) return false;
+        }
         if (appliedFilters.colors.length > 0) {
           const color = (product.colorName ?? "").trim();
           if (!color || !appliedFilters.colors.includes(color)) return false;
@@ -2760,6 +2803,7 @@ export default function DashboardPage() {
       appliedFilters.finishTypes,
       appliedFilters.brands,
       appliedFilters.thicknesses,
+      appliedFilters.watts,
       appliedFilters.colors,
       appliedFilters.bookNames,
       appliedFilters.materialTypes,
@@ -4593,6 +4637,27 @@ export default function DashboardPage() {
                               className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
                             />
                             <span className="truncate">{thickness}</span>
+                          </label>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 border-t border-[#cbbca6] pt-4">
+                    <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">Watt</div>
+                    <div className="mt-3 max-h-32 space-y-2 overflow-y-auto pr-1">
+                      {availableWattFilters.length === 0 ? (
+                        <div className="text-xs text-gray-400">No watt options</div>
+                      ) : (
+                        availableWattFilters.map((watt) => (
+                          <label key={watt} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                            <input
+                              type="checkbox"
+                              checked={filterWatts.has(watt)}
+                              onChange={() => toggleSetFilterValue(setFilterWatts, watt)}
+                              className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white accent-[#3d4f67]"
+                            />
+                            <span className="truncate">{watt}</span>
                           </label>
                         ))
                       )}
