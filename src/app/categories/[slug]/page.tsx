@@ -44,6 +44,20 @@ function normalizeSubcategoryName(name: string): string {
   return normalized;
 }
 
+function sortWattOptions(values: string[]): string[] {
+  const numericValue = (value: string) => {
+    const match = value.trim().match(/(\d+(?:\.\d+)?)/);
+    return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+  };
+
+  return [...values].sort((a, b) => {
+    const aNum = numericValue(a);
+    const bNum = numericValue(b);
+    if (aNum !== bNum) return aNum - bNum;
+    return a.localeCompare(b, undefined, { sensitivity: "base" });
+  });
+}
+
 /** S3 object names under `category banner/categories banner/` (must match bucket keys exactly). */
 const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   finishes: "finishes2.webp",
@@ -202,6 +216,7 @@ export default function CategoryProductsPage() {
   const [selectedFinishTypes, setSelectedFinishTypes] = useState<Set<string>>(new Set());
   const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
   const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
+  const [selectedWatts, setSelectedWatts] = useState<Set<string>>(new Set());
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
   const [sortBy, setSortBy] = useState<SortValue>("newest");
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
@@ -235,6 +250,7 @@ export default function CategoryProductsPage() {
       setSelectedFinishTypes(new Set());
       setSelectedColors(new Set());
       setSelectedThicknesses(new Set());
+      setSelectedWatts(new Set());
       setSelectedSubcategoryId("");
 
       try {
@@ -280,6 +296,7 @@ export default function CategoryProductsPage() {
           brand: shouldShowBrand ? setToCsv(selectedBrands) : undefined,
           finishType: setToCsv(selectedFinishTypes),
           thickness: setToCsv(selectedThicknesses),
+          watt: setToCsv(selectedWatts),
           colorName: setToCsv(selectedColors),
           ...sortParamsForValue(sortBy),
         });
@@ -315,6 +332,7 @@ export default function CategoryProductsPage() {
     selectedFinishTypes,
     selectedColors,
     selectedThicknesses,
+    selectedWatts,
     sortBy,
     shouldShowBrand,
   ]);
@@ -384,6 +402,13 @@ export default function CategoryProductsPage() {
     [apiFilters],
   );
 
+  const availableWatts = useMemo(
+    () => sortWattOptions(apiFilters?.watts ?? []),
+    [apiFilters],
+  );
+
+  const isLightingCategory = (category?.slug ?? "").trim().toLowerCase() === "lighting";
+
   const availableFinishTypes = useMemo(
     () => [...(apiFilters?.finishes ?? [])].sort((a, b) => a.localeCompare(b)),
     [apiFilters],
@@ -441,7 +466,8 @@ export default function CategoryProductsPage() {
     selectedBrands.size +
     selectedFinishTypes.size +
     selectedColors.size +
-    selectedThicknesses.size;
+    selectedThicknesses.size +
+    (isLightingCategory ? selectedWatts.size : 0);
   const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
 
   return (
@@ -582,6 +608,39 @@ export default function CategoryProductsPage() {
               )}
             </div>
           </div>
+
+          {isLightingCategory ? (
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+              Watt
+            </div>
+            <div className="mt-4 space-y-3">
+              {availableWatts.length === 0 ? (
+                <div className="text-xs text-gray-400">
+                  {isProductsLoading ? "Loading watt options..." : "No watt options"}
+                </div>
+              ) : (
+                availableWatts.map((watt) => (
+                  <label
+                    key={watt}
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedWatts.has(watt)}
+                      onChange={() => {
+                        setSelectedWatts((prev) => toggleSetValue(prev, watt));
+                        resetProductsPage();
+                      }}
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                    />
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{watt}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+          ) : null}
 
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
@@ -818,7 +877,9 @@ export default function CategoryProductsPage() {
                             }
                           </div>
                           <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                            Thickness: {product.thickness || "-"}
+                            {isLightingCategory
+                              ? `Watt: ${product.watt || "-"}`
+                              : `Thickness: ${product.thickness || "-"}`}
                           </div>
                           <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
                             View Details
