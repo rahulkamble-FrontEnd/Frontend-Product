@@ -1,13 +1,15 @@
 /**
  * Customer-facing product title:
  * - strips leading product-code tokens (digits, alphanumeric SKUs, short ALL-CAPS codes)
- * - appends category serial from slug (e.g. "FN0519")
+ * - appends category serial from slug (e.g. "FN0519") when SHOW_CUSTOMER_CATEGORY_SERIAL is on
  * Admin/other roles should keep showing the raw product name.
  *
  * Examples:
  * - "APM 120 Silver Grey" + slug → "SILVER GREY FN0519"
  * - "1E220 KK Slate Grey" + slug → "SLATE GREY FN0490"
  */
+/** Category serial suffix (FN7111) hidden on customer titles for now. Code kept, not deleted. */
+const SHOW_CUSTOMER_CATEGORY_SERIAL = false;
 function isLeadingProductCodeToken(token: string): boolean {
   const value = token.trim();
   if (!value) return false;
@@ -47,7 +49,9 @@ export function formatCustomerProductTitle(
 
   const slug = (productSlug ?? "").trim();
   const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
-  const code = codeMatch?.[1]?.toUpperCase() ?? "";
+  const code = SHOW_CUSTOMER_CATEGORY_SERIAL
+    ? (codeMatch?.[1]?.toUpperCase() ?? "")
+    : "";
 
   if (!base) return code;
   return code ? `${base} ${code}` : base;
