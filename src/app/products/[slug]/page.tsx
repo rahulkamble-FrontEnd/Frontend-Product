@@ -12,6 +12,7 @@ import {
   getProductBySlug,
   getSimilarProductsByTags,
   updateProduct,
+  uploadProductImages,
   type BlogItem,
   type ProductDetailsResponse,
   type ProductImageUploadResponse,
@@ -165,6 +166,10 @@ export default function ProductDetailsPage() {
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [updateProductMsg, setUpdateProductMsg] = useState("");
   const [updateProductError, setUpdateProductError] = useState("");
+  const [detailImageFiles, setDetailImageFiles] = useState<File[]>([]);
+  const [isUploadingDetailImages, setIsUploadingDetailImages] = useState(false);
+  const [detailImageUploadError, setDetailImageUploadError] = useState("");
+  const [detailImageUploadMsg, setDetailImageUploadMsg] = useState("");
   const [isUpdateOpen, setIsUpdateOpen] = useState(false);
   const [customerNote, setCustomerNote] = useState("");
   const [isCreatingShortlist, setIsCreatingShortlist] = useState(false);
@@ -497,6 +502,36 @@ export default function ProductDetailsPage() {
     }
   };
 
+  const handleDetailImageUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product?.id) return;
+    if (!["admin", "dataadmin"].includes(userRole)) {
+      setDetailImageUploadError("Only admin or dataadmin can upload product images.");
+      return;
+    }
+    if (detailImageFiles.length < 1 || detailImageFiles.length > 3) {
+      setDetailImageUploadError("Please select minimum 1 and maximum 3 images.");
+      return;
+    }
+
+    setIsUploadingDetailImages(true);
+    setDetailImageUploadError("");
+    setDetailImageUploadMsg("");
+    try {
+      const uploaded = await uploadProductImages(product.id, detailImageFiles);
+      setProduct((prev) => (prev ? { ...prev, images: uploaded } : prev));
+      setSelectedImageUrl(pickBestImageUrl(uploaded));
+      setDetailImageFiles([]);
+      setDetailImageUploadMsg(
+        `${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded successfully.`,
+      );
+    } catch (err: unknown) {
+      setDetailImageUploadError(err instanceof Error ? err.message : "Failed to upload image.");
+    } finally {
+      setIsUploadingDetailImages(false);
+    }
+  };
+
   if (!userName) return null;
   const productDisplayTitle =
     userRole === "customer"
@@ -807,6 +842,59 @@ export default function ProductDetailsPage() {
                   )}
                 </div>
               </div>
+
+              {["admin", "dataadmin"].includes(userRole) && images.length === 0 ? (
+                <form
+                  onSubmit={handleDetailImageUpload}
+                  className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm"
+                >
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Upload Product Image
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Product Name</div>
+                    <div className="mt-1 text-sm font-semibold text-[#3f3a33]">{product.name}</div>
+                  </div>
+                  <label className="mt-4 block text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Images (min 1, max 3)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={isUploadingDetailImages}
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        setDetailImageFiles(files);
+                        setDetailImageUploadError("");
+                        setDetailImageUploadMsg("");
+                      }}
+                      className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm"
+                    />
+                  </label>
+                  {detailImageFiles.length > 0 ? (
+                    <div className="mt-2 text-xs font-semibold text-gray-600">
+                      {detailImageFiles.map((file) => file.name).join(", ")}
+                    </div>
+                  ) : null}
+                  {detailImageUploadError ? (
+                    <div className="mt-3 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+                      {detailImageUploadError}
+                    </div>
+                  ) : null}
+                  {detailImageUploadMsg ? (
+                    <div className="mt-3 rounded-lg bg-green-50 p-3 text-xs font-bold text-green-700">
+                      {detailImageUploadMsg}
+                    </div>
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={isUploadingDetailImages || detailImageFiles.length === 0}
+                    className="mt-4 rounded-full bg-[#0468a3] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                  >
+                    {isUploadingDetailImages ? "Uploading..." : "Upload"}
+                  </button>
+                </form>
+              ) : null}
 
               {userRole === "admin" && (
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
