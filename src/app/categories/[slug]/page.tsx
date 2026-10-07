@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CommonStoreHeader from "@/components/common-store-header";
 import {
   getBlogs,
@@ -188,17 +188,41 @@ function sortParamsForValue(sortBy: SortValue) {
   return { sortBy: "createdAt" as const, sortOrder: "desc" as const };
 }
 
-export default function CategoryProductsPage() {
+function csvToSet(value: string | null): Set<string> {
+  if (!value) return new Set();
+  return new Set(
+    value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+  );
+}
+
+function parseSort(value: string | null): SortValue {
+  if (value === "name_asc" || value === "name_desc") return value;
+  return "newest";
+}
+
+function parsePage(value: string | null): number {
+  const page = Number(value);
+  if (!Number.isFinite(page) || page < 1) return 1;
+  return Math.floor(page);
+}
+
+function CategoryProductsPageContent() {
   const params = useParams<{ slug: string }>();
   const slug = typeof params?.slug === "string" ? params.slug : "";
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const listQueryKey = searchParams.toString();
+  const listQuery = useMemo(() => new URLSearchParams(listQueryKey), [listQueryKey]);
 
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [category, setCategory] = useState<CategoryDetails | null>(null);
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productsTotal, setProductsTotal] = useState(0);
-  const [productsPage, setProductsPage] = useState(1);
   const [apiFilters, setApiFilters] = useState<ProductListFilters>({});
   const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
@@ -216,13 +240,14 @@ export default function CategoryProductsPage() {
     });
   };
 
-  const [selectedBrands, setSelectedBrands] = useState<Set<string>>(new Set());
-  const [selectedFinishTypes, setSelectedFinishTypes] = useState<Set<string>>(new Set());
-  const [selectedColors, setSelectedColors] = useState<Set<string>>(new Set());
-  const [selectedThicknesses, setSelectedThicknesses] = useState<Set<string>>(new Set());
-  const [selectedWatts, setSelectedWatts] = useState<Set<string>>(new Set());
-  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
-  const [sortBy, setSortBy] = useState<SortValue>("newest");
+  const selectedBrands = useMemo(() => csvToSet(listQuery.get("brand")), [listQuery]);
+  const selectedFinishTypes = useMemo(() => csvToSet(listQuery.get("finishType")), [listQuery]);
+  const selectedColors = useMemo(() => csvToSet(listQuery.get("colorName")), [listQuery]);
+  const selectedThicknesses = useMemo(() => csvToSet(listQuery.get("thickness")), [listQuery]);
+  const selectedWatts = useMemo(() => csvToSet(listQuery.get("watt")), [listQuery]);
+  const selectedSubcategoryId = listQuery.get("subcategory")?.trim() ?? "";
+  const sortBy = parseSort(listQuery.get("sort"));
+  const productsPage = parsePage(listQuery.get("page"));
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const shouldShowBrand = userRole !== "customer";
@@ -248,14 +273,7 @@ export default function CategoryProductsPage() {
       setCategory(null);
       setProducts([]);
       setProductsTotal(0);
-      setProductsPage(1);
       setApiFilters({});
-      setSelectedBrands(new Set());
-      setSelectedFinishTypes(new Set());
-      setSelectedColors(new Set());
-      setSelectedThicknesses(new Set());
-      setSelectedWatts(new Set());
-      setSelectedSubcategoryId("");
 
       try {
         const categoryData = await getCategoryBySlug(slug);
@@ -462,12 +480,52 @@ export default function CategoryProductsPage() {
     return next;
   };
 
-  const resetProductsPage = () => setProductsPage(1);
+  const replaceListQuery = useCallback(
+    (
+      patch: {
+        brand?: string;
+        finishType?: string;
+        thickness?: string;
+        watt?: string;
+        colorName?: string;
+        subcategory?: string;
+        sort?: SortValue;
+        page?: number;
+      },
+      options?: { resetPage?: boolean },
+    ) => {
+      const params = new URLSearchParams(listQueryKey);
+      const setParam = (key: string, value: string | undefined) => {
+        if (value) params.set(key, value);
+        else params.delete(key);
+      };
+
+      if ("brand" in patch) setParam("brand", patch.brand);
+      if ("finishType" in patch) setParam("finishType", patch.finishType);
+      if ("thickness" in patch) setParam("thickness", patch.thickness);
+      if ("watt" in patch) setParam("watt", patch.watt);
+      if ("colorName" in patch) setParam("colorName", patch.colorName);
+      if ("subcategory" in patch) setParam("subcategory", patch.subcategory);
+      if ("sort" in patch) {
+        setParam("sort", patch.sort && patch.sort !== "newest" ? patch.sort : undefined);
+      }
+      if (options?.resetPage) {
+        params.delete("page");
+      } else if ("page" in patch) {
+        setParam("page", patch.page && patch.page > 1 ? String(patch.page) : undefined);
+      }
+
+      const nextQuery = params.toString();
+      if (nextQuery === listQueryKey) return;
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    },
+    [listQueryKey, pathname, router],
+  );
 
   if (!userName) return null;
 
   const activeFilterCount =
-    selectedBrands.size +
+    (shouldShowBrand ? selectedBrands.size : 0) +
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size +
@@ -534,8 +592,10 @@ export default function CategoryProductsPage() {
                         type="checkbox"
                         checked={selectedBrands.has(brand)}
                         onChange={() => {
-                          setSelectedBrands((prev) => toggleSetValue(prev, brand));
-                          resetProductsPage();
+                          replaceListQuery(
+                            { brand: setToCsv(toggleSetValue(selectedBrands, brand)) },
+                            { resetPage: true },
+                          );
                         }}
                         className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                       />
@@ -566,10 +626,14 @@ export default function CategoryProductsPage() {
                       type="checkbox"
                       checked={selectedFinishTypes.has(finishType)}
                       onChange={() => {
-                        setSelectedFinishTypes((prev) =>
-                          toggleSetValue(prev, finishType),
+                        replaceListQuery(
+                          {
+                            finishType: setToCsv(
+                              toggleSetValue(selectedFinishTypes, finishType),
+                            ),
+                          },
+                          { resetPage: true },
                         );
-                        resetProductsPage();
                       }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
@@ -599,10 +663,14 @@ export default function CategoryProductsPage() {
                       type="checkbox"
                       checked={selectedThicknesses.has(thickness)}
                       onChange={() => {
-                        setSelectedThicknesses((prev) =>
-                          toggleSetValue(prev, thickness),
+                        replaceListQuery(
+                          {
+                            thickness: setToCsv(
+                              toggleSetValue(selectedThicknesses, thickness),
+                            ),
+                          },
+                          { resetPage: true },
                         );
-                        resetProductsPage();
                       }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
@@ -633,8 +701,10 @@ export default function CategoryProductsPage() {
                       type="checkbox"
                       checked={selectedWatts.has(watt)}
                       onChange={() => {
-                        setSelectedWatts((prev) => toggleSetValue(prev, watt));
-                        resetProductsPage();
+                        replaceListQuery(
+                          { watt: setToCsv(toggleSetValue(selectedWatts, watt)) },
+                          { resetPage: true },
+                        );
                       }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
@@ -665,8 +735,10 @@ export default function CategoryProductsPage() {
                       type="checkbox"
                       checked={selectedColors.has(color)}
                       onChange={() => {
-                        setSelectedColors((prev) => toggleSetValue(prev, color));
-                        resetProductsPage();
+                        replaceListQuery(
+                          { colorName: setToCsv(toggleSetValue(selectedColors, color)) },
+                          { resetPage: true },
+                        );
                       }}
                       className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                     />
@@ -720,8 +792,10 @@ export default function CategoryProductsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => {
-                    setSortBy(e.target.value as SortValue);
-                    resetProductsPage();
+                    replaceListQuery(
+                      { sort: e.target.value as SortValue },
+                      { resetPage: true },
+                    );
                   }}
                   className="h-8 w-[122px] rounded-md border border-[#d9cab5] bg-white px-2 text-[10px] font-semibold text-gray-700 sm:h-9 sm:w-auto sm:px-2.5 sm:text-xs"
                 >
@@ -742,8 +816,7 @@ export default function CategoryProductsPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setSelectedSubcategoryId("");
-                    resetProductsPage();
+                    replaceListQuery({ subcategory: undefined }, { resetPage: true });
                   }}
                   className={[
                     "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
@@ -761,8 +834,10 @@ export default function CategoryProductsPage() {
                       key={subcat.id}
                       type="button"
                       onClick={() => {
-                        setSelectedSubcategoryId(subcat.id);
-                        resetProductsPage();
+                        replaceListQuery(
+                          { subcategory: subcat.id },
+                          { resetPage: true },
+                        );
                       }}
                       className={[
                         "shrink-0 rounded-full border px-3 py-1.5 text-[11px] font-black uppercase tracking-wide transition-colors",
@@ -901,7 +976,7 @@ export default function CategoryProductsPage() {
                   <button
                     type="button"
                     disabled={productsPage <= 1 || isProductsLoading}
-                    onClick={() => setProductsPage((page) => Math.max(1, page - 1))}
+                    onClick={() => replaceListQuery({ page: Math.max(1, productsPage - 1) })}
                     className="rounded-full border border-[#d9cab5] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wide text-[#4d2c1e] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
@@ -912,7 +987,11 @@ export default function CategoryProductsPage() {
                   <button
                     type="button"
                     disabled={productsPage >= totalProductPages || isProductsLoading}
-                    onClick={() => setProductsPage((page) => Math.min(totalProductPages, page + 1))}
+                    onClick={() =>
+                      replaceListQuery({
+                        page: Math.min(totalProductPages, productsPage + 1),
+                      })
+                    }
                     className="rounded-full border border-[#d9cab5] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-wide text-[#4d2c1e] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
@@ -999,5 +1078,13 @@ export default function CategoryProductsPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function CategoryProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CategoryProductsPageContent />
+    </Suspense>
   );
 }

@@ -28,6 +28,8 @@ import { RelevantArticleCard } from "@/components/relevant-article-card";
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 /** Product page relevant-articles block. Turn back on when this section should return. */
 const SHOW_PRODUCT_RELEVANT_ARTICLES = false;
+/** Shortlist id, sample status, and created time. Hidden on the customer product page. */
+const SHOW_CUSTOMER_SHORTLIST_DETAILS = false;
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -104,6 +106,10 @@ function isMeaningfulDescription(value: string | null | undefined) {
 function asStringList(value: string[] | null | undefined) {
   if (!Array.isArray(value)) return [];
   return value.map((item) => item.trim()).filter(Boolean);
+}
+
+function hasSpecRating(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 export default function ProductDetailsPage() {
@@ -730,14 +736,30 @@ export default function ProductDetailsPage() {
                       <div className="font-semibold text-[#3f3a33]">{product.watt}</div>
                     </>
                   ) : null}
-                  <div className="text-[#968e84]">Performance</div>
-                  <div className="font-semibold text-[#3f3a33]">{String(product.performanceRating ?? 0)}</div>
-                  <div className="text-[#968e84]">Durability</div>
-                  <div className="font-semibold text-[#3f3a33]">{String(product.durabilityRating ?? 0)}</div>
-                  <div className="text-[#968e84]">Maintenance</div>
-                  <div className="font-semibold text-[#3f3a33]">{String(product.maintenanceRating ?? 0)}</div>
-                  <div className="text-[#968e84]">Price Category</div>
-                  <div className="font-semibold text-[#3f3a33]">{String(product.priceCategory ?? 0)}</div>
+                  {hasSpecRating(product.performanceRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Performance</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.performanceRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.durabilityRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Durability</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.durabilityRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.maintenanceRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Maintenance</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.maintenanceRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.priceCategory) ? (
+                    <>
+                      <div className="text-[#968e84]">Price Category</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.priceCategory}</div>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -800,13 +822,13 @@ export default function ProductDetailsPage() {
                       placeholder="For kitchen shutters"
                       className="mt-2 block w-full rounded-xl border border-gray-200 bg-[#F8F0E4] px-4 py-3 text-sm shadow-inner min-h-[100px]"
                     />
-                    {shortlistItem && (
+                    {SHOW_CUSTOMER_SHORTLIST_DETAILS && shortlistItem ? (
                       <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
                         <div><span className="font-bold text-gray-900">Shortlist ID:</span> {shortlistItem.id}</div>
                         <div><span className="font-bold text-gray-900">Sample Status:</span> {shortlistItem.sampleStatus}</div>
                         <div><span className="font-bold text-gray-900">Created At:</span> {new Date(shortlistItem.createdAt).toLocaleString()}</div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </>
               )}

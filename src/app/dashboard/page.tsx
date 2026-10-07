@@ -1,8 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
 import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import {
@@ -177,11 +177,79 @@ function toJsonMultiFilter(values: string[]) {
   return values.length > 0 ? JSON.stringify(values) : undefined;
 }
 
+const DASHBOARD_PAGE_LIMITS = [10, 20, 50, 100, 300, 400];
+
+type DashboardListQuery = {
+  status: "" | "active" | "draft" | "archived";
+  categoryType: "" | "material" | "furniture";
+  parentId: string;
+  categoryId: string;
+  q: string;
+  finishTypes: string[];
+  brands: string[];
+  thicknesses: string[];
+  watts: string[];
+  colors: string[];
+  bookNames: string[];
+  materialTypes: string[];
+  dimensions: string[];
+  applications: string[];
+  descriptionPresence: "any" | "with" | "without";
+  includeImages: boolean;
+  includeCategories: boolean;
+  page: number;
+  limit: number;
+};
+
+function readMultiParam(params: URLSearchParams, key: string) {
+  return params
+    .getAll(key)
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function readDashboardListQuery(params: URLSearchParams): DashboardListQuery {
+  const statusRaw = params.get("status");
+  const typeRaw = params.get("type");
+  const descriptionRaw = params.get("description");
+  const page = Math.floor(Number(params.get("page")));
+  const limitRaw = Math.floor(Number(params.get("limit")));
+  return {
+    status: statusRaw === "active" || statusRaw === "draft" || statusRaw === "archived" ? statusRaw : "",
+    categoryType: typeRaw === "material" || typeRaw === "furniture" ? typeRaw : "",
+    parentId: params.get("parent")?.trim() ?? "",
+    categoryId: params.get("category")?.trim() ?? "",
+    q: params.get("q")?.trim() ?? "",
+    finishTypes: sortFilterValues(new Set(readMultiParam(params, "finishType"))),
+    brands: sortFilterValues(new Set(readMultiParam(params, "brand"))),
+    thicknesses: sortFilterValues(new Set(readMultiParam(params, "thickness"))),
+    watts: sortWattOptions(readMultiParam(params, "watt")),
+    colors: sortFilterValues(new Set(readMultiParam(params, "colorName"))),
+    bookNames: sortFilterValues(new Set(readMultiParam(params, "bookName"))),
+    materialTypes: sortFilterValues(new Set(readMultiParam(params, "materialType"))),
+    dimensions: sortFilterValues(new Set(readMultiParam(params, "dimensions"))),
+    applications: sortFilterValues(new Set(readMultiParam(params, "application"))),
+    descriptionPresence:
+      descriptionRaw === "with" || descriptionRaw === "without" ? descriptionRaw : "any",
+    includeImages: params.get("images") !== "0",
+    includeCategories: params.get("categories") === "1",
+    page: Number.isFinite(page) && page > 1 ? page : 1,
+    limit: DASHBOARD_PAGE_LIMITS.includes(limitRaw) ? limitRaw : 20,
+  };
+}
+
 const PRODUCT_UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export default function DashboardPage() {
+function DashboardPageContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const initialListQueryRef = useRef<DashboardListQuery | null>(null);
+  if (initialListQueryRef.current === null) {
+    initialListQueryRef.current = readDashboardListQuery(searchParams);
+  }
+  const initialListQuery = initialListQueryRef.current;
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const canManageProductData = userRole === "admin" || userRole === "dataadmin";
@@ -340,31 +408,55 @@ export default function DashboardPage() {
 
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productsTotal, setProductsTotal] = useState(0);
-  const [productsPage, setProductsPage] = useState(1);
-  const [productsLimit, setProductsLimit] = useState(20);
+  const [productsPage, setProductsPage] = useState(initialListQuery.page);
+  const [productsLimit, setProductsLimit] = useState(initialListQuery.limit);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [productsError, setProductsError] = useState("");
   const [latestProducts, setLatestProducts] = useState<ProductListItem[]>([]);
   const [isLoadingLatestProducts, setIsLoadingLatestProducts] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">("");
-  const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">("");
-  const [filterCategoryId, setFilterCategoryId] = useState("");
-  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState("");
-  const [filterQ, setFilterQ] = useState("");
-  const [filterIncludeImages, setFilterIncludeImages] = useState(true);
-  const [filterIncludeCategories, setFilterIncludeCategories] = useState(false);
-  const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(new Set());
-  const [filterBrands, setFilterBrands] = useState<Set<string>>(new Set());
-  const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(new Set());
-  const [filterWatts, setFilterWatts] = useState<Set<string>>(new Set());
-  const [filterColors, setFilterColors] = useState<Set<string>>(new Set());
-  const [filterBookNames, setFilterBookNames] = useState<Set<string>>(new Set());
-  const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(new Set());
-  const [filterDimensions, setFilterDimensions] = useState<Set<string>>(new Set());
-  const [filterApplications, setFilterApplications] = useState<Set<string>>(new Set());
+  const [filterStatus, setFilterStatus] = useState<"" | "active" | "draft" | "archived">(
+    initialListQuery.status,
+  );
+  const [filterCategoryType, setFilterCategoryType] = useState<"" | "material" | "furniture">(
+    initialListQuery.categoryType,
+  );
+  const [filterCategoryId, setFilterCategoryId] = useState(initialListQuery.categoryId);
+  const [selectedParentCategoryId, setSelectedParentCategoryId] = useState(initialListQuery.parentId);
+  const [filterQ, setFilterQ] = useState(initialListQuery.q);
+  const [filterIncludeImages, setFilterIncludeImages] = useState(initialListQuery.includeImages);
+  const [filterIncludeCategories, setFilterIncludeCategories] = useState(
+    initialListQuery.includeCategories,
+  );
+  const [filterFinishTypes, setFilterFinishTypes] = useState<Set<string>>(
+    () => new Set(initialListQuery.finishTypes),
+  );
+  const [filterBrands, setFilterBrands] = useState<Set<string>>(
+    () => new Set(initialListQuery.brands),
+  );
+  const [filterThicknesses, setFilterThicknesses] = useState<Set<string>>(
+    () => new Set(initialListQuery.thicknesses),
+  );
+  const [filterWatts, setFilterWatts] = useState<Set<string>>(
+    () => new Set(initialListQuery.watts),
+  );
+  const [filterColors, setFilterColors] = useState<Set<string>>(
+    () => new Set(initialListQuery.colors),
+  );
+  const [filterBookNames, setFilterBookNames] = useState<Set<string>>(
+    () => new Set(initialListQuery.bookNames),
+  );
+  const [filterMaterialTypes, setFilterMaterialTypes] = useState<Set<string>>(
+    () => new Set(initialListQuery.materialTypes),
+  );
+  const [filterDimensions, setFilterDimensions] = useState<Set<string>>(
+    () => new Set(initialListQuery.dimensions),
+  );
+  const [filterApplications, setFilterApplications] = useState<Set<string>>(
+    () => new Set(initialListQuery.applications),
+  );
   const [filterDescriptionPresence, setFilterDescriptionPresence] = useState<
     "any" | "with" | "without"
-  >("any");
+  >(initialListQuery.descriptionPresence);
   const [isMobileProductFiltersOpen, setIsMobileProductFiltersOpen] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<{
     status?: "" | "active" | "draft" | "archived";
@@ -384,22 +476,22 @@ export default function DashboardPage() {
     includeImages: boolean;
     includeCategories: boolean;
   }>({
-    status: "",
-    categoryType: "",
-    categoryId: "",
-    q: "",
-    finishTypes: [],
-    brands: [],
-    thicknesses: [],
-    watts: [],
-    colors: [],
-    bookNames: [],
-    materialTypes: [],
-    dimensions: [],
-    applications: [],
-    descriptionPresence: "any",
-    includeImages: true,
-    includeCategories: false
+    status: initialListQuery.status,
+    categoryType: initialListQuery.categoryType,
+    categoryId: initialListQuery.categoryId || initialListQuery.parentId,
+    q: initialListQuery.q,
+    finishTypes: initialListQuery.finishTypes,
+    brands: initialListQuery.brands,
+    thicknesses: initialListQuery.thicknesses,
+    watts: initialListQuery.watts,
+    colors: initialListQuery.colors,
+    bookNames: initialListQuery.bookNames,
+    materialTypes: initialListQuery.materialTypes,
+    dimensions: initialListQuery.dimensions,
+    applications: initialListQuery.applications,
+    descriptionPresence: initialListQuery.descriptionPresence,
+    includeImages: initialListQuery.includeImages,
+    includeCategories: initialListQuery.includeCategories,
   });
   const [productFilterFacets, setProductFilterFacets] = useState<{
     finishes: string[];
@@ -1074,6 +1166,47 @@ export default function DashboardPage() {
     setProductsPage(1);
     setAppliedFilters(next);
   }, [selectedParentCategoryId, appliedFilters, buildAppliedFilters]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    const appendAll = (key: string, values: string[]) => {
+      for (const value of values) params.append(key, value);
+    };
+    if (appliedFilters.q) params.set("q", appliedFilters.q);
+    if (appliedFilters.status) params.set("status", appliedFilters.status);
+    if (appliedFilters.categoryType) params.set("type", appliedFilters.categoryType);
+    if (selectedParentCategoryId) params.set("parent", selectedParentCategoryId);
+    if (filterCategoryId) params.set("category", filterCategoryId);
+    appendAll("finishType", appliedFilters.finishTypes);
+    appendAll("brand", appliedFilters.brands);
+    appendAll("thickness", appliedFilters.thicknesses);
+    appendAll("watt", appliedFilters.watts);
+    appendAll("colorName", appliedFilters.colors);
+    appendAll("bookName", appliedFilters.bookNames);
+    appendAll("materialType", appliedFilters.materialTypes);
+    appendAll("dimensions", appliedFilters.dimensions);
+    appendAll("application", appliedFilters.applications);
+    if (appliedFilters.descriptionPresence !== "any") {
+      params.set("description", appliedFilters.descriptionPresence);
+    }
+    if (!appliedFilters.includeImages) params.set("images", "0");
+    if (appliedFilters.includeCategories) params.set("categories", "1");
+    if (productsPage > 1) params.set("page", String(productsPage));
+    if (productsLimit !== 20) params.set("limit", String(productsLimit));
+
+    const next = params.toString();
+    if (next === searchParams.toString()) return;
+    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
+  }, [
+    appliedFilters,
+    filterCategoryId,
+    pathname,
+    productsLimit,
+    productsPage,
+    router,
+    searchParams,
+    selectedParentCategoryId,
+  ]);
 
   const loadProducts = useCallback(async () => {
     setIsLoadingProducts(true);
@@ -7257,5 +7390,13 @@ export default function DashboardPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }
