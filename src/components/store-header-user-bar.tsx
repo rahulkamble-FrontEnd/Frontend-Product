@@ -10,6 +10,7 @@ import {
   markNotificationAsRead,
   type NotificationItem,
 } from "@/lib/api";
+import { WishlistHeaderButton } from "@/components/wishlist-provider";
 
 const NOTIFICATION_ROLES = new Set(["customer", "designer", "admin", "blogadmin"]);
 
@@ -145,7 +146,7 @@ export default function StoreHeaderUserBar({
       if (!target) return;
       if (target.startsWith("/shortlist/")) {
         if (userRole === "customer") {
-          router.push("/dashboard?shortlist=1");
+          router.push("/shortlist");
         } else {
           router.push("/dashboard");
         }
@@ -178,14 +179,14 @@ export default function StoreHeaderUserBar({
 
   const goToShortlist = () => {
     if (userRole === "customer") {
-      router.push("/dashboard?shortlist=1");
+      router.push("/shortlist");
     } else {
       router.push("/dashboard");
     }
   };
 
   return (
-    <div className="flex items-center gap-2 sm:gap-4">
+    <div className="flex items-center gap-1.5 sm:gap-4">
       {NOTIFICATION_ROLES.has(userRole) && (
         <div className="relative">
           <button
@@ -274,6 +275,7 @@ export default function StoreHeaderUserBar({
         </div>
       )}
 
+      <WishlistHeaderButton />
       <button
         type="button"
         onClick={(e) => {

@@ -4,7 +4,7 @@ import Image from "next/image";
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
-import { formatCustomerProductTitle } from "@/lib/product-display-name";
+import { WishlistHeaderButton } from "@/components/wishlist-provider";
 import {
   logout,
   createUser,
@@ -17,7 +17,6 @@ import {
   linkProductTag,
   unlinkProductTag,
   getProducts,
-  getProductsCompare,
   getDesignCfEntries,
   getBlogs,
   getTags,
@@ -26,9 +25,6 @@ import {
   updateProductStatus,
   getCategoryMenu,
   getShortlist,
-  requestShortlistSample,
-  updateShortlistNote,
-  deleteShortlist,
   getDesignerCustomers,
   getDesignerCustomerDetails,
   createDesignerNote,
@@ -45,7 +41,6 @@ import {
   type DesignerCustomerDetailResponse,
   type ProductImageUploadResponse,
   type ProductListItem,
-  type ProductCompareResponse,
   type ShortlistItem,
   type UpdateDesignerSamplePayload,
   type NotificationItem,
@@ -257,7 +252,6 @@ function DashboardPageContent() {
   const canViewBlogsNav = userRole !== "dataadmin";
   const canManageCategoryMasters = userRole === "admin" || userRole === "dataadmin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isShortlistOpen, setIsShortlistOpen] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
   const [isCategoriesMenuOpen, setIsCategoriesMenuOpen] = useState(false);
   const [isManageCFMenuOpen, setIsManageCFMenuOpen] = useState(false);
@@ -275,6 +269,7 @@ function DashboardPageContent() {
   const [activeDesignPreview, setActiveDesignPreview] = useState<{
     imageUrl: string;
     label: string;
+    index: number;
   } | null>(null);
   const [latestBlogs, setLatestBlogs] = useState<BlogItem[]>([]);
   const [isLoadingLatestBlogs, setIsLoadingLatestBlogs] = useState(false);
@@ -517,10 +512,6 @@ function DashboardPageContent() {
     descriptions: [],
   });
 
-  const [isCompareOpen, setIsCompareOpen] = useState(false);
-  const [isComparing, setIsComparing] = useState(false);
-  const [compareError, setCompareError] = useState("");
-  const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
   const [isDeletingProduct, setIsDeletingProduct] = useState(false);
   const [deleteProductMsg, setDeleteProductMsg] = useState("");
   const [deleteProductError, setDeleteProductError] = useState("");
@@ -542,14 +533,6 @@ function DashboardPageContent() {
   const [bulkEditMsg, setBulkEditMsg] = useState("");
   const [bulkEditError, setBulkEditError] = useState("");
   const [shortlistItems, setShortlistItems] = useState<ShortlistItem[]>([]);
-  const [shortlistCompareSelectedIds, setShortlistCompareSelectedIds] = useState<Set<string>>(new Set());
-  const [isLoadingShortlist, setIsLoadingShortlist] = useState(false);
-  const [shortlistError, setShortlistError] = useState("");
-  const [shortlistMsg, setShortlistMsg] = useState("");
-  const [requestingSampleId, setRequestingSampleId] = useState<string | null>(null);
-  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
-  const [deletingShortlistId, setDeletingShortlistId] = useState<string | null>(null);
-  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [designerCustomers, setDesignerCustomers] = useState<DesignerCustomer[]>([]);
   const [isLoadingDesignerCustomers, setIsLoadingDesignerCustomers] = useState(false);
   const [designerCustomersError, setDesignerCustomersError] = useState("");
@@ -582,10 +565,6 @@ function DashboardPageContent() {
     if (clean.startsWith("http://") || clean.startsWith("https://")) return clean;
     return `${PRODUCT_IMAGE_BASE_URL}/${clean.replace(/^\/+/, "")}`;
   };
-  const isInteractiveTarget = (target: EventTarget | null) =>
-    target instanceof HTMLElement &&
-    Boolean(target.closest("button, textarea, input, select, a"));
-
   const generateSkuFromName = (name: string) =>
     name
       .trim()
@@ -600,11 +579,6 @@ function DashboardPageContent() {
       .replace(/\s+/g, " ")
       .toLowerCase()
       .replace(/\b[a-z]/g, (char) => char.toUpperCase());
-
-  const formatCustomerProductDisplayTitle = (
-    name: string | null | undefined,
-    productSlug: string | null | undefined,
-  ) => formatCustomerProductTitle(name, productSlug);
 
   const truncateText = (value: string, maxChars: number) => {
     const normalized = value.trim();
@@ -675,18 +649,6 @@ function DashboardPageContent() {
     );
   };
 
-  const getProductLabelForNote = (productId?: string | null) => {
-    const id = typeof productId === "string" ? productId.trim() : "";
-    if (!id || !designerCustomerDetails) return null;
-    const shortlistItem = designerCustomerDetails.shortlist.find((item) => item.productId === id);
-    const product = shortlistItem?.product ?? null;
-    if (!product) {
-      const dashboardProduct = products.find((item) => item.id === id);
-      return dashboardProduct ? [dashboardProduct.name, dashboardProduct.sku].filter(Boolean).join(" • ") : id;
-    }
-    return [product.name, product.sku].filter(Boolean).join(" • ");
-  };
-
   const dashboardShellClass = "mx-auto w-full max-w-[1680px] px-4 sm:px-6 lg:px-8 2xl:px-10";
   const unreadNotificationsCount = notifications.filter((item) => !item.isRead).length;
   const totalDesignerRecommendations = designerCustomerDetails
@@ -708,7 +670,6 @@ function DashboardPageContent() {
     });
   };
 
-  const shortlistCompareSelectedList = Array.from(shortlistCompareSelectedIds);
   const bulkTagSelectedList = Array.from(bulkTagSelectedIds);
   const latestProductCards: Array<ProductListItem | null> = [
     ...latestProducts.slice(0, 8),
@@ -718,6 +679,24 @@ function DashboardPageContent() {
     ...designCfEntries.slice(0, 14),
     ...Array.from({ length: Math.max(0, 14 - designCfEntries.length) }, () => null),
   ].slice(0, 14);
+  const showcaseLabels = [
+    "Bed Room Design",
+    "Kitchen Design",
+    "Living Room Design",
+    "Dining Room Design",
+    "Puja Room Design",
+    "Balcony Design",
+    "Guest Room Design",
+    "Study Room Design",
+  ] as const;
+  const previewForShowcaseIndex = (idx: number) => {
+    const count = showcaseDesignCards.length;
+    const safeIndex = count === 0 ? 0 : ((idx % count) + count) % count;
+    const product = showcaseDesignCards[safeIndex];
+    const imageUrl = product?.coverImageUrl || CATEGORY_TILE_IMAGES[safeIndex % CATEGORY_TILE_IMAGES.length];
+    const label = (product?.title || showcaseLabels[safeIndex] || "Design").trim();
+    return { imageUrl, label, index: safeIndex };
+  };
   useEffect(() => {
     const preloadUrls = showcaseDesignCards
       .map((product, idx) => product?.coverImageUrl || CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length])
@@ -731,63 +710,29 @@ function DashboardPageContent() {
     });
   }, [showcaseDesignCards]);
 
-  const openCompareByIds = async (ids: string[]) => {
-    const uniqueIds = Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
-    if (uniqueIds.length < 2) {
-      setCompareError("Please select at least 2 products to compare.");
-      return;
-    }
-    if (uniqueIds.length > 4) {
-      setCompareError("You can compare maximum 4 products.");
-      return;
-    }
+  const previewForShowcaseIndexRef = useRef(previewForShowcaseIndex);
+  previewForShowcaseIndexRef.current = previewForShowcaseIndex;
 
-    setCompareError("");
-    setIsCompareOpen(true);
-    setIsComparing(true);
-    setCompareData(null);
-    try {
-      const data = await getProductsCompare(uniqueIds);
-      setCompareData(data);
-    } catch (err: unknown) {
-      setCompareError(err instanceof Error ? err.message : "Failed to compare products.");
-    } finally {
-      setIsComparing(false);
-    }
-  };
-
-  const isSelectedForShortlistCompare = (productId: string) =>
-    shortlistCompareSelectedIds.has(productId);
-
-  const toggleShortlistCompareSelection = (productId: string) => {
-    setShortlistError("");
-    setCompareError("");
-    setShortlistCompareSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(productId)) {
-        next.delete(productId);
-        return next;
+  useEffect(() => {
+    if (!activeDesignPreview) return;
+    const previewIndex = activeDesignPreview.index;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setActiveDesignPreview(null);
+        return;
       }
-      if (next.size >= 4) {
-        setShortlistError("You can compare maximum 4 products.");
-        return next;
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        setActiveDesignPreview(previewForShowcaseIndexRef.current(previewIndex - 1));
       }
-      next.add(productId);
-      return next;
-    });
-  };
-
-  const clearShortlistCompareSelection = () => {
-    setShortlistCompareSelectedIds(new Set());
-    setShortlistError("");
-    setCompareError("");
-    setCompareData(null);
-  };
-
-  const openShortlistCompare = async () => {
-    setIsShortlistOpen(false);
-    await openCompareByIds(shortlistCompareSelectedList);
-  };
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        setActiveDesignPreview(previewForShowcaseIndexRef.current(previewIndex + 1));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeDesignPreview]);
 
   const isSelectedForBulkTag = (id: string) => bulkTagSelectedIds.has(id);
 
@@ -1351,6 +1296,12 @@ function DashboardPageContent() {
   }, []);
 
   useEffect(() => {
+    if (userRole === "customer" && searchParams.get("shortlist") === "1") {
+      router.replace("/shortlist");
+    }
+  }, [userRole, searchParams, router]);
+
+  useEffect(() => {
     const storedName = localStorage.getItem("userName");
     const storedRole = localStorage.getItem("userRole");
     if (storedName) {
@@ -1364,7 +1315,6 @@ function DashboardPageContent() {
 
   useEffect(() => {
     const close = () => {
-      setIsShortlistOpen(false);
       setIsUsersMenuOpen(false);
       setIsCategoriesMenuOpen(false);
       setIsManageCFMenuOpen(false);
@@ -1407,50 +1357,23 @@ function DashboardPageContent() {
   useEffect(() => {
     if (userRole !== "customer") {
       setShortlistItems([]);
-      setShortlistCompareSelectedIds(new Set());
-      setShortlistError("");
-      setShortlistMsg("");
-      setNoteDrafts({});
-      setSavingNoteId(null);
-      setIsLoadingShortlist(false);
       return;
     }
 
+    let cancelled = false;
     const loadShortlist = async () => {
-      setIsLoadingShortlist(true);
-      setShortlistError("");
       try {
         const items = await getShortlist();
-        const shortlist = Array.isArray(items) ? items : [];
-        setShortlistItems(shortlist);
-        const shortlistProductIds = new Set(
-          shortlist
-            .map((item) => item.productId?.trim())
-            .filter((id): id is string => Boolean(id))
-        );
-        setShortlistCompareSelectedIds((prev) => {
-          const next = new Set<string>();
-          prev.forEach((id) => {
-            if (shortlistProductIds.has(id)) next.add(id);
-          });
-          return next;
-        });
-        setNoteDrafts(
-          shortlist.reduce<Record<string, string>>((acc, item) => {
-            acc[item.id] = item.customerNote || "";
-            return acc;
-          }, {})
-        );
-      } catch (err: unknown) {
-        setShortlistError(err instanceof Error ? err.message : "Failed to fetch shortlist.");
-        setShortlistItems([]);
-        setNoteDrafts({});
-      } finally {
-        setIsLoadingShortlist(false);
+        if (!cancelled) setShortlistItems(Array.isArray(items) ? items : []);
+      } catch {
+        if (!cancelled) setShortlistItems([]);
       }
     };
 
     loadShortlist();
+    return () => {
+      cancelled = true;
+    };
   }, [userRole]);
 
   useEffect(() => {
@@ -1541,9 +1464,10 @@ function DashboardPageContent() {
     if (!target) return;
     if (target.startsWith("/shortlist/")) {
       if (userRole === "customer") {
-        setIsShortlistOpen(true);
+        router.push("/shortlist");
+      } else {
+        router.push("/dashboard");
       }
-      router.push("/dashboard");
       return;
     }
     if (target.startsWith("http://") || target.startsWith("https://")) {
@@ -1566,120 +1490,6 @@ function DashboardPageContent() {
       setNotificationsError(err instanceof Error ? err.message : "Failed to mark all notifications as read.");
     } finally {
       setIsMarkingAllNotificationsRead(false);
-    }
-  };
-
-  const handleRequestSample = async (shortlistId: string) => {
-    setShortlistError("");
-    setShortlistMsg("");
-    if (userRole !== "customer") {
-      setShortlistError("Only customer can request a physical sample.");
-      return;
-    }
-    const id = shortlistId.trim();
-    if (!id) {
-      setShortlistError("Shortlist id is required.");
-      return;
-    }
-
-    setRequestingSampleId(id);
-    try {
-      const updated = await requestShortlistSample(id);
-      setShortlistItems((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                sampleRequested: updated.sampleRequested,
-                sampleRequestedAt: updated.sampleRequestedAt,
-                sampleStatus: updated.sampleStatus,
-              }
-            : item
-        )
-      );
-      setShortlistMsg("Physical sample requested successfully.");
-    } catch (err: unknown) {
-      setShortlistError(err instanceof Error ? err.message : "Failed to request physical sample.");
-    } finally {
-      setRequestingSampleId(null);
-    }
-  };
-
-  const handleUpdateShortlistNote = async (shortlistId: string) => {
-    setShortlistError("");
-    setShortlistMsg("");
-    if (userRole !== "customer") {
-      setShortlistError("Only customer can update shortlist note.");
-      return;
-    }
-    const id = shortlistId.trim();
-    if (!id) {
-      setShortlistError("Shortlist id is required.");
-      return;
-    }
-    const customerNote = (noteDrafts[id] ?? "").trim();
-
-    setSavingNoteId(id);
-    try {
-      const updated = await updateShortlistNote(id, { customerNote });
-      setShortlistItems((prev) =>
-        prev.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                customerNote: updated.customerNote,
-              }
-            : item
-        )
-      );
-      setNoteDrafts((prev) => ({ ...prev, [id]: updated.customerNote || "" }));
-      setShortlistMsg("Shortlist note updated successfully.");
-    } catch (err: unknown) {
-      setShortlistError(err instanceof Error ? err.message : "Failed to update shortlist note.");
-    } finally {
-      setSavingNoteId(null);
-    }
-  };
-
-  const handleDeleteShortlist = async (shortlistId: string) => {
-    setShortlistError("");
-    setShortlistMsg("");
-    if (userRole !== "customer") {
-      setShortlistError("Only customer can remove shortlist items.");
-      return;
-    }
-    const id = shortlistId.trim();
-    if (!id) {
-      setShortlistError("Shortlist id is required.");
-      return;
-    }
-    const ok = window.confirm("Remove this item from shortlist?");
-    if (!ok) return;
-
-    setDeletingShortlistId(id);
-    try {
-      const result = await deleteShortlist(id);
-      setShortlistItems((prev) => {
-        const deletedItem = prev.find((item) => item.id === id);
-        if (deletedItem?.productId) {
-          setShortlistCompareSelectedIds((selectedPrev) => {
-            const next = new Set(selectedPrev);
-            next.delete(deletedItem.productId);
-            return next;
-          });
-        }
-        return prev.filter((item) => item.id !== id);
-      });
-      setNoteDrafts((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
-      setShortlistMsg(result.message || "Removed from shortlist.");
-    } catch (err: unknown) {
-      setShortlistError(err instanceof Error ? err.message : "Failed to remove shortlist item.");
-    } finally {
-      setDeletingShortlistId(null);
     }
   };
 
@@ -3455,12 +3265,13 @@ function DashboardPageContent() {
                 </div>
               )}
             </div>
+            <WishlistHeaderButton />
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 if (userRole !== "customer") return;
-                setIsShortlistOpen((v) => !v);
+                router.push("/shortlist");
               }}
               className="relative"
               aria-label="Open shortlist"
@@ -4093,29 +3904,16 @@ function DashboardPageContent() {
             ))
           ) : (
           showcaseDesignCards.map((product, idx) => {
-            const imageUrl = CATEGORY_TILE_IMAGES[idx % CATEGORY_TILE_IMAGES.length];
-            const showcaseLabels = [
-              "Bed Room Design",
-              "Kitchen Design",
-              "Living Room Design",
-              "Dining Room Design",
-              "Puja Room Design",
-              "Balcony Design",
-              "Guest Room Design",
-              "Study Room Design",
-            ] as const;
-            const label = (product?.title || showcaseLabels[idx] || "Design").trim();
-            const cardImageUrl = product?.coverImageUrl || imageUrl;
+            const preview = previewForShowcaseIndex(idx);
+            const label = preview.label;
+            const cardImageUrl = preview.imageUrl;
 
             return (
               <article
                 key={product?.id ?? `cf-design-${idx}`}
                 className="h-[230px] w-[170px] flex-shrink-0 cursor-pointer overflow-hidden rounded-[20px] bg-[#585858] shadow-[0_6px_14px_rgba(0,0,0,0.18)] sm:h-[320px] sm:w-[248px] sm:rounded-[28px]"
                 onClick={() => {
-                  setActiveDesignPreview({
-                    imageUrl: cardImageUrl,
-                    label,
-                  });
+                  setActiveDesignPreview(preview);
                 }}
               >
                 <div className="relative h-full w-full overflow-hidden rounded-[20px] bg-[#eadfcf] sm:rounded-[28px]">
@@ -4137,7 +3935,7 @@ function DashboardPageContent() {
           {[
             {
               title: "Wide Product Range",
-              subtitle: "Explore 10,000+ interior materials across categories",
+              subtitle: "Explore 1000+ interior materials across categories",
               icon: "list",
             },
             {
@@ -4308,6 +4106,14 @@ function DashboardPageContent() {
             if (event.key === "Escape") {
               setActiveDesignPreview(null);
             }
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              setActiveDesignPreview(previewForShowcaseIndex(activeDesignPreview.index - 1));
+            }
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              setActiveDesignPreview(previewForShowcaseIndex(activeDesignPreview.index + 1));
+            }
           }}
         >
           <div
@@ -4322,6 +4128,26 @@ function DashboardPageContent() {
             >
               ×
             </button>
+            {showcaseDesignCards.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveDesignPreview(previewForShowcaseIndex(activeDesignPreview.index - 1))}
+                  className="absolute left-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[#9f7a47] text-white shadow-md transition hover:bg-[#8A6A3A] sm:left-5 sm:h-12 sm:w-12"
+                  aria-label="Previous design"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDesignPreview(previewForShowcaseIndex(activeDesignPreview.index + 1))}
+                  className="absolute right-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-[#9f7a47] text-white shadow-md transition hover:bg-[#8A6A3A] sm:right-5 sm:h-12 sm:w-12"
+                  aria-label="Next design"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </>
+            ) : null}
             <div className="relative h-[55vh] w-full overflow-hidden rounded-xl bg-[#eadfcf] sm:h-[78vh]">
               <Image
                 src={activeDesignPreview.imageUrl}
@@ -5299,329 +5125,6 @@ function DashboardPageContent() {
         </section>
       )}
 
-      {userRole === "customer" && isShortlistOpen && (
-        <div
-          className="fixed inset-0 z-[140] bg-black/40 backdrop-blur-sm"
-          onClick={() => setIsShortlistOpen(false)}
-        >
-          <div
-            className="absolute right-1/2 top-16 h-[calc(100vh-5rem)] w-[min(92vw,22rem)] translate-x-1/2 overflow-hidden rounded-2xl bg-white shadow-2xl sm:right-4 sm:top-20 sm:h-[calc(100vh-6rem)] sm:w-[min(28rem,calc(100vw-2rem))] sm:translate-x-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
-              <div>
-                <h3 className="text-base font-black uppercase tracking-tight text-black sm:text-lg">My Shortlist</h3>
-                <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 sm:text-[11px] sm:tracking-widest">
-                  {shortlistItems.length} Saved
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsShortlistOpen(false)}
-                className="text-gray-400 hover:text-black"
-                aria-label="Close shortlist"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </button>
-            </div>
-
-            <div className="h-[calc(100%-4.25rem)] overflow-y-auto p-3 sm:h-[calc(100%-4.5rem)] sm:p-4">
-              {shortlistMsg && (
-                <div className="mb-4 rounded-lg bg-green-50 p-3 text-center text-xs font-bold text-green-600">
-                  {shortlistMsg}
-                </div>
-              )}
-              {shortlistError && (
-                <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">
-                  {shortlistError}
-                </div>
-              )}
-
-              <div className="space-y-3 sm:space-y-4">
-                <div className="rounded-xl border border-gray-100 bg-white p-2.5 shadow-sm sm:rounded-2xl sm:p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-[10px] font-black uppercase tracking-[0.1em] text-gray-500 sm:text-[11px] sm:tracking-widest">
-                      Compare: {shortlistCompareSelectedList.length}/4 selected
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={shortlistCompareSelectedList.length < 2 || isComparing}
-                        onClick={openShortlistCompare}
-                        className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
-                      >
-                        {isComparing ? "Comparing..." : "Compare"}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={shortlistCompareSelectedList.length === 0}
-                        onClick={clearShortlistCompareSelection}
-                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 shadow-sm disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {isLoadingShortlist ? (
-                  Array.from({ length: 3 }).map((_, idx) => (
-                    <div key={idx} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                      <div className="aspect-[4/3] w-full bg-white" />
-                      <div className="space-y-2 bg-[#e8dfd0] p-4">
-                        <div className="h-4 w-2/3 rounded bg-[#e8dfd0]" />
-                        <div className="h-3 w-1/2 rounded bg-[#e8dfd0]" />
-                        <div className="h-3 w-3/4 rounded bg-[#e8dfd0]" />
-                      </div>
-                    </div>
-                  ))
-                ) : shortlistItems.length === 0 ? (
-                  <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500 shadow-sm">
-                    No shortlist items found.
-                  </div>
-                ) : (
-                  shortlistItems.map((item) => {
-                    const shortlistedProduct = item.product ?? null;
-                    const imageUrl = shortlistedProduct ? inlineProductImageUrl(shortlistedProduct) : null;
-                    const productRecommendations = Array.isArray(item.recommendations)
-                      ? item.recommendations
-                      : [];
-                    return (
-                      <div
-                        key={item.id}
-                        role={shortlistedProduct?.slug ? "button" : undefined}
-                        tabIndex={shortlistedProduct?.slug ? 0 : -1}
-                        onClick={(e) => {
-                          if (!shortlistedProduct?.slug) return;
-                          if (isInteractiveTarget(e.target)) return;
-                          setIsShortlistOpen(false);
-                          router.push(`/products/${shortlistedProduct.slug}`);
-                        }}
-                        onKeyDown={(e) => {
-                          if (!shortlistedProduct?.slug) return;
-                          if (isInteractiveTarget(e.target)) return;
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setIsShortlistOpen(false);
-                            router.push(`/products/${shortlistedProduct.slug}`);
-                          }
-                        }}
-                        className={[
-                          "overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm sm:rounded-2xl",
-                          shortlistedProduct?.slug ? "cursor-pointer" : ""
-                        ].join(" ")}
-                      >
-                        <div className="relative aspect-[4/3] w-full bg-white">
-                          {imageUrl ? (
-                            <Image src={imageUrl} alt={shortlistedProduct?.name || "Shortlisted product"} fill sizes="(max-width: 768px) 100vw, 28rem" className="object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
-                              No Image
-                            </div>
-                          )}
-                          <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 sm:left-3 sm:top-3 sm:gap-2">
-                            <span className="inline-flex items-center rounded-full bg-black px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
-                              {item.sampleStatus}
-                            </span>
-                            {item.sampleRequested &&
-                              (item.sampleStatus ?? "").trim().toLowerCase() !== "ready" && (
-                              <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-amber-700 sm:px-2.5 sm:py-1 sm:text-[10px] sm:tracking-widest">
-                                Sample Requested
-                              </span>
-                            )}
-                          </div>
-                          {shortlistedProduct?.id && (
-                            <button
-                              type="button"
-                              aria-label={
-                                isSelectedForShortlistCompare(shortlistedProduct.id)
-                                  ? "Untick from compare"
-                                  : "Tick for compare"
-                              }
-                              className={[
-                                "absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full border shadow-sm sm:right-3 sm:top-3 sm:h-9 sm:w-9",
-                                isSelectedForShortlistCompare(shortlistedProduct.id)
-                                  ? "border-black bg-black text-white"
-                                  : "border-gray-200 bg-white/95 text-gray-800"
-                              ].join(" ")}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleShortlistCompareSelection(shortlistedProduct.id);
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                className="pointer-events-none h-3.5 w-3.5 accent-black sm:h-4 sm:w-4"
-                                checked={isSelectedForShortlistCompare(shortlistedProduct.id)}
-                                readOnly
-                                tabIndex={-1}
-                                aria-hidden="true"
-                              />
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="space-y-2.5 bg-[#e8dfd0] p-3 sm:space-y-3 sm:p-4">
-                          <div>
-                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
-                              {shortlistedProduct?.materialType || "Shortlisted Product"}
-                            </div>
-                            <div className="mt-1 text-[20px] font-black leading-snug text-gray-900 sm:text-base">
-                              {shortlistedProduct
-                                ? formatCustomerProductDisplayTitle(
-                                    shortlistedProduct.name,
-                                    shortlistedProduct.slug,
-                                  )
-                                : item.productId}
-                            </div>
-                            {shortlistedProduct && (
-                              <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
-                                <span>SKU: {shortlistedProduct.sku}</span>
-                                {userRole !== "customer" ? <span>{shortlistedProduct.brand}</span> : null}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <button
-                              type="button"
-                              disabled={Boolean(item.sampleRequested) || requestingSampleId === item.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRequestSample(item.id);
-                              }}
-                              className="rounded-full bg-[#0468a3] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
-                            >
-                              {requestingSampleId === item.id
-                                ? "Requesting..."
-                                : item.sampleRequested
-                                  ? "Sample Requested"
-                                  : "Request Sample"}
-                            </button>
-                            <button
-                              type="button"
-                              disabled={deletingShortlistId === item.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteShortlist(item.id);
-                              }}
-                              className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-red-600 disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2 sm:text-[10px] sm:tracking-widest"
-                            >
-                              {deletingShortlistId === item.id ? "Removing..." : "Remove"}
-                            </button>
-                          </div>
-
-                          <div className="rounded-xl bg-gray-50 p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Note</div>
-                              <button
-                                type="button"
-                                disabled={savingNoteId === item.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUpdateShortlistNote(item.id);
-                                }}
-                                className="rounded-full border border-gray-300 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-800 disabled:cursor-not-allowed disabled:opacity-50 sm:px-3 sm:text-[10px] sm:tracking-widest"
-                              >
-                                {savingNoteId === item.id ? "Saving..." : "Save Note"}
-                              </button>
-                            </div>
-                            <textarea
-                              value={noteDrafts[item.id] ?? item.customerNote ?? ""}
-                              onClick={(e) => e.stopPropagation()}
-                              onKeyDown={(e) => e.stopPropagation()}
-                              onChange={(e) =>
-                                setNoteDrafts((prev) => ({
-                                  ...prev,
-                                  [item.id]: e.target.value,
-                                }))
-                              }
-                              placeholder="Updated note text"
-                              className="mt-2 block min-h-[82px] w-full rounded-xl border border-gray-200 bg-white px-2.5 py-2 text-xs text-gray-700 shadow-inner sm:min-h-[96px] sm:px-3 sm:text-sm"
-                            />
-                          </div>
-
-                          <div className="rounded-xl bg-[#f4f8fb] p-2.5 text-xs text-gray-700 sm:p-3 sm:text-sm">
-                            <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">
-                              Designer Reply
-                            </div>
-                            <div className="mt-1 whitespace-pre-wrap">
-                              {item.designerReplyNote?.trim() || "-"}
-                            </div>
-                            <div className="mt-1.5 text-[10px] font-bold text-gray-600 sm:mt-2 sm:text-[11px]">
-                              Updated:{" "}
-                              {item.designerReplyUpdatedAt
-                                ? new Date(item.designerReplyUpdatedAt).toLocaleDateString()
-                                : "-"}
-                            </div>
-                          </div>
-
-                          <div className="rounded-xl bg-[#f4f8fb] p-3 text-sm text-gray-700">
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                Recommended By Designer
-                              </div>
-                              <div className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-gray-600">
-                                {productRecommendations.length} Added
-                              </div>
-                            </div>
-                            <div className="mt-2 space-y-2">
-                              {productRecommendations.length === 0 ? (
-                                <div className="rounded-lg bg-white p-3 text-xs text-gray-500">
-                                  No recommendations from designer yet.
-                                </div>
-                              ) : (
-                                productRecommendations.map((recommendation) => (
-                                  <button
-                                    key={recommendation.id}
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const slug =
-                                        recommendation.product?.slug ||
-                                        products.find((product) => product.id === recommendation.productId)?.slug ||
-                                        null;
-                                      if (!slug) return;
-                                      setIsShortlistOpen(false);
-                                      router.push(`/products/${slug}`);
-                                    }}
-                                    className="w-full rounded-lg bg-white p-3 text-left transition hover:bg-gray-100"
-                                  >
-                                    <div className="text-sm font-semibold text-gray-900">
-                                      {recommendation.note}
-                                    </div>
-                                    <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-[#0468a3]">
-                                      Recommended Product:{" "}
-                                      {recommendation.product
-                                        ? [recommendation.product.name, recommendation.product.sku]
-                                            .filter(Boolean)
-                                            .join(" • ")
-                                        : getProductLabelForNote(recommendation.productId) || recommendation.productId}
-                                    </div>
-                                    <div className="mt-1 text-[11px] font-bold text-gray-500">
-                                      Recommended on {new Date(recommendation.createdAt).toLocaleString()}
-                                    </div>
-                                  </button>
-                                ))
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3 text-[11px] font-bold text-gray-600">
-                            <div>Created: {new Date(item.createdAt).toLocaleDateString()}</div>
-                            <div>Requested: {item.sampleRequestedAt ? new Date(item.sampleRequestedAt).toLocaleDateString() : "-"}</div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {userRole === "designer" && isDesignerCustomerDetailsOpen && (
         <div
           className="fixed inset-0 z-[145] flex items-center justify-center bg-black/60 p-2 backdrop-blur-sm sm:p-4"
@@ -5719,6 +5222,57 @@ function DashboardPageContent() {
                   </div>
 
                   <div className="space-y-3 sm:space-y-6 lg:col-span-2">
+                    <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Wishlist</div>
+                          <div className="mt-1 text-xs text-gray-500 sm:text-sm">Products this customer saved with the heart.</div>
+                        </div>
+                        <div className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
+                          {(designerCustomerDetails.wishlist ?? []).length} Items
+                        </div>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {(designerCustomerDetails.wishlist ?? []).length === 0 ? (
+                          <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No wishlist items found.</div>
+                        ) : (
+                          (designerCustomerDetails.wishlist ?? []).map((item) => {
+                            const wishlistProduct = item.product ?? null;
+                            const imageUrl = wishlistProduct ? inlineProductImageUrl(wishlistProduct) : null;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  if (!wishlistProduct?.slug) return;
+                                  router.push(`/products/${wishlistProduct.slug}`);
+                                }}
+                                className="grid w-full gap-3 rounded-2xl border border-gray-100 bg-gray-50 text-left md:grid-cols-[96px_1fr]"
+                              >
+                                <div className="relative min-h-[96px] bg-gray-100">
+                                  {imageUrl ? (
+                                    <Image src={imageUrl} alt={wishlistProduct?.name || "Wishlist product"} fill sizes="96px" className="object-cover" />
+                                  ) : (
+                                    <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                      No Image
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-3">
+                                  <div className="text-sm font-black text-gray-900">{wishlistProduct?.name || item.productId}</div>
+                                  <div className="mt-1 text-xs font-bold text-gray-600">
+                                    {wishlistProduct?.sku ? `SKU: ${wishlistProduct.sku}` : item.productId}
+                                  </div>
+                                  <div className="mt-2 text-[11px] font-bold text-gray-500">
+                                    Saved: {item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "-"}
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
                     <div className="rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm sm:rounded-2xl sm:p-5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
@@ -6079,100 +5633,6 @@ function DashboardPageContent() {
                 <div className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">No customer details found.</div>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {isCompareOpen && (
-        <div className="fixed inset-0 z-[170] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-6xl rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Compare Products</h2>
-                <div className="mt-1 text-[11px] font-bold text-gray-600 break-all">
-                  {(compareData?.ids ?? shortlistCompareSelectedList).join(", ")}
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setIsCompareOpen(false);
-                  setCompareError("");
-                }}
-                className="text-gray-400 hover:text-black"
-                type="button"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </button>
-            </div>
-
-            {isComparing && (
-              <div className="text-sm font-bold text-gray-600 py-10 text-center">Loading comparison...</div>
-            )}
-
-            {!isComparing && compareError && (
-              <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{compareError}</div>
-            )}
-
-            {!isComparing && compareData && (
-              <div className="space-y-4">
-                {compareData.missingIds?.length > 0 && (
-                  <div className="text-xs font-bold text-amber-700 bg-amber-50 p-3 rounded-lg">
-                    Missing IDs: {compareData.missingIds.join(", ")}
-                  </div>
-                )}
-
-                <div className="overflow-auto rounded-xl border border-gray-100">
-                  <table className="min-w-full text-left">
-                    <thead className="sticky top-0 bg-white">
-                      <tr className="border-b border-gray-100">
-                        <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500">Field</th>
-                        {compareData.products.map((p) => {
-                          const url = typeof p.primaryImageUrl === "string" && cleanUrl(p.primaryImageUrl) ? cleanUrl(p.primaryImageUrl) : null;
-                          return (
-                            <th key={p.id} className="px-4 py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-gray-100">
-                                  {url ? (
-                                    <Image src={url} alt={p.name} fill sizes="48px" className="object-cover" />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center text-[9px] font-black uppercase tracking-widest text-gray-400">
-                                      No Image
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="min-w-[220px]">
-                                  <div className="text-[11px] font-black text-gray-900 leading-snug">{p.name}</div>
-                                  <div className="mt-0.5 text-[10px] font-bold text-gray-500">SKU: {p.sku}</div>
-                                  <div className="mt-0.5 text-[10px] font-bold text-gray-400 break-all">{p.id}</div>
-                                </div>
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {compareData.fields.map((field) => (
-                        <tr key={field.key} className="border-b border-gray-100">
-                          <td className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-gray-500 whitespace-nowrap">
-                            {field.key}
-                          </td>
-                          {compareData.products.map((p, idx) => {
-                            const v = field.values?.[idx];
-                            const display = v === null || typeof v === "undefined" ? "-" : String(v);
-                            return (
-                              <td key={`${field.key}-${p.id}`} className="px-4 py-3 text-[12px] font-bold text-gray-800">
-                                {display}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
