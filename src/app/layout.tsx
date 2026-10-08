@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import LayoutFooter from "@/components/layout-footer";
+import { WishlistProvider } from "@/components/wishlist-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,8 +38,10 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://products-customfurnish.s3.ap-south-1.amazonaws.com" />
       </head>
       <body className="flex min-h-full min-w-0 flex-col overflow-x-hidden">
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
-        <LayoutFooter />
+        <WishlistProvider>
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+          <LayoutFooter />
+        </WishlistProvider>
       </body>
     </html>
   );

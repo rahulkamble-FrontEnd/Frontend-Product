@@ -23,6 +23,7 @@ import {
 } from "@/lib/api";
 import { blogPublicPath } from "@/lib/blog-path";
 import { formatCustomerProductTitle } from "@/lib/product-display-name";
+import { WishlistHeartButton } from "@/components/wishlist-provider";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -638,6 +639,9 @@ export default function ProductDetailsPage() {
                     No Image
                   </div>
                 )}
+                {userRole === "customer" ? (
+                  <WishlistHeartButton productId={product.id} className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3" />
+                ) : null}
               </div>
 
               {images.length > 0 && (
@@ -1209,8 +1213,9 @@ export default function ProductDetailsPage() {
                   return (
                     <article
                       key={item.id}
-                      className="overflow-hidden rounded-xl border border-[#d6c8b6] bg-white shadow-sm sm:rounded-2xl"
+                      className="relative overflow-hidden rounded-xl border border-[#d6c8b6] bg-white shadow-sm sm:rounded-2xl"
                     >
+                      <WishlistHeartButton productId={item.id} className="absolute right-2 top-2 z-10" />
                       <button
                         type="button"
                         onClick={() => router.push(`/products/${item.slug}`)}

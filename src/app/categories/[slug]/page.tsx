@@ -16,6 +16,7 @@ import {
 import { blogPublicPath } from "@/lib/blog-path";
 import { formatCustomerProductTitle } from "@/lib/product-display-name";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
+import { WishlistHeartButton } from "@/components/wishlist-provider";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
@@ -892,8 +893,9 @@ function CategoryProductsPageContent() {
                   return (
                     <article
                       key={product.id}
-                      className="overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
+                      className="relative overflow-hidden rounded-xl border border-[#d9cab5] bg-white shadow-sm"
                     >
+                      <WishlistHeartButton productId={product.id} className="absolute right-2 top-2 z-10" />
                       <button
                         type="button"
                         onClick={() => router.push(`/products/${product.slug}`)}

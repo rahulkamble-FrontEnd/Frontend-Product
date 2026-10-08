@@ -372,6 +372,7 @@ export type DesignerCustomerDetailResponse = {
   shortlist: ShortlistItem[];
   notes: DesignerCustomerDetailNote[];
   recommendations?: DesignerRecommendationResponse[];
+  wishlist?: WishlistItem[];
 };
 
 export type CreateDesignerNotePayload = {
@@ -541,6 +542,79 @@ export async function getShortlist() {
   const data: unknown = await response.json();
   if (!Array.isArray(data)) return [];
   return data.map((item) => normalizeShortlistItem(item as RawShortlistItem));
+}
+
+export type WishlistItem = {
+  id: string;
+  customerId: string;
+  productId: string;
+  createdAt: string;
+  product?: ShortlistProduct | null;
+};
+
+function normalizeWishlistItem(raw: {
+  id?: string;
+  customerId?: string;
+  customer_id?: string;
+  productId?: string;
+  product_id?: string;
+  createdAt?: string;
+  created_at?: string;
+  product?: ShortlistProduct | null;
+}): WishlistItem {
+  return {
+    id: raw.id ?? "",
+    customerId: raw.customerId ?? raw.customer_id ?? "",
+    productId: raw.productId ?? raw.product_id ?? "",
+    createdAt: raw.createdAt ?? raw.created_at ?? "",
+    product: raw.product ?? null,
+  };
+}
+
+export async function getWishlist() {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/wishlist`, {
+    method: 'GET',
+    headers: authHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch wishlist');
+  }
+  const data: unknown = await response.json();
+  if (!Array.isArray(data)) return [];
+  return data.map((item) => normalizeWishlistItem(item as Parameters<typeof normalizeWishlistItem>[0]));
+}
+
+export async function addWishlistItem(productId: string) {
+  const id = productId.trim();
+  if (!id) throw new Error("Product id is required");
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/wishlist`, {
+    method: 'POST',
+    headers: authHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ productId: id }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to add wishlist item');
+  }
+  return normalizeWishlistItem((await response.json()) as Parameters<typeof normalizeWishlistItem>[0]);
+}
+
+export async function removeWishlistItem(productId: string) {
+  const id = productId.trim();
+  if (!id) throw new Error("Product id is required");
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/wishlist/product/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to remove wishlist item');
+  }
+  return response.json() as Promise<{ message: string }>;
 }
 
 export async function requestShortlistSample(shortlistId: string) {
