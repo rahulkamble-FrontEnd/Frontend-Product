@@ -242,6 +242,7 @@ function CategoryProductsPageContent() {
   };
 
   const selectedBrands = useMemo(() => csvToSet(listQuery.get("brand")), [listQuery]);
+  const selectedBookNames = useMemo(() => csvToSet(listQuery.get("bookName")), [listQuery]);
   const selectedFinishTypes = useMemo(() => csvToSet(listQuery.get("finishType")), [listQuery]);
   const selectedColors = useMemo(() => csvToSet(listQuery.get("colorName")), [listQuery]);
   const selectedThicknesses = useMemo(() => csvToSet(listQuery.get("thickness")), [listQuery]);
@@ -252,6 +253,7 @@ function CategoryProductsPageContent() {
   const [productImageIndexes, setProductImageIndexes] = useState<Record<string, number>>({});
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const shouldShowBrand = userRole !== "customer";
+  const shouldShowBookName = userRole !== "customer";
   const totalProductPages = Math.max(1, Math.ceil(productsTotal / PRODUCTS_PAGE_LIMIT));
 
   useEffect(() => {
@@ -317,6 +319,7 @@ function CategoryProductsPageContent() {
           page: productsPage,
           limit: PRODUCTS_PAGE_LIMIT,
           brand: shouldShowBrand ? setToCsv(selectedBrands) : undefined,
+          bookName: shouldShowBookName ? setToCsv(selectedBookNames) : undefined,
           finishType: setToCsv(selectedFinishTypes),
           thickness: setToCsv(selectedThicknesses),
           watt: setToCsv(selectedWatts),
@@ -352,6 +355,8 @@ function CategoryProductsPageContent() {
     productsPage,
     selectedSubcategoryId,
     selectedBrands,
+    selectedBookNames,
+    shouldShowBookName,
     selectedFinishTypes,
     selectedColors,
     selectedThicknesses,
@@ -420,6 +425,11 @@ function CategoryProductsPageContent() {
     [apiFilters],
   );
 
+  const availableBookNames = useMemo(
+    () => [...(apiFilters?.bookNames ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
+
   const availableThicknesses = useMemo(
     () => [...(apiFilters?.thicknesses ?? [])].sort((a, b) => a.localeCompare(b)),
     [apiFilters],
@@ -485,6 +495,7 @@ function CategoryProductsPageContent() {
     (
       patch: {
         brand?: string;
+        bookName?: string;
         finishType?: string;
         thickness?: string;
         watt?: string;
@@ -502,6 +513,7 @@ function CategoryProductsPageContent() {
       };
 
       if ("brand" in patch) setParam("brand", patch.brand);
+      if ("bookName" in patch) setParam("bookName", patch.bookName);
       if ("finishType" in patch) setParam("finishType", patch.finishType);
       if ("thickness" in patch) setParam("thickness", patch.thickness);
       if ("watt" in patch) setParam("watt", patch.watt);
@@ -527,6 +539,7 @@ function CategoryProductsPageContent() {
 
   const activeFilterCount =
     (shouldShowBrand ? selectedBrands.size : 0) +
+    (shouldShowBookName ? selectedBookNames.size : 0) +
     selectedFinishTypes.size +
     selectedColors.size +
     selectedThicknesses.size +
@@ -601,6 +614,38 @@ function CategoryProductsPageContent() {
                         className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
                       />
                       <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{brand}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {shouldShowBookName ? (
+            <div className="mt-6 border-t border-[#cbbca6] pt-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+                Book Name
+              </div>
+              <div className="mt-4 space-y-3">
+                {availableBookNames.length === 0 ? (
+                  <div className="text-xs text-gray-400">
+                    {isProductsLoading ? "Loading book name options..." : "No book name options"}
+                  </div>
+                ) : (
+                  availableBookNames.map((bookName) => (
+                    <label key={bookName} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                      <input
+                        type="checkbox"
+                        checked={selectedBookNames.has(bookName)}
+                        onChange={() => {
+                          replaceListQuery(
+                            { bookName: setToCsv(toggleSetValue(selectedBookNames, bookName)) },
+                            { resetPage: true },
+                          );
+                        }}
+                        className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                      />
+                      <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{bookName}</span>
                     </label>
                   ))
                 )}
