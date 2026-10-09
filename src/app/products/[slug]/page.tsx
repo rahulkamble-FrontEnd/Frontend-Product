@@ -708,6 +708,11 @@ export default function ProductDetailsPage() {
                       IMSID: {product.imsId}
                     </span>
                   ) : null}
+                  {userRole !== "customer" && product.bookName ? (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                      BOOK NAME: {product.bookName}
+                    </span>
+                  ) : null}
                 </div>
               </div>
 
