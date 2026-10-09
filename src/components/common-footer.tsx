@@ -161,7 +161,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
   ] as const;
 
   const footerMainGridClassName = hideNewsletter
-    ? "grid grid-cols-1 gap-x-8 gap-y-8 border-b border-white/25 pb-8 md:grid-cols-2 lg:grid-cols-3 xl:mx-auto xl:w-fit xl:max-w-full xl:grid-cols-[minmax(260px,min(100%,380px))_auto_auto_minmax(280px,min(100%,420px))] xl:items-start xl:gap-x-10 2xl:gap-x-12"
+    ? "grid w-full grid-cols-1 items-start gap-x-8 gap-y-8 border-b border-white/25 pb-8 md:grid-cols-2 lg:grid-cols-[minmax(220px,380px)_auto_auto_minmax(260px,420px)] lg:justify-between lg:gap-x-10 xl:gap-x-16"
     : "grid grid-cols-1 gap-x-8 gap-y-8 border-b border-white/25 pb-8 md:grid-cols-2 lg:grid-cols-3 xl:mx-auto xl:w-fit xl:max-w-full xl:grid-cols-[minmax(260px,min(100%,380px))_auto_auto_minmax(280px,min(100%,400px))_minmax(300px,320px)] xl:items-start xl:gap-x-10 2xl:gap-x-12";
 
   return (
@@ -218,7 +218,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </div>
           </div>
 
-          <div className="md:pl-6 lg:pl-10 xl:pl-0 2xl:pl-2">
+          <div className={hideNewsletter ? "" : "md:pl-6 lg:pl-10 xl:pl-0 2xl:pl-2"}>
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Company
             </div>
@@ -229,7 +229,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </ul>
           </div>
 
-          <div className="pl-0 sm:pl-2 md:pl-4 xl:pl-5">
+          <div className={hideNewsletter ? "" : "pl-0 sm:pl-2 md:pl-4 xl:pl-5"}>
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Shop
             </div>
@@ -240,7 +240,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
             </ul>
           </div>
 
-          <div className="w-full min-w-0 max-w-full pl-0 sm:max-w-[340px] sm:pl-2 md:pl-4 xl:max-w-[360px] xl:pl-5">
+          <div className={hideNewsletter ? "w-full min-w-0 max-w-full sm:max-w-[340px] xl:max-w-[360px]" : "w-full min-w-0 max-w-full pl-0 sm:max-w-[340px] sm:pl-2 md:pl-4 xl:max-w-[360px] xl:pl-5"}>
             <div className="mb-3 text-[20px] font-semibold leading-normal tracking-[0%]">
               Experience Centre
             </div>
