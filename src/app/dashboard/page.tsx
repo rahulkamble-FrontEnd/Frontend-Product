@@ -3935,7 +3935,7 @@ function DashboardPageContent() {
           {[
             {
               title: "Wide Product Range",
-              subtitle: "Explore 1000+ interior materials across categories",
+              subtitle: "Explore 1000 interior materials across categories",
               icon: "list",
             },
             {
@@ -3950,7 +3950,7 @@ function DashboardPageContent() {
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare materials, textures & Performance",
+              subtitle: "Compare materials, textures & performance",
               icon: "wave",
             },
             {
