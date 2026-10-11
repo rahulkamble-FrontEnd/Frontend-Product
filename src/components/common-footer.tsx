@@ -181,11 +181,11 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
               className="inline-flex max-w-full min-w-0 items-center"
             >
               <Image
-                src="/customfurnish-logo.svg"
+                src="/cf-studio-logo.svg"
                 alt="CustomFurnish"
-                width={309}
-                height={28}
-                className="pointer-events-none block h-5 w-auto max-w-full object-contain object-left sm:h-6"
+                width={1387}
+                height={167}
+                className="pointer-events-none !block !h-auto !w-full max-w-[220px] object-contain object-left sm:!h-7 sm:!w-auto sm:max-w-[260px]"
               />
             </Link>
             <p
