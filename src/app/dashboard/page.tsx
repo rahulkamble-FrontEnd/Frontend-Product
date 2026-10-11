@@ -2771,19 +2771,19 @@ function DashboardPageContent() {
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
           {/* Logo */}
-          <div className="-ml-6 flex min-w-0 flex-1 items-center gap-2 overflow-hidden pr-1 sm:-ml-8 sm:pr-2 lg:-ml-11">
+          <div className="-ml-8 min-w-0 flex-1 overflow-hidden sm:-ml-8 md:-ml-8">
             <Image
-              src="/logo-cf.svg"
+              src="/cf-studio-logo.svg"
               alt="CustomFurnish"
-              width={309}
-              height={28}
+              width={1387}
+              height={167}
               priority
-              className="pointer-events-none block h-[22px] w-auto max-w-full object-contain object-left sm:h-[34px]"
+              className="!block !h-auto !w-full max-w-full object-contain object-left sm:max-h-10 lg:max-h-11"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             {canViewBlogsNav && (
             <div className="hidden md:block">
               <button
@@ -3432,7 +3432,7 @@ function DashboardPageContent() {
 
       {(userRole === "admin" || userRole === "dataadmin") && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className={`grid gap-2 ${canManageUsers ? "grid-cols-4" : "grid-cols-3"}`}>
+          <div className={`grid gap-2 grid-cols-2 ${canManageUsers ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
             {canManageUsers && (
             <div className="relative">
               <button
