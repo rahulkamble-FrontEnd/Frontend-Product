@@ -2771,14 +2771,14 @@ function DashboardPageContent() {
       <header className="relative z-[320] border-b border-gray-100 bg-[#F8F0E4] px-4 py-3 sm:px-6 lg:px-8">
         <div className={`${dashboardShellClass} flex items-center justify-between gap-2 px-0 sm:gap-4`}>
           {/* Logo */}
-          <div className="-ml-8 min-w-0 flex-1 overflow-hidden sm:-ml-8 md:-ml-8">
+          <div className="-ml-3 min-w-0 flex-1 overflow-hidden sm:-ml-8 md:-ml-8">
             <Image
               src="/cf-studio-logo.svg"
               alt="CustomFurnish"
               width={1387}
               height={167}
               priority
-              className="!block !h-auto !w-full max-w-full object-contain object-left sm:max-h-10 lg:max-h-11"
+              className="!block !h-auto !w-full max-h-7 max-w-[160px] object-contain object-left sm:max-h-9 sm:max-w-[240px] lg:max-h-10 lg:max-w-[280px]"
             />
           </div>
 

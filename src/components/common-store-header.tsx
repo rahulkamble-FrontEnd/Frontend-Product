@@ -73,7 +73,7 @@ export default function CommonStoreHeader({
           <div className="flex min-w-0 flex-1 items-center pr-1 sm:pr-2">
             <Link
               href="/dashboard"
-              className="-ml-8 inline-flex max-w-full min-w-0 items-center sm:-ml-8 lg:-ml-10"
+              className="-ml-3 inline-flex max-w-full min-w-0 items-center sm:-ml-8 lg:-ml-10"
             >
               <Image
                 src="/cf-studio-logo.svg"
@@ -81,7 +81,7 @@ export default function CommonStoreHeader({
                 width={1387}
                 height={167}
                 priority
-                className="!block !h-auto !w-full max-w-full object-contain object-left sm:max-h-10 lg:max-h-11"
+                className="!block !h-auto !w-full max-h-7 max-w-[160px] object-contain object-left sm:max-h-9 sm:max-w-[240px] lg:max-h-10 lg:max-w-[280px]"
               />
             </Link>
           </div>
