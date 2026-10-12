@@ -340,17 +340,17 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-[#f5f3ef] text-[#312b27]">
       <header className="border-b border-[#e8e3dc] bg-[#fbfaf8] px-3 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
-          <div>
+        <div className="relative mx-auto flex w-full max-w-7xl items-center justify-center">
+          <Link
+            href="/dashboard"
+            className="absolute left-4 inline-flex shrink-0 rounded-md border border-[#d9d2ca] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] transition hover:bg-[#f7f4ef] sm:left-6 sm:px-4 sm:text-[11px] sm:tracking-[0.14em]"
+          >
+            Back to home
+          </Link>
+          <div className="px-28 text-center sm:px-40">
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#9d958d]">Editorial</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#3b322d] sm:text-3xl">Blog Journal</h1>
           </div>
-          <Link
-            href="/dashboard"
-            className="inline-flex shrink-0 rounded-md border border-[#d9d2ca] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#6c625c] transition hover:bg-[#f7f4ef] sm:px-4 sm:text-[11px] sm:tracking-[0.14em]"
-          >
-            Back
-          </Link>
         </div>
           {/* <div className="flex items-center gap-2">
             <button
