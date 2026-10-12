@@ -17,21 +17,20 @@ type CommonFooterProps = {
 
 type FooterLink = { label: string; href?: string };
 
-/** Match `/categories/[slug]` + banner key normalization in `app/categories/[slug]/page.tsx`. */
+/** Same rules as category slugs in the API: "&" is dropped, not written as "and". */
 function slugifyFooterCategoryLabel(label: string): string {
   return label
     .trim()
     .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-const SHOP_NAV_ITEMS: Array<{ label: string; slugLabel?: string }> = [
+const SHOP_NAV_ITEMS: Array<{ label: string }> = [
   { label: "Core materials" },
   { label: "Laminates" },
-  { label: "Wall Decoratives", slugLabel: "Wall Decorative" },
+  { label: "Wall Decoratives" },
   { label: "Counter Tops" },
   { label: "Flooring & Tiles" },
   { label: "Lighting" },
@@ -82,7 +81,7 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
 
   const shopLinks: FooterLink[] = SHOP_NAV_ITEMS.map((item) => ({
     label: item.label,
-    href: `/categories/${slugifyFooterCategoryLabel(item.slugLabel ?? item.label)}`,
+    href: `/categories/${slugifyFooterCategoryLabel(item.label)}`,
   }));
 
   const experienceCentreAddress =

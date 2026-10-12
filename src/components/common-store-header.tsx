@@ -73,7 +73,7 @@ export default function CommonStoreHeader({
           <div className="flex min-w-0 flex-1 items-center pr-1 sm:pr-2">
             <Link
               href="/dashboard"
-              className="-ml-3 inline-flex max-w-full min-w-0 items-center sm:-ml-8 lg:-ml-10"
+              className="inline-flex max-w-full min-w-0 items-center"
             >
               <Image
                 src="/cf-studio-logo.svg"
