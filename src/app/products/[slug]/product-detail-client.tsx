@@ -1,0 +1,1381 @@
+"use client";
+
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import CommonStoreHeader from "@/components/common-store-header";
+import {
+  getBlogs,
+  createShortlist,
+  deleteProductCategory,
+  deleteProductImage,
+  getProductBySlug,
+  getSimilarProductsByTags,
+  updateProduct,
+  uploadProductImages,
+  type BlogItem,
+  type ProductDetailsResponse,
+  type ProductImageUploadResponse,
+  type ProductListItem,
+  type ShortlistResponse,
+  type UpdateProductPayload,
+  type UpdateProductResponse,
+} from "@/lib/api";
+import { blogPublicPath } from "@/lib/blog-path";
+import { formatCustomerProductTitle } from "@/lib/product-display-name";
+import { WishlistHeartButton } from "@/components/wishlist-provider";
+import { RelevantArticleCard } from "@/components/relevant-article-card";
+
+const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+/** Product page relevant-articles block. Turn back on when this section should return. */
+const SHOW_PRODUCT_RELEVANT_ARTICLES = false;
+/** Shortlist id, sample status, and created time. Hidden on the customer product page. */
+const SHOW_CUSTOMER_SHORTLIST_DETAILS = false;
+
+function cleanUrl(value: string) {
+  return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
+}
+
+function getBlogImageUrl(blog: BlogItem) {
+  const directUrl = (blog.featuredImageUrl ?? "").trim();
+  if (directUrl) return directUrl;
+  const key = (blog.featuredImageS3Key ?? "").trim();
+  if (!key) return null;
+  if (key.startsWith("http://") || key.startsWith("https://")) return key;
+  return `${BLOG_IMAGE_BASE_URL}/${key.replace(/^\/+/, "")}`;
+}
+
+function pickBestImageUrl(images: ProductImageUploadResponse[] | null | undefined) {
+  const list = Array.isArray(images) ? images : [];
+  const primary = list.find((img) => img.isPrimary && typeof img.url === "string" && cleanUrl(img.url));
+  if (primary?.url) return cleanUrl(primary.url);
+  const byOrder = [...list].sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  const first = byOrder.find((img) => typeof img.url === "string" && cleanUrl(img.url));
+  return first?.url ? cleanUrl(first.url) : null;
+}
+
+function pickListProductImageUrl(product: ProductListItem) {
+  const raw = product as ProductListItem & {
+    images?: ProductImageUploadResponse[] | null;
+    imageUrl?: string | null;
+    primaryImageUrl?: string | null;
+  };
+  if (typeof raw.imageUrl === "string" && cleanUrl(raw.imageUrl)) {
+    return cleanUrl(raw.imageUrl);
+  }
+  if (typeof raw.primaryImageUrl === "string" && cleanUrl(raw.primaryImageUrl)) {
+    return cleanUrl(raw.primaryImageUrl);
+  }
+  return pickBestImageUrl(raw.images);
+}
+
+function formatProductName(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text.toUpperCase();
+}
+
+function formatProductDisplayTitle(
+  name: string | null | undefined,
+  productSlug: string | null | undefined,
+) {
+  return formatCustomerProductTitle(name, productSlug);
+}
+
+function formatCategoryName(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return "";
+  return text
+    .toLowerCase()
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function truncateText(value: string, maxChars: number) {
+  const text = value.trim();
+  if (text.length <= maxChars) return text;
+  return `${text.slice(0, maxChars)}..`;
+}
+
+function isMeaningfulDescription(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text) return false;
+  return text.toUpperCase() !== "NOT AVAILABLE";
+}
+
+function asStringList(value: string[] | null | undefined) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => item.trim()).filter(Boolean);
+}
+
+function hasSpecRating(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+export default function ProductDetailsPage({
+  initialImageUrl = null,
+}: {
+  initialImageUrl?: string | null;
+}) {
+  const params = useParams<{ slug: string }>();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const router = useRouter();
+  const [userName, setUserName] = useState("");
+  const [userRole, setUserRole] = useState("");
+  const [product, setProduct] = useState<ProductDetailsResponse | null>(null);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(initialImageUrl);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
+  const [deleteImageMsg, setDeleteImageMsg] = useState("");
+  const [deleteImageError, setDeleteImageError] = useState("");
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [deleteCategoryMsg, setDeleteCategoryMsg] = useState("");
+  const [deleteCategoryError, setDeleteCategoryError] = useState("");
+  type UpdateProductFormState = {
+    name: string;
+    sku: string;
+    brand: string;
+    description: string;
+    materialType: string;
+    finishType: string;
+    colorName: string;
+    colorHex: string;
+    thickness: string;
+    dimensions: string;
+    performanceRating: string;
+    durabilityRating: string;
+    priceCategory: string;
+    maintenanceRating: string;
+    bestUsedForText: string;
+    prosText: string;
+    consText: string;
+    status: UpdateProductPayload["status"];
+  };
+
+  const [updateForm, setUpdateForm] = useState<UpdateProductFormState>({
+    name: "",
+    sku: "",
+    brand: "",
+    description: "",
+    materialType: "",
+    finishType: "",
+    colorName: "",
+    colorHex: "",
+    thickness: "",
+    dimensions: "",
+    performanceRating: "0",
+    durabilityRating: "0",
+    priceCategory: "0",
+    maintenanceRating: "0",
+    bestUsedForText: "",
+    prosText: "",
+    consText: "",
+    status: "draft",
+  });
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  const [updateProductMsg, setUpdateProductMsg] = useState("");
+  const [updateProductError, setUpdateProductError] = useState("");
+  const [detailImageFiles, setDetailImageFiles] = useState<File[]>([]);
+  const [isUploadingDetailImages, setIsUploadingDetailImages] = useState(false);
+  const [detailImageUploadError, setDetailImageUploadError] = useState("");
+  const [detailImageUploadMsg, setDetailImageUploadMsg] = useState("");
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const [customerNote, setCustomerNote] = useState("");
+  const [isCreatingShortlist, setIsCreatingShortlist] = useState(false);
+  const [shortlistMsg, setShortlistMsg] = useState("");
+  const [shortlistError, setShortlistError] = useState("");
+  const [shortlistItem, setShortlistItem] = useState<ShortlistResponse | null>(null);
+  const [shortlistHeaderRefreshKey, setShortlistHeaderRefreshKey] = useState(0);
+  const [similarProducts, setSimilarProducts] = useState<ProductListItem[]>([]);
+  const [isLoadingSimilar, setIsLoadingSimilar] = useState(false);
+  const [similarError, setSimilarError] = useState("");
+  const [visibleSimilarCount, setVisibleSimilarCount] = useState(4);
+  const [relevantArticles, setRelevantArticles] = useState<BlogItem[]>([]);
+  const [isLoadingRelevantArticles, setIsLoadingRelevantArticles] = useState(false);
+  const [relevantArticlesError, setRelevantArticlesError] = useState("");
+  const relevantArticlesScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollRelevantArticles = (direction: "left" | "right") => {
+    if (!relevantArticlesScrollRef.current) return;
+    relevantArticlesScrollRef.current.scrollBy({
+      left: direction === "left" ? -300 : 300,
+      behavior: "smooth",
+    });
+  };
+
+  useEffect(() => {
+    const storedName = localStorage.getItem("userName");
+    const storedRole = localStorage.getItem("userRole");
+    if (!storedName) {
+      router.push("/login");
+      return;
+    }
+    setUserName(storedName);
+    setUserRole(storedRole || "");
+  }, [router]);
+
+  useEffect(() => {
+    if (!userName || !slug) return;
+    const load = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const data = await getProductBySlug(slug);
+        setProduct(data);
+        const best = pickBestImageUrl(data.images);
+        setSelectedImageUrl(best);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load product.");
+        setProduct(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    load();
+  }, [slug, userName]);
+
+  const handleCreateShortlist = async () => {
+    setShortlistMsg("");
+    setShortlistError("");
+    if (isCreatingShortlist) return;
+    if (userRole !== "customer") {
+      setShortlistError("Only customer login can add shortlist items.");
+      return;
+    }
+    const productId = product?.id?.trim() || "";
+    if (!productId) {
+      setShortlistError("Product id is missing.");
+      return;
+    }
+
+    setIsCreatingShortlist(true);
+    try {
+      const created = await createShortlist({
+        productId,
+        customerNote,
+      });
+      setShortlistItem(created);
+      setShortlistMsg("Product added to shortlist.");
+      setShortlistHeaderRefreshKey((k) => k + 1);
+      setCustomerNote("");
+    } catch (err: unknown) {
+      setShortlistError(err instanceof Error ? err.message : "Failed to add shortlist item.");
+    } finally {
+      setIsCreatingShortlist(false);
+    }
+  };
+
+  const images = useMemo(() => {
+    const list = Array.isArray(product?.images) ? product!.images : [];
+    return list
+      .map((img) => ({ ...img, url: cleanUrl(img.url) }))
+      .filter((img) => Boolean(img.url));
+  }, [product]);
+
+  const normalizeTextList = (value: string) =>
+    value
+      .split(/\r?\n|,/g)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+  useEffect(() => {
+    if (!product) return;
+    const status: UpdateProductPayload["status"] =
+      product.status === "active" || product.status === "archived" || product.status === "published" || product.status === "draft"
+        ? product.status
+        : "draft";
+
+    setUpdateForm({
+      name: product.name ?? "",
+      sku: product.sku ?? "",
+      brand: product.brand ?? "",
+      description: product.description ?? "",
+      materialType: product.materialType ?? "",
+      finishType: product.finishType ?? "",
+      colorName: product.colorName ?? "",
+      colorHex: product.colorHex ?? "",
+      thickness: product.thickness ?? "",
+      dimensions: product.dimensions ?? "",
+      performanceRating: String(product.performanceRating ?? 0),
+      durabilityRating: String(product.durabilityRating ?? 0),
+      priceCategory: String(product.priceCategory ?? 0),
+      maintenanceRating: String(product.maintenanceRating ?? 0),
+      bestUsedForText: Array.isArray(product.bestUsedFor) ? product.bestUsedFor.join("\n") : "",
+      prosText: Array.isArray(product.pros) ? product.pros.join("\n") : "",
+      consText: Array.isArray(product.cons) ? product.cons.join("\n") : "",
+      status,
+    });
+  }, [product]);
+
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const loadSimilarProducts = async () => {
+      const productId = product.id.trim();
+      if (!productId) {
+        setSimilarProducts([]);
+        setSimilarError("");
+        return;
+      }
+
+      setIsLoadingSimilar(true);
+      setSimilarError("");
+      try {
+        const similar = await getSimilarProductsByTags(productId, 24);
+        setSimilarProducts(Array.isArray(similar) ? similar : []);
+      } catch (err: unknown) {
+        setSimilarProducts([]);
+        setSimilarError(
+          err instanceof Error ? err.message : "Failed to load similar products.",
+        );
+      } finally {
+        setIsLoadingSimilar(false);
+      }
+    };
+
+    loadSimilarProducts();
+  }, [product]);
+
+  useEffect(() => {
+    setVisibleSimilarCount(4);
+  }, [product?.id]);
+
+  useEffect(() => {
+    if (!SHOW_PRODUCT_RELEVANT_ARTICLES || !product?.id) return;
+
+    const loadRelevantArticles = async () => {
+      const categoryIds = Array.from(
+        new Set(
+          (product.categories ?? []).flatMap((category) => {
+            const directId = (category.categoryId ?? category.id ?? "").trim();
+            const parentId = (category.parentId ?? "").trim();
+            return [directId, parentId].filter(
+              (value): value is string => Boolean(value),
+            );
+          }),
+        ),
+      );
+
+      if (categoryIds.length === 0) {
+        setRelevantArticles([]);
+        setRelevantArticlesError("");
+        return;
+      }
+
+      setIsLoadingRelevantArticles(true);
+      setRelevantArticlesError("");
+      try {
+        const blogs = await getBlogs({ publishedOnly: true });
+        const merged = blogs.filter((blog) => {
+          const blogCategoryId = (blog.categoryId ?? "").trim();
+          return blogCategoryId && categoryIds.includes(blogCategoryId);
+        });
+        const deduped = Array.from(
+          new Map(merged.map((item) => [item.id, item])).values(),
+        );
+        setRelevantArticles(deduped);
+      } catch (err: unknown) {
+        setRelevantArticles([]);
+        setRelevantArticlesError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load relevant articles.",
+        );
+      } finally {
+        setIsLoadingRelevantArticles(false);
+      }
+    };
+
+    loadRelevantArticles();
+  }, [product]);
+
+  const handleUpdateProduct = async () => {
+    setUpdateProductMsg("");
+    setUpdateProductError("");
+    if (isUpdatingProduct) return;
+    if (userRole !== "admin") {
+      setUpdateProductError("Only admin can update products.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid) return;
+
+    const payload: UpdateProductPayload = {
+      name: updateForm.name.trim(),
+      sku: updateForm.sku.trim(),
+      brand: updateForm.brand.trim(),
+      description: updateForm.description.trim(),
+      materialType: updateForm.materialType.trim(),
+      finishType: updateForm.finishType.trim() ? updateForm.finishType.trim() : null,
+      colorName: updateForm.colorName.trim(),
+      colorHex: updateForm.colorHex.trim() ? updateForm.colorHex.trim() : null,
+      thickness: updateForm.thickness.trim() ? updateForm.thickness.trim() : null,
+      dimensions: updateForm.dimensions.trim(),
+      performanceRating: Number(updateForm.performanceRating),
+      durabilityRating: Number(updateForm.durabilityRating),
+      priceCategory: Number(updateForm.priceCategory),
+      maintenanceRating: Number(updateForm.maintenanceRating),
+      bestUsedFor: normalizeTextList(updateForm.bestUsedForText).length > 0 ? normalizeTextList(updateForm.bestUsedForText) : null,
+      pros: normalizeTextList(updateForm.prosText),
+      cons: normalizeTextList(updateForm.consText),
+      status: updateForm.status,
+    };
+
+    setIsUpdatingProduct(true);
+    try {
+      const updated = await updateProduct(pid, payload);
+      setUpdateProductMsg("Product updated successfully.");
+      setProduct((prev) => {
+        const keepImages = prev?.images ?? null;
+        const keepCategories = prev?.categories ?? null;
+        const merged: ProductDetailsResponse = {
+          ...(prev ?? ({} as ProductDetailsResponse)),
+          ...(updated as UpdateProductResponse),
+          images: keepImages,
+          categories: keepCategories,
+        };
+        return merged;
+      });
+      setIsUpdateOpen(false);
+    } catch (err: unknown) {
+      setUpdateProductError(err instanceof Error ? err.message : "Failed to update product.");
+    } finally {
+      setIsUpdatingProduct(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    setDeleteImageMsg("");
+    setDeleteImageError("");
+    if (isDeletingImage) return;
+    if (userRole !== "admin") {
+      setDeleteImageError("Only admin can delete product images.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid || !imageId) return;
+    const ok = window.confirm("Delete this image? This cannot be undone.");
+    if (!ok) return;
+
+    setIsDeletingImage(true);
+    try {
+      const res = await deleteProductImage(pid, imageId);
+      setDeleteImageMsg(res.message || "Image deleted.");
+
+      setProduct((prev) => {
+        if (!prev) return prev;
+        const nextImages = (Array.isArray(prev.images) ? prev.images : []).filter((img) => img.id !== imageId);
+        return { ...prev, images: nextImages };
+      });
+
+      const removedUrl = images.find((img) => img.id === imageId)?.url || null;
+      if (removedUrl && selectedImageUrl === removedUrl) {
+        const nextList = images.filter((img) => img.id !== imageId);
+        const nextBest = pickBestImageUrl(nextList);
+        setSelectedImageUrl(nextBest);
+      }
+    } catch (err: unknown) {
+      setDeleteImageError(err instanceof Error ? err.message : "Failed to delete image.");
+    } finally {
+      setIsDeletingImage(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    setDeleteCategoryMsg("");
+    setDeleteCategoryError("");
+    if (isDeletingCategory) return;
+    if (userRole !== "admin") {
+      setDeleteCategoryError("Only admin can unlink categories.");
+      return;
+    }
+    const pid = product?.id || "";
+    if (!pid || !categoryId) return;
+    const ok = window.confirm("Unlink this category from the product?");
+    if (!ok) return;
+
+    setIsDeletingCategory(true);
+    try {
+      const res = await deleteProductCategory(pid, categoryId);
+      setDeleteCategoryMsg(res.message || "Category unlinked.");
+      setProduct((prev) => {
+        if (!prev) return prev;
+        const list = Array.isArray(prev.categories) ? prev.categories : [];
+        const next = list.filter((c) => c.categoryId !== categoryId && c.id !== categoryId);
+        return { ...prev, categories: next };
+      });
+    } catch (err: unknown) {
+      setDeleteCategoryError(err instanceof Error ? err.message : "Failed to unlink category.");
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
+  const handleDetailImageUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product?.id) return;
+    if (!["admin", "dataadmin"].includes(userRole)) {
+      setDetailImageUploadError("Only admin or dataadmin can upload product images.");
+      return;
+    }
+    if (detailImageFiles.length < 1 || detailImageFiles.length > 3) {
+      setDetailImageUploadError("Please select minimum 1 and maximum 3 images.");
+      return;
+    }
+
+    setIsUploadingDetailImages(true);
+    setDetailImageUploadError("");
+    setDetailImageUploadMsg("");
+    try {
+      const uploaded = await uploadProductImages(product.id, detailImageFiles);
+      setProduct((prev) => (prev ? { ...prev, images: uploaded } : prev));
+      setSelectedImageUrl(pickBestImageUrl(uploaded));
+      setDetailImageFiles([]);
+      setDetailImageUploadMsg(
+        `${uploaded.length} image${uploaded.length > 1 ? "s" : ""} uploaded successfully.`,
+      );
+    } catch (err: unknown) {
+      setDetailImageUploadError(err instanceof Error ? err.message : "Failed to upload image.");
+    } finally {
+      setIsUploadingDetailImages(false);
+    }
+  };
+
+  if (!userName) return null;
+  const productDisplayTitle =
+    userRole === "customer"
+      ? formatProductDisplayTitle(product?.name, product?.slug)
+      : formatProductName(product?.name);
+
+  return (
+    <div className="min-h-screen bg-[#f3eee5] font-sans text-gray-900">
+      <CommonStoreHeader
+        pageTitle=""
+        breadcrumbText={`HOME  >  ${productDisplayTitle || "Product Details"}`}
+        breadcrumbItems={[
+          { label: "HOME", href: "/dashboard" },
+          ...(product?.categories?.[0]?.slug
+            ? [
+                {
+                  label: formatCategoryName(product.categories[0].name),
+                  href: `/categories/${product.categories[0].slug}`,
+                },
+              ]
+            : []),
+          { label: productDisplayTitle || "Product Details" },
+        ]}
+        userName={userName}
+        userRole={userRole}
+        shortlistRefreshKey={shortlistHeaderRefreshKey}
+      />
+
+      <main className="mx-auto max-w-[1680px] px-4 py-5 sm:py-8 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
+        {error && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
+        {deleteImageError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {deleteImageError}
+          </div>
+        )}
+        {deleteImageMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {deleteImageMsg}
+          </div>
+        )}
+        {deleteCategoryError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {deleteCategoryError}
+          </div>
+        )}
+        {deleteCategoryMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {deleteCategoryMsg}
+          </div>
+        )}
+        {updateProductError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {updateProductError}
+          </div>
+        )}
+        {updateProductMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {updateProductMsg}
+          </div>
+        )}
+        {shortlistError && (
+          <div className="mb-6 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">
+            {shortlistError}
+          </div>
+        )}
+        {shortlistMsg && (
+          <div className="mb-6 text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">
+            {shortlistMsg}
+          </div>
+        )}
+
+        {isLoading || !product ? (
+          selectedImageUrl ? (
+            <div className="grid gap-5 sm:gap-8 lg:grid-cols-2">
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 shadow-sm">
+                <Image
+                  src={selectedImageUrl}
+                  alt="Product"
+                  fill
+                  priority
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-contain object-center p-3"
+                />
+              </div>
+              <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm text-sm text-gray-500">
+                {isLoading ? "Loading..." : "No product found."}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm text-sm text-gray-500">
+              {isLoading ? "Loading..." : "No product found."}
+            </div>
+          )
+        ) : (
+          <>
+          <div className="grid gap-5 sm:gap-8 lg:grid-cols-2">
+            <div>
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-100 shadow-sm">
+                {selectedImageUrl ? (
+                  <Image
+                    src={selectedImageUrl}
+                    alt={product.name}
+                    fill
+                    priority
+                    unoptimized
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-contain object-center p-3"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-widest text-gray-400">
+                    No Image
+                  </div>
+                )}
+                {userRole === "customer" ? (
+                  <WishlistHeartButton productId={product.id} className="absolute right-2 top-2 z-10 sm:right-3 sm:top-3" />
+                ) : null}
+              </div>
+
+              {images.length > 0 && (
+                <div className="mt-4 grid grid-cols-4 gap-3">
+                  {images.map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setSelectedImageUrl(img.url)}
+                      className={[
+                        "relative aspect-square overflow-hidden rounded-xl border",
+                        selectedImageUrl === img.url ? "border-black" : "border-gray-200"
+                      ].join(" ")}
+                    >
+                      <Image
+                        src={img.url}
+                        alt={product.name}
+                        fill
+                        unoptimized
+                        sizes="25vw"
+                        className="object-contain object-center p-1.5"
+                      />
+                      {userRole === "admin" && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteImage(img.id);
+                          }}
+                          className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Delete image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 sm:space-y-5">
+              <div>
+                <div className="inline-flex rounded-full bg-[#b58d52] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white">
+                  {product.materialType || "Product"}
+                </div>
+                <h1 className="mt-2 text-[22px] font-bold leading-[28px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
+                  {productDisplayTitle}
+                </h1>
+                <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                    {product.status}
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                    SKU: {product.sku}
+                  </span>
+                  {userRole !== "customer" && product.brand ? (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                     BRAND: {product.brand}
+                    </span>
+                  ) : null}
+                  {userRole !== "customer" && product.imsId ? (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                      IMSID: {product.imsId}
+                    </span>
+                  ) : null}
+                  {userRole !== "customer" && product.bookName ? (
+                    <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wide text-gray-700 sm:px-2.5 sm:text-[10px] sm:tracking-widest">
+                      BOOK NAME: {product.bookName}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
+                <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">Technical Specifications</div>
+                <div className="grid grid-cols-2 gap-y-2.5 border-t border-[#dacdbb] pt-3 text-[11px] sm:gap-y-3 sm:text-[12px]">
+                  {userRole !== "customer" && (
+                    <>
+                      <div className="text-[#968e84]">IMS ID</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.imsId || "-"}</div>
+                    </>
+                  )}
+                  {userRole === "customer" && (
+                    <>
+                      <div className="text-[#968e84]">Application</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.application || "-"}</div>
+                    </>
+                  )}
+                  <div className="text-[#968e84]">Color</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.colorName || "-"}</div>
+                  <div className="text-[#968e84]">Dimensions</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.dimensions || "-"}</div>
+                  <div className="text-[#968e84]">Finish</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.finishType || "-"}</div>
+                  <div className="text-[#968e84]">Thickness</div>
+                  <div className="font-semibold text-[#3f3a33]">{product.thickness || "-"}</div>
+                  {product.watt ? (
+                    <>
+                      <div className="text-[#968e84]">Watt</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.watt}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.performanceRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Performance</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.performanceRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.durabilityRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Durability</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.durabilityRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.maintenanceRating) ? (
+                    <>
+                      <div className="text-[#968e84]">Maintenance</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.maintenanceRating}</div>
+                    </>
+                  ) : null}
+                  {hasSpecRating(product.priceCategory) ? (
+                    <>
+                      <div className="text-[#968e84]">Price Category</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.priceCategory}</div>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {(isMeaningfulDescription(product.description) ||
+                asStringList(product.pros).length > 0 ||
+                asStringList(product.cons).length > 0) && (
+                <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
+                  <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">
+                    Product Overview
+                  </div>
+                  {isMeaningfulDescription(product.description) && (
+                    <p className="text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                      {product.description}
+                    </p>
+                  )}
+                  {asStringList(product.pros).length > 0 && (
+                    <div className={isMeaningfulDescription(product.description) ? "mt-4" : ""}>
+                      <div className="text-[11px] font-black uppercase tracking-widest text-[#8b6b45]">
+                        Pros
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                        {asStringList(product.pros).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {asStringList(product.cons).length > 0 && (
+                    <div className="mt-4">
+                      <div className="text-[11px] font-black uppercase tracking-widest text-[#8b6b45]">
+                        Cons
+                      </div>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                        {asStringList(product.cons).map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {userRole === "customer" && (
+                <>
+                  <div className="px-1">
+                    <button
+                      type="button"
+                      disabled={isCreatingShortlist}
+                      onClick={handleCreateShortlist}
+                      className="rounded-full bg-[#b58d52] px-10 py-3 text-[15px] font-bold text-white disabled:opacity-50"
+                    >
+                      {isCreatingShortlist ? "Saving..." : shortlistItem ? "Shortlisted" : "Short List Now"}
+                    </button>
+                  </div>
+                  <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
+                    <textarea
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value)}
+                      placeholder="For kitchen shutters"
+                      className="mt-2 block w-full rounded-xl border border-gray-200 bg-[#F8F0E4] px-4 py-3 text-sm shadow-inner min-h-[100px]"
+                    />
+                    {SHOW_CUSTOMER_SHORTLIST_DETAILS && shortlistItem ? (
+                      <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-700">
+                        <div><span className="font-bold text-gray-900">Shortlist ID:</span> {shortlistItem.id}</div>
+                        <div><span className="font-bold text-gray-900">Sample Status:</span> {shortlistItem.sampleStatus}</div>
+                        <div><span className="font-bold text-gray-900">Created At:</span> {new Date(shortlistItem.createdAt).toLocaleString()}</div>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
+
+              <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
+                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Categories</div>
+                <div className="flex flex-wrap gap-2">
+                  {(product.categories || []).length > 0 ? (
+                    (product.categories || []).map((c) => (
+                      <span
+                        key={c.id}
+                        className={[
+                          "relative inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black tracking-widest",
+                          c.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"
+                        ].join(" ")}
+                      >
+                        {formatCategoryName(c.name)}
+                        {userRole === "admin" && (
+                          <button
+                            type="button"
+                            disabled={isDeletingCategory}
+                            onClick={() => handleDeleteCategory(c.categoryId || c.id)}
+                            className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-gray-900 disabled:opacity-50"
+                            aria-label="Unlink category"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                          </button>
+                        )}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-500">No categories</span>
+                  )}
+                </div>
+              </div>
+
+              {["admin", "dataadmin"].includes(userRole) && images.length === 0 ? (
+                <form
+                  onSubmit={handleDetailImageUpload}
+                  className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm"
+                >
+                  <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Upload Product Image
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Product Name</div>
+                    <div className="mt-1 text-sm font-semibold text-[#3f3a33]">{product.name}</div>
+                  </div>
+                  <label className="mt-4 block text-[10px] font-black uppercase tracking-widest text-gray-400">
+                    Images (min 1, max 3)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      disabled={isUploadingDetailImages}
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        setDetailImageFiles(files);
+                        setDetailImageUploadError("");
+                        setDetailImageUploadMsg("");
+                      }}
+                      className="mt-2 block w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm"
+                    />
+                  </label>
+                  {detailImageFiles.length > 0 ? (
+                    <div className="mt-2 text-xs font-semibold text-gray-600">
+                      {detailImageFiles.map((file) => file.name).join(", ")}
+                    </div>
+                  ) : null}
+                  {detailImageUploadError ? (
+                    <div className="mt-3 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">
+                      {detailImageUploadError}
+                    </div>
+                  ) : null}
+                  {detailImageUploadMsg ? (
+                    <div className="mt-3 rounded-lg bg-green-50 p-3 text-xs font-bold text-green-700">
+                      {detailImageUploadMsg}
+                    </div>
+                  ) : null}
+                  <button
+                    type="submit"
+                    disabled={isUploadingDetailImages || detailImageFiles.length === 0}
+                    className="mt-4 rounded-full bg-[#0468a3] px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                  >
+                    {isUploadingDetailImages ? "Uploading..." : "Upload"}
+                  </button>
+                </form>
+              ) : null}
+
+              {userRole === "admin" && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Update Product (PUT)</div>
+                    <div className="flex items-center gap-2">
+                      {!isUpdateOpen ? (
+                        <button
+                          type="button"
+                          onClick={() => setIsUpdateOpen(true)}
+                          className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white"
+                        >
+                          Update
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={isUpdatingProduct}
+                            onClick={handleUpdateProduct}
+                            className="rounded-full bg-black px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-50"
+                          >
+                            {isUpdatingProduct ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isUpdatingProduct}
+                            onClick={() => {
+                              setIsUpdateOpen(false);
+                              if (product) {
+                                const status: UpdateProductPayload["status"] =
+                                  product.status === "active" || product.status === "archived" || product.status === "published" || product.status === "draft"
+                                    ? product.status
+                                    : "draft";
+                                setUpdateForm({
+                                  name: product.name ?? "",
+                                  sku: product.sku ?? "",
+                                  brand: product.brand ?? "",
+                                  description: product.description ?? "",
+                                  materialType: product.materialType ?? "",
+                                  finishType: product.finishType ?? "",
+                                  colorName: product.colorName ?? "",
+                                  colorHex: product.colorHex ?? "",
+                                  thickness: product.thickness ?? "",
+                                  dimensions: product.dimensions ?? "",
+                                  performanceRating: String(product.performanceRating ?? 0),
+                                  durabilityRating: String(product.durabilityRating ?? 0),
+                                  priceCategory: String(product.priceCategory ?? 0),
+                                  maintenanceRating: String(product.maintenanceRating ?? 0),
+                                  bestUsedForText: Array.isArray(product.bestUsedFor) ? product.bestUsedFor.join("\n") : "",
+                                  prosText: Array.isArray(product.pros) ? product.pros.join("\n") : "",
+                                  consText: Array.isArray(product.cons) ? product.cons.join("\n") : "",
+                                  status,
+                                });
+                              }
+                            }}
+                            className="rounded-full border border-gray-300 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-gray-800 disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {isUpdateOpen && (
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
+                      <input
+                        value={updateForm.name}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, name: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">SKU</label>
+                      <input
+                        value={updateForm.sku}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, sku: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Brand</label>
+                      <input
+                        value={updateForm.brand}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, brand: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Description</label>
+                      <textarea
+                        value={updateForm.description}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, description: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[90px]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Material Type</label>
+                      <input
+                        value={updateForm.materialType}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, materialType: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Finish Type (optional)</label>
+                      <input
+                        value={updateForm.finishType}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, finishType: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Name</label>
+                      <input
+                        value={updateForm.colorName}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, colorName: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Color Hex (optional)</label>
+                      <input
+                        value={updateForm.colorHex}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, colorHex: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Thickness (optional)</label>
+                      <input
+                        value={updateForm.thickness}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, thickness: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Dimensions</label>
+                      <input
+                        value={updateForm.dimensions}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, dimensions: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Performance Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.performanceRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, performanceRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Durability Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.durabilityRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, durabilityRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price Category</label>
+                      <input
+                        type="number"
+                        value={updateForm.priceCategory}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, priceCategory: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Maintenance Rating</label>
+                      <input
+                        type="number"
+                        value={updateForm.maintenanceRating}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, maintenanceRating: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Status</label>
+                      <select
+                        value={updateForm.status}
+                        onChange={(e) =>
+                          setUpdateForm((p) => ({
+                            ...p,
+                            status:
+                              e.target.value === "active"
+                                ? "active"
+                                : e.target.value === "archived"
+                                  ? "archived"
+                                  : e.target.value === "published"
+                                    ? "published"
+                                    : "draft",
+                          }))
+                        }
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm shadow-inner"
+                      >
+                        <option value="draft">draft</option>
+                        <option value="active">active</option>
+                        <option value="archived">archived</option>
+                        <option value="published">published</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Best Used For (optional) (comma or new line)</label>
+                      <textarea
+                        value={updateForm.bestUsedForText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, bestUsedForText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Pros (comma or new line)</label>
+                      <textarea
+                        value={updateForm.prosText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, prosText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Cons (comma or new line)</label>
+                      <textarea
+                        value={updateForm.consText}
+                        onChange={(e) => setUpdateForm((p) => ({ ...p, consText: e.target.value }))}
+                        className="mt-1 block w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm shadow-inner min-h-[80px]"
+                      />
+                    </div>
+                  </div>
+                  )}
+                </div>
+              )}
+
+              {["admin", "designer", "blogadmin", "dataadmin"].includes(userRole) && (
+                <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-4 shadow-sm sm:p-5">
+                  <div className="mb-2.5 text-[9px] font-black uppercase tracking-widest text-gray-400 sm:mb-3 sm:text-[10px]">IDs</div>
+                  <div className="space-y-2 text-[12px] sm:text-sm">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-500">Product ID</span>
+                      <span className="font-bold text-gray-900 break-all text-right">{product.id}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-gray-500">Slug</span>
+                      <span className="font-bold text-gray-900 break-all text-right">{product.slug}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          <section className="mt-14">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[36px] sm:leading-[40px]">
+                View Similar
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setVisibleSimilarCount((prev) =>
+                    prev >= similarProducts.length ? 4 : prev + 4,
+                  );
+                }}
+                className="rounded-full border border-[#c9b293] bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-[#8b6b45] shadow-sm hover:bg-[#f6eee2] sm:px-4 sm:py-1.5 sm:text-[11px] sm:tracking-wider"
+              >
+                {visibleSimilarCount >= similarProducts.length ? "Show Less" : "View More"}
+              </button>
+            </div>
+
+            {similarError && (
+              <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+                {similarError}
+              </div>
+            )}
+
+            {isLoadingSimilar ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
+                Loading similar products...
+              </div>
+            ) : similarProducts.length === 0 ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
+                No similar products found.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+                {similarProducts.slice(0, visibleSimilarCount).map((item, index) => {
+                  const imageUrl = pickListProductImageUrl(item);
+                  return (
+                    <article
+                      key={item.id}
+                      className="relative overflow-hidden rounded-xl border border-[#d6c8b6] bg-white shadow-sm sm:rounded-2xl"
+                    >
+                      <WishlistHeartButton productId={item.id} className="absolute right-2 top-2 z-10" />
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/products/${item.slug}`)}
+                        className="block w-full text-left"
+                      >
+                        <div className="relative aspect-square w-full bg-[#ffffff] sm:aspect-[4/3]">
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={item.name}
+                              fill
+                              unoptimized
+                              loading={index === 0 ? "eager" : "lazy"}
+                              sizes="(max-width: 1024px) 50vw, 25vw"
+                              className="object-contain object-center p-2"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div className="bg-[#e8dfd0] px-2.5 pb-2.5 pt-2 sm:px-3 sm:pb-3">
+                          <div className="text-[11px] font-semibold leading-tight tracking-tight text-[#2f2a24] sm:text-[16px]">
+                            {truncateText(
+                              userRole === "customer"
+                                ? formatProductDisplayTitle(item.name, item.slug)
+                                : formatProductName(item.name),
+                              24,
+                            )}
+                          </div>
+                          {/* <div className="mt-1 text-[12px] text-[#6d665d]">
+                            {item.description || "Classic Oak Natural"}
+                          </div> */}
+                          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-gray-200 pt-2 text-[9px] uppercase text-[#8f877d] sm:mt-3 sm:text-[10px]">
+                            <div>
+                              <div className="font-semibold">{item.watt ? "Watt" : "Thickness"}</div>
+                              <div className="font-bold text-[#4b443c]">{item.watt || item.thickness || "-"}</div>
+                            </div>
+                            <div>
+                              <div className="font-semibold">Finish</div>
+                              <div className="font-bold text-[#4b443c]">{item.finishType || "-"}</div>
+                            </div>
+                          </div>
+                          <div className="mt-2 rounded-full bg-[#b58d52] py-1.5 text-center text-[9px] font-semibold uppercase tracking-wide text-white sm:mt-3 sm:text-[10px] sm:tracking-wider">
+                            View Details
+                          </div>
+                        </div>
+                      </button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+          {SHOW_PRODUCT_RELEVANT_ARTICLES ? (
+          <section className="mt-10">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-[20px] font-bold leading-[26px] tracking-normal text-[#AE8953] sm:text-[28px] sm:leading-[34px]">
+                Relevant Articles
+              </h2>
+              {relevantArticles.length > 0 && (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => scrollRelevantArticles("left")}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white transition-colors hover:bg-[#8A6A3A] sm:h-10 sm:w-10"
+                    aria-label="Previous relevant article"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="m15 18-6-6 6-6" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRelevantArticles("right")}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-[#9f7a47] text-white transition-colors hover:bg-[#8A6A3A] sm:h-10 sm:w-10"
+                    aria-label="Next relevant article"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {relevantArticlesError && (
+              <div className="mb-4 rounded-xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+                {relevantArticlesError}
+              </div>
+            )}
+
+            {isLoadingRelevantArticles ? (
+              <div className="flex gap-3 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div
+                    key={`relevant-article-loading-${idx}`}
+                    className="h-[220px] w-[150px] flex-shrink-0 animate-pulse rounded-[14px] bg-[#d8ccbb] sm:h-[332px] sm:w-[280px] sm:rounded-[18px]"
+                  />
+                ))}
+              </div>
+            ) : relevantArticles.length === 0 ? (
+              <div className="rounded-xl border border-[#dfd2c1] bg-[#F8F0E4] p-4 text-sm text-gray-500">
+                No relevant articles found.
+              </div>
+            ) : (
+              <div
+                ref={relevantArticlesScrollRef}
+                className="flex gap-3 overflow-x-auto scroll-smooth pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5"
+              >
+                {relevantArticles.map((item, idx) => (
+                  <RelevantArticleCard
+                    key={item.id}
+                    className="h-[220px] w-[150px] max-w-[calc(100vw-2rem)] flex-shrink-0 sm:h-[332px] sm:w-[280px] sm:max-w-[280px]"
+                    title={item.title}
+                    imageUrl={getBlogImageUrl(item)}
+                    imageAlt={item.title}
+                    href={blogPublicPath(item)}
+                    priority={idx === 0}
+                    unoptimized
+                    sizes="(max-width: 1024px) 150px, 280px"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+          ) : null}
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
