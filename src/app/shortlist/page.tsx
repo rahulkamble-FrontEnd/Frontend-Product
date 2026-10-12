@@ -86,6 +86,8 @@ export default function ShortlistPage() {
   const [isComparing, setIsComparing] = useState(false);
   const [compareError, setCompareError] = useState("");
   const [compareData, setCompareData] = useState<ProductCompareResponse | null>(null);
+  const [compareNotice, setCompareNotice] = useState("");
+  const [compareNoticeTick, setCompareNoticeTick] = useState(0);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName") || "";
@@ -134,7 +136,18 @@ export default function ShortlistPage() {
     };
   }, [userRole]);
 
+  useEffect(() => {
+    if (!compareNotice) return;
+    const timer = window.setTimeout(() => setCompareNotice(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [compareNotice, compareNoticeTick]);
+
   const selectedList = Array.from(selectedIds);
+
+  const showCompareLimit = () => {
+    setCompareNotice("You can compare only 4 products.");
+    setCompareNoticeTick((tick) => tick + 1);
+  };
 
   const toggleCompare = (productId: string) => {
     setError("");
@@ -146,7 +159,7 @@ export default function ShortlistPage() {
         return next;
       }
       if (next.size >= 4) {
-        setCompareError("You can compare only 4 products.");
+        showCompareLimit();
         return next;
       }
       next.add(productId);
@@ -163,8 +176,7 @@ export default function ShortlistPage() {
       return;
     }
     if (ids.length > 4) {
-      setCompareError("You can compare only 4 products.");
-      setIsCompareOpen(true);
+      showCompareLimit();
       return;
     }
     setCompareError("");
@@ -288,9 +300,6 @@ export default function ShortlistPage() {
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#d9cab5] bg-white p-4 shadow-sm">
           <div className="min-w-0">
             <div className="text-[12px] font-black uppercase tracking-widest text-gray-500">Compare</div>
-            {compareError === "You can compare only 4 products." ? (
-              <div className="mt-1 text-sm font-semibold text-[#9b2c2c]">You can compare only 4 products.</div>
-            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -531,11 +540,28 @@ export default function ShortlistPage() {
         isComparing={isComparing}
         error={compareError}
         data={compareData}
+        userRole={userRole}
         onClose={() => {
           setIsCompareOpen(false);
           setCompareError("");
         }}
       />
+      {compareNotice ? (
+        <div className="fixed bottom-4 left-1/2 z-[400] flex w-[min(92vw,28rem)] -translate-x-1/2 items-center gap-3 rounded-2xl border border-[#e7c7c7] bg-white px-4 py-3 shadow-2xl sm:bottom-6 sm:px-5 sm:py-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#9b2c2c] text-white sm:h-11 sm:w-11">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M16 3h5v5" />
+              <path d="M8 3H3v5" />
+              <path d="M3 16v5h5" />
+              <path d="M21 16v5h-5" />
+            </svg>
+          </span>
+          <div className="min-w-0 text-left">
+            <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#9b2c2c]">Compare</div>
+            <div className="mt-1 text-sm font-semibold leading-5 text-[#4d2c1e]">{compareNotice}</div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

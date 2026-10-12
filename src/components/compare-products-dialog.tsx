@@ -48,16 +48,31 @@ function displayValue(value: string | number | null | undefined) {
   return text ? text : "—";
 }
 
+const CUSTOMER_HIDDEN_COMPARE_FIELDS = new Set(["imsId", "bookName", "pageNumber"]);
+
 type CompareProductsDialogProps = {
   open: boolean;
   isComparing: boolean;
   error: string;
   data: ProductCompareResponse | null;
+  userRole?: string;
   onClose: () => void;
 };
 
-export default function CompareProductsDialog({ open, isComparing, error, data, onClose }: CompareProductsDialogProps) {
+export default function CompareProductsDialog({
+  open,
+  isComparing,
+  error,
+  data,
+  userRole = "",
+  onClose,
+}: CompareProductsDialogProps) {
   if (!open) return null;
+
+  const fields =
+    userRole === "customer"
+      ? (data?.fields ?? []).filter((field) => !CUSTOMER_HIDDEN_COMPARE_FIELDS.has(field.key))
+      : (data?.fields ?? []);
 
   return (
     <div className="fixed inset-0 z-[400] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6">
@@ -120,7 +135,7 @@ export default function CompareProductsDialog({ open, isComparing, error, data, 
                     </tr>
                   </thead>
                   <tbody>
-                    {data.fields.map((field) => (
+                    {fields.map((field) => (
                       <tr key={field.key} className="border-t border-[#eadfce]">
                         <td className="sticky left-0 z-10 bg-white px-3 py-3 text-[11px] font-black uppercase tracking-wide text-gray-500">
                           {fieldLabel(field.key)}
