@@ -5228,8 +5228,20 @@ function DashboardPageContent() {
                           <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Customer Wishlist</div>
                           <div className="mt-1 text-xs text-gray-500 sm:text-sm">Products this customer saved with the heart.</div>
                         </div>
-                        <div className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
-                          {(designerCustomerDetails.wishlist ?? []).length} Items
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!selectedDesignerCustomerId) return;
+                              router.push(`/customers/${selectedDesignerCustomerId}/wishlist`);
+                            }}
+                            className="rounded-full bg-black px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] text-white sm:px-4 sm:text-[10px] sm:tracking-widest"
+                          >
+                            Open wishlist
+                          </button>
+                          <div className="shrink-0 whitespace-nowrap rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-gray-700 sm:px-3 sm:text-[10px] sm:tracking-widest">
+                            {(designerCustomerDetails.wishlist ?? []).length} Items
+                          </div>
                         </div>
                       </div>
                       <div className="mt-4 space-y-3">
