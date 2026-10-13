@@ -3938,7 +3938,7 @@ function DashboardPageContent() {
           {[
             {
               title: "Wide Product Range",
-              subtitle: "Explore 1000 interior materials across categories",
+              subtitle: "Explore thousands of interior materials across categories",
               icon: "list",
             },
             {
@@ -3953,12 +3953,12 @@ function DashboardPageContent() {
             },
             {
               title: "Easy Comparison",
-              subtitle: "Compare materials, textures & performance",
+              subtitle: "Compare materials & textures.",
               icon: "wave",
             },
             {
               title: "Fast Delivery",
-              subtitle: "complete Home solution in 21 days",
+              subtitle: "Complete home solution in 21 days",
               icon: "spark",
             },
             {
