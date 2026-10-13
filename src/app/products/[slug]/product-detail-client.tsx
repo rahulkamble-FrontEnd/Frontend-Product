@@ -117,6 +117,10 @@ function hasSpecRating(value: number | null | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
+function hasSpecText(value: string | null | undefined) {
+  return (value ?? "").trim().length > 0;
+}
+
 export default function ProductDetailsPage({
   initialImageUrl = null,
 }: {
@@ -744,30 +748,57 @@ export default function ProductDetailsPage({
                 </div>
               </div>
 
+              {(userRole !== "customer" && hasSpecText(product.imsId)) ||
+              (userRole === "customer" && hasSpecText(product.application)) ||
+              hasSpecText(product.colorName) ||
+              hasSpecText(product.dimensions) ||
+              hasSpecText(product.finishType) ||
+              hasSpecText(product.thickness) ||
+              hasSpecText(product.watt) ||
+              hasSpecRating(product.performanceRating) ||
+              hasSpecRating(product.durabilityRating) ||
+              hasSpecRating(product.maintenanceRating) ||
+              hasSpecRating(product.priceCategory) ? (
               <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
                 <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">Technical Specifications</div>
                 <div className="grid grid-cols-2 gap-y-2.5 border-t border-[#dacdbb] pt-3 text-[11px] sm:gap-y-3 sm:text-[12px]">
-                  {userRole !== "customer" && (
+                  {userRole !== "customer" && hasSpecText(product.imsId) ? (
                     <>
                       <div className="text-[#968e84]">IMS ID</div>
-                      <div className="font-semibold text-[#3f3a33]">{product.imsId || "-"}</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.imsId}</div>
                     </>
-                  )}
-                  {userRole === "customer" && (
+                  ) : null}
+                  {userRole === "customer" && hasSpecText(product.application) ? (
                     <>
                       <div className="text-[#968e84]">Application</div>
-                      <div className="font-semibold text-[#3f3a33]">{product.application || "-"}</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.application}</div>
                     </>
-                  )}
-                  <div className="text-[#968e84]">Color</div>
-                  <div className="font-semibold text-[#3f3a33]">{product.colorName || "-"}</div>
-                  <div className="text-[#968e84]">Dimensions</div>
-                  <div className="font-semibold text-[#3f3a33]">{product.dimensions || "-"}</div>
-                  <div className="text-[#968e84]">Finish</div>
-                  <div className="font-semibold text-[#3f3a33]">{product.finishType || "-"}</div>
-                  <div className="text-[#968e84]">Thickness</div>
-                  <div className="font-semibold text-[#3f3a33]">{product.thickness || "-"}</div>
-                  {product.watt ? (
+                  ) : null}
+                  {hasSpecText(product.colorName) ? (
+                    <>
+                      <div className="text-[#968e84]">Color</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.colorName}</div>
+                    </>
+                  ) : null}
+                  {hasSpecText(product.dimensions) ? (
+                    <>
+                      <div className="text-[#968e84]">Dimensions</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.dimensions}</div>
+                    </>
+                  ) : null}
+                  {hasSpecText(product.finishType) ? (
+                    <>
+                      <div className="text-[#968e84]">Finish</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.finishType}</div>
+                    </>
+                  ) : null}
+                  {hasSpecText(product.thickness) ? (
+                    <>
+                      <div className="text-[#968e84]">Thickness</div>
+                      <div className="font-semibold text-[#3f3a33]">{product.thickness}</div>
+                    </>
+                  ) : null}
+                  {hasSpecText(product.watt) ? (
                     <>
                       <div className="text-[#968e84]">Watt</div>
                       <div className="font-semibold text-[#3f3a33]">{product.watt}</div>
@@ -799,6 +830,7 @@ export default function ProductDetailsPage({
                   ) : null}
                 </div>
               </div>
+              ) : null}
 
               {(isMeaningfulDescription(product.description) ||
                 asStringList(product.pros).length > 0 ||

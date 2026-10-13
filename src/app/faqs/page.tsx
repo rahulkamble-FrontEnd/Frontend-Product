@@ -17,74 +17,19 @@ type FaqItem = {
 
 const questions: FaqItem[] = [
   {
-    question: "What is CustomFurnish Materials?",
+    question: "What is CF Studio?",
     answer:
-      "CustomFurnish Materials is a platform where customers can explore premium interior materials, finishes, and design products for their home interiors.",
+      "CF Studio is CustomFurnish's exclusive online material selection platform, designed to make your interior design journey easier and more convenient.\n\nIt showcases the wide range of products, materials, finishes, colours, textures, hardware and accessories available at CustomFurnish, allowing you to explore the options and select what best suits your home.\n\nYou can browse the entire collection from the comfort of your home, at any time, compare different styles and shortlist your preferences before meeting your designer.",
   },
   {
-    question: "Can I purchase materials directly from the website?",
+    question: "How does CF Studio make the selection process easier?",
     answer:
-      "No, materials cannot be purchased directly from the website. Customers can explore and select materials, and our interior design team will include them in the final interior quotation.",
+      "Instead of spending hours browsing through physical catalogues at our Experience Centre, you can explore the available options online and shortlist the materials and finishes you like.\n\nYour selections will be shared with your CustomFurnish designer, who will guide you through the shortlisted options and help you make the right choices for your home. You can view the physical samples of your shortlisted items at our Experience Centre before making your final selections.\n\nThis saves time and makes your design meetings more focused, efficient and productive.",
   },
   {
-    question: "How does the material selection process work?",
+    question: "Does CF Studio display prices for materials and finishes?",
     answer:
-      "Customers can browse materials, finishes, colors, and design options on the website. Once selected, our interior designers will assist in finalizing the materials for the project.",
-  },
-  {
-    question: "Will the selected materials be included in the interior quotation?",
-    answer:
-      "Yes, the selected materials and finishes will be discussed with our design team and added to the final project quotation.",
-  },
-  {
-    question: "Can I customize materials for my interiors?",
-    answer:
-      "Yes, customers can choose materials based on their design preferences, interior style, and budget requirements.",
-  },
-  {
-    question: "Do you provide assistance in choosing materials?",
-    answer:
-      "Yes, our interior designers help customers select suitable materials based on functionality, aesthetics, and space requirements.",
-  },
-  {
-    question: "Can I visit the experience centre to check materials physically?",
-    answer:
-      "Yes, customers can visit our Hyderabad experience centre to explore material samples and finish collections.",
-  },
-  {
-    question: "What types of materials are available on the website?",
-    answer:
-      "We showcase laminates, wall decorative panels, flooring materials, hardware, lighting, glass, mirrors, fabrics, and premium interior finishes.",
-  },
-  {
-    question: "Are the materials suitable for luxury home interiors?",
-    answer:
-      "Yes, our collections are carefully selected for modern, premium, and luxury residential interiors.",
-  },
-  {
-    question: "Do you provide complete interior design services along with materials?",
-    answer:
-      "Yes, CustomFurnish provides complete customized home interior solutions along with material selection and execution.",
-  },
-  {
-    question: "Can I get guidance from an interior designer after selecting materials?",
-    answer:
-      "Yes, our design team will coordinate with customers and suggest suitable combinations and finishes for the project.",
-  },
-  {
-    question: "Where is your experience centre located?",
-    answer:
-      "Our Hyderabad experience centre is located at:\nPlot No - 190, Professor CR Rao Road, Opposite Old ALIND Factory Entrance Gate, Doyens Colony, Serilingampalle (M), Telangana - 500019.",
-  },
-  {
-    question: "How can I contact CustomFurnish?",
-    answer:
-      "You can contact us through phone, email, or by visiting our experience centre during working hours.",
-  },
-  {
-    question: "What are your working hours?",
-    answer:
-      "Our working hours are Monday to Saturday, from 10:00 AM to 7:00 PM.",
+      "No. CF Studio is a material exploration and selection platform, not a pricing or quotation tool.\n\nOnce your materials and finishes are finalized with your designer, they will be incorporated into your 3D designs using our design software.\n\nThe applicable pricing will then be calculated automatically, and an updated quotation will be generated based on your finalized designs, materials and specifications.",
   },
 ];
 
@@ -93,36 +38,11 @@ function formatNumber(n: number): string {
 }
 
 function renderAnswer(answer: string) {
-  if (answer.includes("\n")) {
-    const lines = answer
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-    const [first, ...rest] = lines;
-    if (
-      rest.length === 1 &&
-      first.endsWith(":") &&
-      rest[0].length > 80
-    ) {
-      return (
-        <>
-          <p>{first}</p>
-          <p>{rest[0]}</p>
-        </>
-      );
-    }
-    return (
-      <div>
-        <strong>{first}</strong>
-        <ul>
-          {rest.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-      </div>
-    );
-  }
-  return <p>{answer}</p>;
+  const paragraphs = answer
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+  return paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>);
 }
 
 export default function FaqsPage() {
