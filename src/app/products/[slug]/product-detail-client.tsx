@@ -31,6 +31,10 @@ const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazon
 const SHOW_PRODUCT_RELEVANT_ARTICLES = false;
 /** Shortlist id, sample status, and created time. Hidden on the customer product page. */
 const SHOW_CUSTOMER_SHORTLIST_DETAILS = false;
+/** Customer "Short List Now" button on the product page. */
+const SHOW_SHORT_LIST_NOW_BUTTON = false;
+/** Customer note box on the product page. */
+const SHOW_CUSTOMER_NOTE = false;
 
 function cleanUrl(value: string) {
   return value.trim().replace(/^`+/, "").replace(/`+$/, "").replace(/^"+/, "").replace(/"+$/, "").trim();
@@ -837,6 +841,7 @@ export default function ProductDetailsPage({
 
               {userRole === "customer" && (
                 <>
+                  {SHOW_SHORT_LIST_NOW_BUTTON && (
                   <div className="px-1">
                     <button
                       type="button"
@@ -847,6 +852,8 @@ export default function ProductDetailsPage({
                       {isCreatingShortlist ? "Saving..." : shortlistItem ? "Shortlisted" : "Short List Now"}
                     </button>
                   </div>
+                  )}
+                  {SHOW_CUSTOMER_NOTE && (
                   <div className="rounded-2xl border border-gray-100 bg-[#F8F0E4] p-5 shadow-sm">
                     <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Customer Note</div>
                     <textarea
@@ -863,6 +870,7 @@ export default function ProductDetailsPage({
                       </div>
                     ) : null}
                   </div>
+                  )}
                 </>
               )}
 

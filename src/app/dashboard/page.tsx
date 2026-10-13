@@ -55,6 +55,7 @@ import { RelevantArticleCard } from "@/components/relevant-article-card";
 import { isTestS3Url, PRODUCT_IMAGE_BASE_URL } from "@/lib/s3-image-base";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
+const SHOW_HEADER_CART = false;
 const MENU_CATEGORIES_CACHE_KEY = "dashboard_menu_categories_cache_v1";
 // NOTE: Keeping this fallback for now; menu data is currently coming directly from API.
 const FALLBACK_MENU_NAMES: string[] = [
@@ -3266,6 +3267,7 @@ function DashboardPageContent() {
               )}
             </div>
             <WishlistHeaderButton />
+            {SHOW_HEADER_CART && (
             <button
               type="button"
               onClick={(e) => {
@@ -3281,6 +3283,7 @@ function DashboardPageContent() {
                 {userRole === "customer" ? shortlistItems.length : 0}
               </span>
             </button>
+            )}
              {/* Profile/Menu (Mobile replacement for logout) */}
              {userName ? (
                <button 
