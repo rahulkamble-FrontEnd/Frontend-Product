@@ -13,6 +13,7 @@ import {
 import { WishlistHeaderButton } from "@/components/wishlist-provider";
 
 const NOTIFICATION_ROLES = new Set(["customer", "designer", "admin", "blogadmin"]);
+const SHOW_HEADER_CART = false;
 
 function formatNotificationTime(value: string) {
   if (!value) return "";
@@ -276,6 +277,7 @@ export default function StoreHeaderUserBar({
       )}
 
       <WishlistHeaderButton />
+      {SHOW_HEADER_CART && (
       <button
         type="button"
         onClick={(e) => {
@@ -304,6 +306,7 @@ export default function StoreHeaderUserBar({
           {userRole === "customer" ? shortlistCount : 0}
         </span>
       </button>
+      )}
 
       {userName ? (
         <button
