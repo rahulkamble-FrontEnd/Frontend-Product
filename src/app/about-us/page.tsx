@@ -116,8 +116,8 @@ export default function AboutUsPage() {
           <div className={styles.aboutImage}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`${S3}/images/about-us/showroom.webp`}
-              alt="Living Room"
+              src="https://products-customfurnish.s3.ap-south-1.amazonaws.com/about-us/showroom.png"
+              alt="CustomFurnish showroom"
             />
           </div>
         </div>
