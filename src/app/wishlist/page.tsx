@@ -34,7 +34,7 @@ function productImageUrl(product: WishlistItem["product"]) {
 
 export default function WishlistPage() {
   const router = useRouter();
-  const { count } = useWishlist();
+  const { productIds, ready, clearAll } = useWishlist();
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const [items, setItems] = useState<WishlistItem[]>([]);
@@ -94,7 +94,7 @@ export default function WishlistPage() {
     return () => {
       cancelled = true;
     };
-  }, [userRole, count]);
+  }, [userRole]);
 
   useEffect(() => {
     if (!compareNotice) return;
@@ -102,7 +102,8 @@ export default function WishlistPage() {
     return () => window.clearTimeout(timer);
   }, [compareNotice, compareNoticeTick]);
 
-  const selectedList = Array.from(selectedIds);
+  const visibleItems = ready ? items.filter((item) => productIds.has(item.productId)) : items;
+  const selectedList = Array.from(selectedIds).filter((id) => productIds.has(id));
 
   const showCompareLimit = () => {
     setCompareNotice("You can compare only 4 products.");
@@ -167,9 +168,26 @@ export default function WishlistPage() {
         userRole={userRole}
       />
       <main className="mx-auto w-full max-w-[1680px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
-        <div className="mb-4 sm:mb-5">
-          <h1 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e] sm:text-3xl">My Wishlist</h1>
-          <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-500">{items.length} Saved</div>
+        <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5">
+          <div>
+            <h1 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e] sm:text-3xl">My Wishlist</h1>
+            <div className="mt-1 text-[11px] font-bold uppercase tracking-widest text-gray-500">{visibleItems.length} Saved</div>
+          </div>
+          <button
+            type="button"
+            disabled={visibleItems.length === 0}
+            onClick={() => {
+              setSelectedIds(new Set());
+              setError("");
+              setCompareError("");
+              setCompareData(null);
+              setIsCompareOpen(false);
+              void clearAll();
+            }}
+            className="rounded-full border border-[#9b2c2c] bg-white px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#9b2c2c] disabled:opacity-50"
+          >
+            Clear
+          </button>
         </div>
         {error ? (
           <div className="mb-4 rounded-lg bg-red-50 p-3 text-center text-xs font-bold text-red-600">{error}</div>
@@ -209,13 +227,13 @@ export default function WishlistPage() {
               <div key={index} className="h-[240px] animate-pulse rounded-xl bg-[#e8dfd0]" />
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : visibleItems.length === 0 ? (
           <div className="rounded-2xl border border-[#d9cab5] bg-white p-10 text-center text-sm text-gray-500">
             No wishlist items found.
           </div>
         ) : (
           <div className="grid grid-cols-2 items-stretch gap-2.5 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
-            {items.map((item) => {
+            {visibleItems.map((item) => {
               const product = item.product ?? null;
               const imageUrl = productImageUrl(product);
               return (
