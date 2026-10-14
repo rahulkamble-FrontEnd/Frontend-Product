@@ -617,6 +617,19 @@ export async function removeWishlistItem(productId: string) {
   return response.json() as Promise<{ message: string }>;
 }
 
+export async function clearWishlist() {
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/wishlist`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to clear wishlist');
+  }
+  return response.json() as Promise<{ message: string }>;
+}
+
 export async function requestShortlistSample(shortlistId: string) {
   const id = shortlistId.trim();
   if (!id) throw new Error("Shortlist id is required");
