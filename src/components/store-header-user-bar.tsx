@@ -12,7 +12,7 @@ import {
 } from "@/lib/api";
 import { WishlistHeaderButton } from "@/components/wishlist-provider";
 
-const NOTIFICATION_ROLES = new Set(["customer", "designer", "admin", "blogadmin"]);
+const NOTIFICATION_ROLES = new Set(["designer", "admin", "blogadmin"]);
 const SHOW_HEADER_CART = false;
 
 function formatNotificationTime(value: string) {

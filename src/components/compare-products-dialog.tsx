@@ -48,6 +48,16 @@ function displayValue(value: string | number | null | undefined) {
   return text ? text : "—";
 }
 
+function hasCompareValue(value: string | number | null | undefined) {
+  if (value == null) return false;
+  if (typeof value === "number") return Number.isFinite(value) && value !== 0;
+  const text = value.trim();
+  if (!text || text === "-" || text === "—" || text === "0") return false;
+  const numeric = Number(text);
+  if (Number.isFinite(numeric) && numeric === 0) return false;
+  return true;
+}
+
 const CUSTOMER_HIDDEN_COMPARE_FIELDS = new Set(["imsId", "bookName", "pageNumber"]);
 
 type CompareProductsDialogProps = {
@@ -69,10 +79,11 @@ export default function CompareProductsDialog({
 }: CompareProductsDialogProps) {
   if (!open) return null;
 
-  const fields =
+  const fields = (
     userRole === "customer"
       ? (data?.fields ?? []).filter((field) => !CUSTOMER_HIDDEN_COMPARE_FIELDS.has(field.key))
-      : (data?.fields ?? []);
+      : (data?.fields ?? [])
+  ).filter((field) => (field.values ?? []).some((value) => hasCompareValue(value)));
 
   return (
     <div className="fixed inset-0 z-[400] flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-6">
