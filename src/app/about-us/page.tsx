@@ -88,7 +88,7 @@ export default function AboutUsPage() {
               Redefining Modern Interior Material Selection
             </p>
             <p className={styles.aboutContentTxt}>
-              <span style={{ fontWeight: 700 }}>CustomFurnish Materials</span>{" "}
+              <span style={{ fontWeight: 700 }}>CF Studio</span>{" "}
               is a curated platform designed to help homeowners explore premium
               interior materials, finishes, and modern design solutions for
               customized home interiors.

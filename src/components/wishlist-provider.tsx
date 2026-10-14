@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { addWishlistItem, getWishlist, removeWishlistItem } from "@/lib/api";
+import { addWishlistItem, clearWishlist, getWishlist, removeWishlistItem } from "@/lib/api";
 
 const WISHLIST_ITEM_LIMIT = 25;
 
@@ -10,8 +10,10 @@ type WishlistContextValue = {
   productIds: Set<string>;
   count: number;
   isCustomer: boolean;
+  ready: boolean;
   pendingProductId: string | null;
   toggle: (productId: string) => Promise<void>;
+  clearAll: () => Promise<void>;
 };
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
@@ -21,6 +23,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [productIds, setProductIds] = useState<Set<string>>(new Set());
   const [isCustomer, setIsCustomer] = useState(false);
+  const [ready, setReady] = useState(false);
   const [pendingProductId, setPendingProductId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
 
@@ -30,6 +33,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     setIsCustomer(customer);
     if (!customer) {
       setProductIds(new Set());
+      setReady(true);
       return;
     }
     try {
@@ -37,6 +41,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       setProductIds(new Set(items.map((item) => item.productId).filter(Boolean)));
     } catch {
       setProductIds(new Set());
+    } finally {
+      setReady(true);
     }
   }, []);
 
@@ -89,15 +95,34 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     [pendingProductId, productIds, router],
   );
 
+  const clearAll = useCallback(async () => {
+    const role = window.localStorage.getItem("userRole") || "";
+    if (role !== "customer") {
+      router.push("/login");
+      return;
+    }
+    if (productIds.size === 0) return;
+    const previous = new Set(productIds);
+    setProductIds(new Set());
+    try {
+      await clearWishlist();
+    } catch (err: unknown) {
+      setProductIds(previous);
+      setNotice(err instanceof Error ? err.message : "Could not clear wishlist.");
+    }
+  }, [productIds, router]);
+
   const value = useMemo(
     () => ({
       productIds,
       count: productIds.size,
       isCustomer,
+      ready,
       pendingProductId,
       toggle,
+      clearAll,
     }),
-    [productIds, isCustomer, pendingProductId, toggle],
+    [productIds, isCustomer, ready, pendingProductId, toggle, clearAll],
   );
 
   return (

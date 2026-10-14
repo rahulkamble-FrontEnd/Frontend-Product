@@ -4010,10 +4010,10 @@ function DashboardPageContent() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <h3 className="text-[24px] font-bold leading-[30px] tracking-normal text-white sm:text-[36px] sm:leading-[40px]">
-                Latest Products
+                Newly Launched
               </h3>
               <p className="mt-2 text-xs text-white/90 sm:mt-3 sm:text-sm">
-                View the latest products launch recently
+                View the newly launched products
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
