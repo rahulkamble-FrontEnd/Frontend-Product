@@ -1407,7 +1407,7 @@ function DashboardPageContent() {
   }, [userRole]);
 
   useEffect(() => {
-    const eligibleRoles = new Set(["customer", "designer", "admin", "blogadmin", "dataadmin"]);
+    const eligibleRoles = new Set(["designer", "admin", "blogadmin", "dataadmin"]);
     if (!eligibleRoles.has(userRole)) {
       setNotifications([]);
       setNotificationsError("");
@@ -3196,6 +3196,7 @@ function DashboardPageContent() {
                   </div>
                 </>
             )}
+            {userRole !== "customer" && (
             <div className="relative">
               <button
                 type="button"
@@ -3266,6 +3267,7 @@ function DashboardPageContent() {
                 </div>
               )}
             </div>
+            )}
             <WishlistHeaderButton />
             {SHOW_HEADER_CART && (
             <button

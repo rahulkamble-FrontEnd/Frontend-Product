@@ -246,6 +246,7 @@ function CategoryProductsPageContent() {
   const selectedFinishTypes = useMemo(() => csvToSet(listQuery.get("finishType")), [listQuery]);
   const selectedColors = useMemo(() => csvToSet(listQuery.get("colorName")), [listQuery]);
   const selectedThicknesses = useMemo(() => csvToSet(listQuery.get("thickness")), [listQuery]);
+  const selectedSizes = useMemo(() => csvToSet(listQuery.get("dimensions")), [listQuery]);
   const selectedWatts = useMemo(() => csvToSet(listQuery.get("watt")), [listQuery]);
   const selectedSubcategoryId = listQuery.get("subcategory")?.trim() ?? "";
   const sortBy = parseSort(listQuery.get("sort"));
@@ -254,6 +255,180 @@ function CategoryProductsPageContent() {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const shouldShowBrand = userRole !== "customer";
   const shouldShowBookName = userRole !== "customer";
+  /** Core Materials BWP, HDHMR, and MDF hide finish, color, and book name. */
+  const hideFinishAndColorFilters = useMemo(() => {
+    if ((category?.slug ?? "").trim().toLowerCase() !== "core-materials") return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    return ["bwp", "hdhmr", "mdf"].includes(selectedName.trim().toLowerCase());
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  const wallDecorativeSubcategory = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "wall decoratives") return "";
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    return normalizeSubcategoryName(selectedName);
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  const hideWallPanelFinishFilter =
+    wallDecorativeSubcategory === "wall panels" || wallDecorativeSubcategory === "wall panel";
+  const hideWallPaperFilters =
+    wallDecorativeSubcategory === "wall papers" || wallDecorativeSubcategory === "wall paper";
+  const hideWallTrimFilters =
+    wallDecorativeSubcategory === "wall trims" || wallDecorativeSubcategory === "wall trim";
+  /** Counter Tops All, Granite, and Quartz hide finish, color, and book name. */
+  const hideCounterTopDetailFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "counter tops") return false;
+    if (!selectedSubcategoryId) return true;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return normalized === "granite" || normalized === "quartz";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Flooring & Tiles Dado Tiles hides finish, color, and book name. */
+  const hideDadoTileFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "flooring tiles") return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return normalized === "dado tiles" || normalized === "dado tile";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Flooring & Tiles Wooden Flooring hides finish and color. Book name stays. */
+  const hideWoodenFlooringFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "flooring tiles") return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return normalized === "wooden flooring" || normalized === "wooden floorings";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Hardware All and listed subcategories hide finish, thickness, and book name. */
+  const hideHardwareDetailFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "hardware") return false;
+    if (!selectedSubcategoryId) return true;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return (
+      normalized === "accessories" ||
+      normalized === "baskets & pullouts" ||
+      normalized === "baskets and pullouts" ||
+      normalized === "corner unit accessories" ||
+      normalized === "rollup shutters" ||
+      normalized === "roll up shutters" ||
+      normalized === "tandem drawers"
+    );
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Ceiling Gypsum and Wooden hide brand, finish, color, thickness, and book name. */
+  const hideCeilingGypsumFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "ceiling") return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return normalized === "gypsum" || normalized === "wooden" || normalized === "wood";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Ceiling PVC hides finish type and book name. Brand, color, and thickness stay. */
+  const hideCeilingPvcFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "ceiling") return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    return normalizeSubcategoryName(selectedName) === "pvc";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Lighting All, COB, Panel, Spot, Strip, and Track hide finish type and thickness. */
+  const hideLightingDetailFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "lighting") return false;
+    if (!selectedSubcategoryId) return true;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return (
+      normalized === "cob" ||
+      normalized === "panel" ||
+      normalized === "spot" ||
+      normalized === "strip" ||
+      normalized === "track"
+    );
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Glass All and listed types hide finish type and book name. */
+  const hideGlassDetailFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "glass") return false;
+    if (!selectedSubcategoryId) return true;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return (
+      normalized === "fluted" ||
+      normalized === "frosted" ||
+      normalized === "lacquered" ||
+      normalized === "lacquered glass" ||
+      normalized === "laminated" ||
+      normalized === "plain" ||
+      normalized === "tinted" ||
+      normalized === "toughened"
+    );
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  const hideFinishTypeFilter =
+    hideFinishAndColorFilters ||
+    hideWallPanelFinishFilter ||
+    hideWallPaperFilters ||
+    hideWallTrimFilters ||
+    hideCounterTopDetailFilters ||
+    hideDadoTileFilters ||
+    hideWoodenFlooringFilters ||
+    hideHardwareDetailFilters ||
+    hideCeilingGypsumFilters ||
+    hideCeilingPvcFilters ||
+    hideLightingDetailFilters ||
+    hideGlassDetailFilters;
+  const hideBookNameFilter =
+    hideFinishAndColorFilters ||
+    hideWallTrimFilters ||
+    hideCounterTopDetailFilters ||
+    hideDadoTileFilters ||
+    hideHardwareDetailFilters ||
+    hideCeilingGypsumFilters ||
+    hideCeilingPvcFilters ||
+    hideGlassDetailFilters;
+  const hideColorFilter =
+    hideFinishAndColorFilters ||
+    hideWallTrimFilters ||
+    hideCounterTopDetailFilters ||
+    hideDadoTileFilters ||
+    hideWoodenFlooringFilters ||
+    hideCeilingGypsumFilters;
+  const hideBrandFilter = hideCeilingGypsumFilters;
+  /** Finishes PU Paints, and Handles & Knobs All/Handle/Knob, hide thickness. */
+  const hideThicknessFilter = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase();
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    if (slug.replace(/[-_]+/g, " ") === "handles knobs") {
+      return !selectedSubcategoryId || normalized === "handle" || normalized === "knob";
+    }
+    if (slug !== "finishes") return false;
+    return normalized === "pu paints" || normalized === "pu paint";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
+  const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters;
+  /** Handles & Knobs All, Handle, and Knob show Size from product dimensions. */
+  const showSizeFilter = hideThicknessFilter && (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "handles knobs";
   const totalProductPages = Math.max(1, Math.ceil(productsTotal / PRODUCTS_PAGE_LIMIT));
 
   useEffect(() => {
@@ -318,12 +493,13 @@ function CategoryProductsPageContent() {
           includeImages: true,
           page: productsPage,
           limit: PRODUCTS_PAGE_LIMIT,
-          brand: shouldShowBrand ? setToCsv(selectedBrands) : undefined,
-          bookName: shouldShowBookName ? setToCsv(selectedBookNames) : undefined,
-          finishType: setToCsv(selectedFinishTypes),
-          thickness: setToCsv(selectedThicknesses),
+          brand: shouldShowBrand && !hideBrandFilter ? setToCsv(selectedBrands) : undefined,
+          bookName: shouldShowBookName && !hideBookNameFilter ? setToCsv(selectedBookNames) : undefined,
+          finishType: hideFinishTypeFilter ? undefined : setToCsv(selectedFinishTypes),
+          thickness: hideThicknessSection ? undefined : setToCsv(selectedThicknesses),
+          dimensions: showSizeFilter ? setToCsv(selectedSizes) : undefined,
           watt: setToCsv(selectedWatts),
-          colorName: setToCsv(selectedColors),
+          colorName: hideColorFilter ? undefined : setToCsv(selectedColors),
           ...sortParamsForValue(sortBy),
         });
 
@@ -360,9 +536,18 @@ function CategoryProductsPageContent() {
     selectedFinishTypes,
     selectedColors,
     selectedThicknesses,
+    selectedSizes,
     selectedWatts,
     sortBy,
     shouldShowBrand,
+    hideFinishAndColorFilters,
+    hideFinishTypeFilter,
+    hideThicknessFilter,
+    hideThicknessSection,
+    hideBookNameFilter,
+    hideColorFilter,
+    hideBrandFilter,
+    showSizeFilter,
   ]);
 
   useEffect(() => {
@@ -435,6 +620,11 @@ function CategoryProductsPageContent() {
     [apiFilters],
   );
 
+  const availableSizes = useMemo(
+    () => sortWattOptions(apiFilters?.dimensions ?? []),
+    [apiFilters],
+  );
+
   const availableWatts = useMemo(
     () => sortWattOptions(apiFilters?.watts ?? []),
     [apiFilters],
@@ -498,6 +688,7 @@ function CategoryProductsPageContent() {
         bookName?: string;
         finishType?: string;
         thickness?: string;
+        dimensions?: string;
         watt?: string;
         colorName?: string;
         subcategory?: string;
@@ -516,6 +707,7 @@ function CategoryProductsPageContent() {
       if ("bookName" in patch) setParam("bookName", patch.bookName);
       if ("finishType" in patch) setParam("finishType", patch.finishType);
       if ("thickness" in patch) setParam("thickness", patch.thickness);
+      if ("dimensions" in patch) setParam("dimensions", patch.dimensions);
       if ("watt" in patch) setParam("watt", patch.watt);
       if ("colorName" in patch) setParam("colorName", patch.colorName);
       if ("subcategory" in patch) setParam("subcategory", patch.subcategory);
@@ -538,11 +730,12 @@ function CategoryProductsPageContent() {
   if (!userName) return null;
 
   const activeFilterCount =
-    (shouldShowBrand ? selectedBrands.size : 0) +
-    (shouldShowBookName ? selectedBookNames.size : 0) +
-    selectedFinishTypes.size +
-    selectedColors.size +
-    selectedThicknesses.size +
+    (shouldShowBrand && !hideBrandFilter ? selectedBrands.size : 0) +
+    (shouldShowBookName && !hideBookNameFilter ? selectedBookNames.size : 0) +
+    (hideFinishTypeFilter ? 0 : selectedFinishTypes.size) +
+    (hideColorFilter ? 0 : selectedColors.size) +
+    (hideThicknessSection ? 0 : selectedThicknesses.size) +
+    (showSizeFilter ? selectedSizes.size : 0) +
     (isLightingCategory ? selectedWatts.size : 0);
   const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
 
@@ -589,7 +782,7 @@ function CategoryProductsPageContent() {
             Filter
           </div>
 
-          {shouldShowBrand ? (
+          {shouldShowBrand && !hideBrandFilter ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Brand
@@ -621,7 +814,7 @@ function CategoryProductsPageContent() {
             </div>
           ) : null}
 
-          {shouldShowBookName ? (
+          {shouldShowBookName && !hideBookNameFilter ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Book Name
@@ -653,6 +846,7 @@ function CategoryProductsPageContent() {
             </div>
           ) : null}
 
+          {!hideFinishTypeFilter ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Finish Type
@@ -689,7 +883,9 @@ function CategoryProductsPageContent() {
               )}
             </div>
           </div>
+          ) : null}
 
+          {!hideThicknessSection ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Thickness
@@ -726,6 +922,42 @@ function CategoryProductsPageContent() {
               )}
             </div>
           </div>
+          ) : null}
+
+          {showSizeFilter ? (
+          <div className="mt-6 border-t border-[#cbbca6] pt-5">
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+              Size
+            </div>
+            <div className="mt-4 space-y-3">
+              {availableSizes.length === 0 ? (
+                <div className="text-xs text-gray-400">
+                  {isProductsLoading ? "Loading size options..." : "No size options"}
+                </div>
+              ) : (
+                availableSizes.map((size) => (
+                  <label
+                    key={size}
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSizes.has(size)}
+                      onChange={() => {
+                        replaceListQuery(
+                          { dimensions: setToCsv(toggleSetValue(selectedSizes, size)) },
+                          { resetPage: true },
+                        );
+                      }}
+                      className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                    />
+                    <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{size}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+          ) : null}
 
           {isLightingCategory ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
@@ -762,6 +994,7 @@ function CategoryProductsPageContent() {
           </div>
           ) : null}
 
+          {!hideColorFilter ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Color
@@ -794,6 +1027,7 @@ function CategoryProductsPageContent() {
               )}
             </div>
           </div>
+          ) : null}
         </aside>
 
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
