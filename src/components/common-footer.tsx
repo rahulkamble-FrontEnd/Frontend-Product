@@ -87,7 +87,8 @@ export default function CommonFooter({ hideNewsletter = false }: CommonFooterPro
   const experienceCentreAddress =
     "Plot No - 190, Professor CR Rao Road, Opposite Old ALIND Factory Entrance Gate, Doyens Colony, Serilingampalle (M), Telangana-500019.";
 
-  const experienceCentreMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(experienceCentreAddress)}`;
+  const experienceCentreMapsUrl =
+    "https://www.google.com/maps/dir/?api=1&destination=17.47542047123458,78.32549757698756";
 
   const linkClass = "transition-opacity hover:text-white hover:opacity-100";
 

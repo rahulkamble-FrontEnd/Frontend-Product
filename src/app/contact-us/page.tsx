@@ -10,13 +10,10 @@ const jakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700"],
 });
 
-// Google Maps embed for the Hyderabad showroom (same place ID + key as
-// cf-angular-web/src/app/common/config.ts -> GOOGLE_API_KEY).
-const SHOWROOM_PLACE_ID = "ChIJJ7hDUkWTyzsROE_a0XKyoGw";
-const GOOGLE_MAPS_API_KEY = "AIzaSyBwTOnrNCB_ECtTRU4bGIJdyf8fp7AhdFY";
-const SHOWROOM_EMBED_URL = `https://www.google.com/maps/embed/v1/place?q=place_id:${SHOWROOM_PLACE_ID}&key=${GOOGLE_MAPS_API_KEY}`;
+const SHOWROOM_EMBED_URL =
+  "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d226.08563987798806!2d78.32549757698756!3d17.47542047123458!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bcb93455243b827%3A0x6ca0b272d1da4f38!2sCustomFurnish!5e1!3m2!1sen!2sin!4v1792055891947!5m2!1sen!2sin";
 const SHOWROOM_DIRECTIONS_URL =
-  "https://www.google.com/maps/dir//CustomFurnish,+Plot+No+-+190,+Professor+CR+Rao+Rd,+opposite+Old+ALIND+Factory+Entrance+Gate,+Doyens+Colony,+Serilingampalle+(M),+Hyderabad,+Telangana+500019/";
+  "https://www.google.com/maps/dir/?api=1&destination=17.47542047123458,78.32549757698756";
 
 // Submit through our own Next.js API route (src/app/api/contact-us/route.ts).
 // That route does the cross-origin call to Django + handles CSRF/cookies on
@@ -407,7 +404,7 @@ export default function ContactUsPage() {
                 title="CustomFurnish Showroom location"
                 allowFullScreen
                 loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
           </div>
