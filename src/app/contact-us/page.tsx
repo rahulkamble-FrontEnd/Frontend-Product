@@ -23,6 +23,7 @@ const SHOWROOM_DIRECTIONS_URL =
 // the server side, so the form works the same way from dev (localhost) and
 // from any production domain without browser CORS blocking us.
 const CONTACT_API_URL = "/api/contact-us";
+const SHOW_CONTACT_FORM = false;
 
 const MOBILE_PATTERN = /^((\+91-?)|0)?[0-9]{10}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -176,10 +177,10 @@ export default function ContactUsPage() {
 
       <div className={styles.sub}>
         <div className={styles.subContainer}>
-          <div className={styles.commonContainer} style={{ gap: 36 }}>
-            <h2 className={styles.title}>Contact us</h2>
+          <div className={SHOW_CONTACT_FORM ? styles.commonContainer : styles.contactSplit} style={SHOW_CONTACT_FORM ? { gap: 36 } : undefined}>
+            <h2 className={`${styles.title} ${styles.contactTitle}`}>Contact us</h2>
 
-            <div className={styles.commonContainer}>
+            <div className={`${styles.commonContainer} ${styles.contactIntro}`}>
               <div className={styles.heading}>
                 Get in Touch With CustomFurnish
               </div>
@@ -195,18 +196,7 @@ export default function ContactUsPage() {
               </div>
             </div>
 
-            <div className={styles.commonContainer}>
-              <div className={styles.heading}>Visit Our Experience Centre</div>
-              <p className={styles.venueName}>CustomFurnish Materials</p>
-              <div className={styles.addressLines}>
-                <p>Plot No - 190, Professor CR Rao Road,</p>
-                <p>Opposite Old ALIND Factory Entrance Gate,</p>
-                <p>Doyens Colony, Serilingampalle (M),</p>
-                <p>Telangana - 500019.</p>
-              </div>
-            </div>
-
-            <div className={styles.commonContainer}>
+            <div className={`${styles.commonContainer} ${styles.contactDetails}`}>
               <div className={styles.heading}>Contact Information</div>
               <span className={styles.contactLine}>
                 Phone:{" "}
@@ -225,7 +215,20 @@ export default function ContactUsPage() {
               </span>
             </div>
 
-            <div className={styles.commonContainer}>
+            {SHOW_CONTACT_FORM ? null : (
+            <>
+            <div className={`${styles.commonContainer} ${styles.contactVisit}`}>
+              <div className={styles.heading}>Visit Our Experience Centre</div>
+              <p className={styles.venueName}>CustomFurnish Materials</p>
+              <div className={styles.addressLines}>
+                <p>Plot No - 190, Professor CR Rao Road,</p>
+                <p>Opposite Old ALIND Factory Entrance Gate,</p>
+                <p>Doyens Colony, Serilingampalle (M),</p>
+                <p>Telangana - 500019.</p>
+              </div>
+            </div>
+
+            <div className={`${styles.commonContainer} ${styles.contactHours}`}>
               <div className={styles.heading}>Working Hours</div>
               <span className={styles.contactLine}>Monday – Saturday</span>
               <span className={styles.contactLine}>
@@ -234,8 +237,11 @@ export default function ContactUsPage() {
                 </span>
               </span>
             </div>
+            </>
+            )}
           </div>
 
+          {SHOW_CONTACT_FORM ? (
           <form
             className={styles.commonContainer}
             onSubmit={handleSubmit}
@@ -348,6 +354,7 @@ export default function ContactUsPage() {
               </div>
             )}
           </form>
+          ) : null}
         </div>
 
         <div className={`${styles.subContainer} ${styles.subContainerColumn}`}>
