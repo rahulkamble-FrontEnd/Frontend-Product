@@ -1033,11 +1033,9 @@ function CategoryProductsPageContent() {
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
           {categoryBannerUrl ? (
             <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
-              {/* Category banners have a natural ~3.84:1 aspect ratio (4489x1170).
-                  Below lg we keep fixed pixel heights so the banner doesn't get too
-                  short on phones/tablets; from lg upward we honour the image ratio so
-                  the full banner is visible on wide laptops and desktops (no top/bottom crop). */}
-              <div className="relative h-[220px] w-full sm:h-[300px] lg:h-auto lg:aspect-[4489/1170]">
+              {/* Category banners are ~3.84:1 (4489x1170). Keep that ratio at every
+                  width so the title and artwork stay fully visible, including phones. */}
+              <div className="relative aspect-[4489/1170] w-full">
                 <Image
                   src={categoryBannerUrl}
                   alt={`${category?.name ?? "Category"} banner`}
@@ -1046,7 +1044,7 @@ function CategoryProductsPageContent() {
                   sizes="(max-width: 1024px) 100vw, 1200px"
                   loading="eager"
                   fetchPriority="high"
-                  className="object-cover object-center"
+                  className="object-contain object-center"
                 />
               </div>
             </div>
@@ -1230,12 +1228,15 @@ function CategoryProductsPageContent() {
                               ? formatProductCardTitle(product)
                               : formatProductName(product.name)}
                           </div>
-                          <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                            {shouldShowBrand
-                              ? `${product.brand ?? "-"} | ${product.finishType ?? "-"}`
-                              : `${product.finishType ?? "-"}`
-                            }
-                          </div>
+                          {shouldShowBrand ? (
+                            <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
+                              {`${product.brand ?? "-"} | ${product.finishType ?? "-"}`}
+                            </div>
+                          ) : (product.finishType ?? "").trim() && (product.finishType ?? "").trim() !== "-" ? (
+                            <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
+                              {product.finishType}
+                            </div>
+                          ) : null}
                           <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
                             {isLightingCategory
                               ? `Watt: ${product.watt || "-"}`
