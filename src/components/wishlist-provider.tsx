@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { addWishlistItem, clearWishlist, getWishlist, removeWishlistItem } from "@/lib/api";
 
-const WISHLIST_ITEM_LIMIT = 25;
+const WISHLIST_ITEM_LIMIT = 15;
 
 type WishlistContextValue = {
   productIds: Set<string>;
@@ -67,7 +67,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       if (!id || pendingProductId === id) return;
       const alreadySaved = productIds.has(id);
       if (!alreadySaved && productIds.size >= WISHLIST_ITEM_LIMIT) {
-        setNotice("You can wishlist only 25 products.");
+        setNotice(`You can wishlist only ${WISHLIST_ITEM_LIMIT} products.`);
         return;
       }
       setPendingProductId(id);
