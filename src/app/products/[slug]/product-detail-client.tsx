@@ -749,7 +749,7 @@ export default function ProductDetailsPage({
               </div>
 
               {(userRole !== "customer" && hasSpecText(product.imsId)) ||
-              (userRole === "customer" && hasSpecText(product.application)) ||
+              hasSpecText(product.application) ||
               hasSpecText(product.colorName) ||
               hasSpecText(product.dimensions) ||
               hasSpecText(product.finishType) ||
@@ -768,7 +768,7 @@ export default function ProductDetailsPage({
                       <div className="font-semibold text-[#3f3a33]">{product.imsId}</div>
                     </>
                   ) : null}
-                  {userRole === "customer" && hasSpecText(product.application) ? (
+                  {hasSpecText(product.application) ? (
                     <>
                       <div className="text-[#968e84]">Application</div>
                       <div className="font-semibold text-[#3f3a33]">{product.application}</div>
