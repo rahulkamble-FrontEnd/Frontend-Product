@@ -388,7 +388,11 @@ function CategoryProductsPageContent() {
   const hideFlooringAllFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "flooring tiles" &&
     !selectedSubcategoryId;
+  /** Fabrics (All and every subcategory) hides finish type. */
+  const hideFabricFinishFilter =
+    (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
   const hideFinishTypeFilter =
+    hideFabricFinishFilter ||
     hideFlooringAllFinishFilter ||
     hideFinishAndColorFilters ||
     hideWallPanelFinishFilter ||
