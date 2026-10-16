@@ -52,6 +52,7 @@ import {
 import { blogPublicPath } from "@/lib/blog-path";
 import { BulkEditProductsModal } from "@/components/bulk-edit-products-modal";
 import { RelevantArticleCard } from "@/components/relevant-article-card";
+import { HomesDoneVideos } from "@/components/homes-done-videos";
 import { isTestS3Url, PRODUCT_IMAGE_BASE_URL } from "@/lib/s3-image-base";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
@@ -3931,6 +3932,8 @@ function DashboardPageContent() {
           </div>
         </div>
       </section>
+
+      <HomesDoneVideos />
 
       <section className={`${dashboardShellClass} bg-[#F8F0E4] py-8 lg:py-12`}>
         <h3 className="text-center text-[24px] font-bold leading-[30px] text-[#977543] sm:text-[36px] sm:leading-[40px]">
