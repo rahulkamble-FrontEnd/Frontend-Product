@@ -33,6 +33,7 @@ const SHOW_PRODUCT_RELEVANT_ARTICLES = false;
 const SHOW_CUSTOMER_SHORTLIST_DETAILS = false;
 /** Customer "Short List Now" button on the product page. */
 const SHOW_SHORT_LIST_NOW_BUTTON = false;
+const SHOW_APPLICATION_IN_SPECS = false;
 /** Customer note box on the product page. */
 const SHOW_CUSTOMER_NOTE = false;
 
@@ -749,7 +750,7 @@ export default function ProductDetailsPage({
               </div>
 
               {(userRole !== "customer" && hasSpecText(product.imsId)) ||
-              hasSpecText(product.application) ||
+              (SHOW_APPLICATION_IN_SPECS && hasSpecText(product.application)) ||
               hasSpecText(product.colorName) ||
               hasSpecText(product.dimensions) ||
               hasSpecText(product.finishType) ||
@@ -768,7 +769,7 @@ export default function ProductDetailsPage({
                       <div className="font-semibold text-[#3f3a33]">{product.imsId}</div>
                     </>
                   ) : null}
-                  {hasSpecText(product.application) ? (
+                  {SHOW_APPLICATION_IN_SPECS && hasSpecText(product.application) ? (
                     <>
                       <div className="text-[#968e84]">Application</div>
                       <div className="font-semibold text-[#3f3a33]">{product.application}</div>
@@ -834,7 +835,8 @@ export default function ProductDetailsPage({
 
               {(isMeaningfulDescription(product.description) ||
                 asStringList(product.pros).length > 0 ||
-                asStringList(product.cons).length > 0) && (
+                asStringList(product.cons).length > 0 ||
+                hasSpecText(product.application)) && (
                 <div className="rounded-2xl border border-[#d6c8b5] bg-[#f3ecdf] p-4 shadow-sm sm:p-5">
                   <div className="mb-3 text-[18px] font-semibold tracking-tight text-[#3e3a34] sm:text-[24px]">
                     Product Overview
@@ -866,6 +868,24 @@ export default function ProductDetailsPage({
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+                  {hasSpecText(product.application) && (
+                    <div
+                      className={
+                        isMeaningfulDescription(product.description) ||
+                        asStringList(product.pros).length > 0 ||
+                        asStringList(product.cons).length > 0
+                          ? "mt-4"
+                          : ""
+                      }
+                    >
+                      <div className="text-[11px] font-black uppercase tracking-widest text-[#8b6b45]">
+                        Application
+                      </div>
+                      <p className="mt-2 text-[13px] leading-6 text-[#4b443c] sm:text-[14px]">
+                        {product.application}
+                      </p>
                     </div>
                   )}
                 </div>

@@ -29,6 +29,7 @@ const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
     "bwp",
     "hdhmr",
     "mdf",
+    "wpc",
     "prelam hdhmr acrylic",
     "prelam mdf acrylic",
     "prelam uv coated",
@@ -383,7 +384,12 @@ function CategoryProductsPageContent() {
       normalized === "toughened"
     );
   }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Flooring & Tiles All hides finish type. */
+  const hideFlooringAllFinishFilter =
+    (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "flooring tiles" &&
+    !selectedSubcategoryId;
   const hideFinishTypeFilter =
+    hideFlooringAllFinishFilter ||
     hideFinishAndColorFilters ||
     hideWallPanelFinishFilter ||
     hideWallPaperFilters ||
@@ -413,6 +419,10 @@ function CategoryProductsPageContent() {
     hideWoodenFlooringFilters ||
     hideCeilingGypsumFilters;
   const hideBrandFilter = hideCeilingGypsumFilters;
+  /** Customers see the brand filter only in Hardware; brand stays hidden on their cards. */
+  const isHardwareCategory =
+    (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "hardware";
+  const showBrandFilter = shouldShowBrand || isHardwareCategory;
   /** Finishes PU Paints, and Handles & Knobs All/Handle/Knob, hide thickness. */
   const hideThicknessFilter = useMemo(() => {
     const slug = (category?.slug ?? "").trim().toLowerCase();
@@ -426,9 +436,18 @@ function CategoryProductsPageContent() {
     if (slug !== "finishes") return false;
     return normalized === "pu paints" || normalized === "pu paint";
   }, [category?.children, category?.slug, selectedSubcategoryId]);
-  const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters;
-  /** Handles & Knobs All, Handle, and Knob show Size from product dimensions. */
-  const showSizeFilter = hideThicknessFilter && (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "handles knobs";
+  /** Fabrics (All and every subcategory) hides thickness. */
+  const hideFabricThicknessFilter =
+    (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
+  const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters || hideFabricThicknessFilter;
+  /** Size from product dimensions: Handles & Knobs (All, Handle, Knob), Wall Panels, Wall Trims, and Flooring & Tiles (All, Dado Tiles, Wooden Flooring). */
+  const showSizeFilter =
+    (hideThicknessFilter && (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "handles knobs") ||
+    hideWallPanelFinishFilter ||
+    hideWallTrimFilters ||
+    hideFlooringAllFinishFilter ||
+    hideDadoTileFilters ||
+    hideWoodenFlooringFilters;
   const totalProductPages = Math.max(1, Math.ceil(productsTotal / PRODUCTS_PAGE_LIMIT));
 
   useEffect(() => {
@@ -493,7 +512,7 @@ function CategoryProductsPageContent() {
           includeImages: true,
           page: productsPage,
           limit: PRODUCTS_PAGE_LIMIT,
-          brand: shouldShowBrand && !hideBrandFilter ? setToCsv(selectedBrands) : undefined,
+          brand: showBrandFilter && !hideBrandFilter ? setToCsv(selectedBrands) : undefined,
           bookName: shouldShowBookName && !hideBookNameFilter ? setToCsv(selectedBookNames) : undefined,
           finishType: hideFinishTypeFilter ? undefined : setToCsv(selectedFinishTypes),
           thickness: hideThicknessSection ? undefined : setToCsv(selectedThicknesses),
@@ -539,7 +558,7 @@ function CategoryProductsPageContent() {
     selectedSizes,
     selectedWatts,
     sortBy,
-    shouldShowBrand,
+    showBrandFilter,
     hideFinishAndColorFilters,
     hideFinishTypeFilter,
     hideThicknessFilter,
@@ -730,7 +749,7 @@ function CategoryProductsPageContent() {
   if (!userName) return null;
 
   const activeFilterCount =
-    (shouldShowBrand && !hideBrandFilter ? selectedBrands.size : 0) +
+    (showBrandFilter && !hideBrandFilter ? selectedBrands.size : 0) +
     (shouldShowBookName && !hideBookNameFilter ? selectedBookNames.size : 0) +
     (hideFinishTypeFilter ? 0 : selectedFinishTypes.size) +
     (hideColorFilter ? 0 : selectedColors.size) +
@@ -782,7 +801,7 @@ function CategoryProductsPageContent() {
             Filter
           </div>
 
-          {shouldShowBrand && !hideBrandFilter ? (
+          {showBrandFilter && !hideBrandFilter ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Brand
