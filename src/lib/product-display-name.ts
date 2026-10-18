@@ -48,7 +48,7 @@ export function formatCustomerProductTitle(
     .toUpperCase();
 
   const slug = (productSlug ?? "").trim();
-  const codeMatch = slug.match(/-([a-z]{2}\d{4})$/i);
+  const codeMatch = slug.match(/-([a-z]{2}\d{4,})$/i);
   const code = SHOW_CUSTOMER_CATEGORY_SERIAL
     ? (codeMatch?.[1]?.toUpperCase() ?? "")
     : "";

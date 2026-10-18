@@ -14,6 +14,7 @@ import { WishlistHeaderButton } from "@/components/wishlist-provider";
 
 const NOTIFICATION_ROLES = new Set(["designer", "admin", "blogadmin"]);
 const SHOW_HEADER_CART = false;
+const SHOW_NOTIFICATION_BELL = false;
 
 function formatNotificationTime(value: string) {
   if (!value) return "";
@@ -81,7 +82,7 @@ export default function StoreHeaderUserBar({
   }, [userRole, shortlistRefreshKey]);
 
   useEffect(() => {
-    if (!NOTIFICATION_ROLES.has(userRole)) {
+    if (!SHOW_NOTIFICATION_BELL || !NOTIFICATION_ROLES.has(userRole)) {
       setNotifications([]);
       setNotificationsError("");
       setIsLoadingNotifications(false);
@@ -188,7 +189,7 @@ export default function StoreHeaderUserBar({
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-4">
-      {NOTIFICATION_ROLES.has(userRole) && (
+      {SHOW_NOTIFICATION_BELL && NOTIFICATION_ROLES.has(userRole) && (
         <div className="relative">
           <button
             type="button"

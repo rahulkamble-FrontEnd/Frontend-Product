@@ -57,6 +57,7 @@ import { isTestS3Url, PRODUCT_IMAGE_BASE_URL } from "@/lib/s3-image-base";
 
 const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazonaws.com";
 const SHOW_HEADER_CART = false;
+const SHOW_NOTIFICATION_BELL = false;
 const MENU_CATEGORIES_CACHE_KEY = "dashboard_menu_categories_cache_v1";
 // NOTE: Keeping this fallback for now; menu data is currently coming directly from API.
 const FALLBACK_MENU_NAMES: string[] = [
@@ -1409,7 +1410,7 @@ function DashboardPageContent() {
 
   useEffect(() => {
     const eligibleRoles = new Set(["designer", "admin", "blogadmin", "dataadmin"]);
-    if (!eligibleRoles.has(userRole)) {
+    if (!SHOW_NOTIFICATION_BELL || !eligibleRoles.has(userRole)) {
       setNotifications([]);
       setNotificationsError("");
       setIsLoadingNotifications(false);
@@ -3197,7 +3198,7 @@ function DashboardPageContent() {
                   </div>
                 </>
             )}
-            {userRole !== "customer" && (
+            {SHOW_NOTIFICATION_BELL && userRole !== "customer" && (
             <div className="relative">
               <button
                 type="button"
