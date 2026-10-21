@@ -492,6 +492,8 @@ function CategoryProductsPageContent() {
   /** Fabrics (All and every subcategory) hides thickness. */
   const hideFabricThicknessFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
+  /** Wall Decoratives Wall Trims labels the thickness filter as Width. */
+  const thicknessFilterLabel = hideWallTrimFilters ? "Width" : "Thickness";
   const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters || hideFabricThicknessFilter;
   /** Size from product dimensions: Handles & Knobs (All, Handle, Knob), Wall Panels, Wall Trims, and Flooring & Tiles (All, Dado Tiles, Wooden Flooring). */
   const showSizeFilter =
@@ -960,12 +962,14 @@ function CategoryProductsPageContent() {
           {!hideThicknessSection ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
-              Thickness
+              {thicknessFilterLabel}
             </div>
             <div className="mt-4 space-y-3">
               {availableThicknesses.length === 0 ? (
                 <div className="text-xs text-gray-400">
-                  {isProductsLoading ? "Loading thickness options..." : "No thickness options"}
+                  {isProductsLoading
+                    ? `Loading ${thicknessFilterLabel.toLowerCase()} options...`
+                    : `No ${thicknessFilterLabel.toLowerCase()} options`}
                 </div>
               ) : (
                 availableThicknesses.map((thickness) => (
