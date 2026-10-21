@@ -384,14 +384,61 @@ function CategoryProductsPageContent() {
       normalized === "toughened"
     );
   }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Glass Frosted, Laminated, Plain, and Toughened hide color for customers. */
+  const hideGlassCustomerColorFilter = useMemo(() => {
+    if (userRole !== "customer") return false;
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "glass" || !selectedSubcategoryId) return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return (
+      normalized === "frosted" ||
+      normalized === "laminated" ||
+      normalized === "plain" ||
+      normalized === "toughened"
+    );
+  }, [userRole, category?.children, category?.slug, selectedSubcategoryId]);
+  /** Mirrors All, Plain, Tinted, and V Groove hide color for customers. */
+  const hideMirrorCustomerColorFilter = useMemo(() => {
+    if (userRole !== "customer") return false;
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "mirrors" && slug !== "mirror") return false;
+    if (!selectedSubcategoryId) return true;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName).replace(/-/g, " ");
+    return (
+      normalized === "plain" ||
+      normalized === "tinted" ||
+      normalized === "v groove" ||
+      normalized === "vgroove"
+    );
+  }, [userRole, category?.children, category?.slug, selectedSubcategoryId]);
   /** Flooring & Tiles All hides finish type. */
   const hideFlooringAllFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "flooring tiles" &&
+    !selectedSubcategoryId;
+  /** Ceiling All hides finish type for customers. */
+  const hideCeilingAllCustomerFinishFilter =
+    userRole === "customer" &&
+    (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "ceiling" &&
+    !selectedSubcategoryId;
+  /** Wall Decoratives All hides finish type for customers. */
+  const hideWallDecorAllCustomerFinishFilter =
+    userRole === "customer" &&
+    ["wall decoratives", "wall decorative"].includes(
+      (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " "),
+    ) &&
     !selectedSubcategoryId;
   /** Fabrics (All and every subcategory) hides finish type. */
   const hideFabricFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
   const hideFinishTypeFilter =
+    hideCeilingAllCustomerFinishFilter ||
+    hideWallDecorAllCustomerFinishFilter ||
     hideFabricFinishFilter ||
     hideFlooringAllFinishFilter ||
     hideFinishAndColorFilters ||
@@ -421,7 +468,9 @@ function CategoryProductsPageContent() {
     hideCounterTopDetailFilters ||
     hideDadoTileFilters ||
     hideWoodenFlooringFilters ||
-    hideCeilingGypsumFilters;
+    hideCeilingGypsumFilters ||
+    hideGlassCustomerColorFilter ||
+    hideMirrorCustomerColorFilter;
   const hideBrandFilter = hideCeilingGypsumFilters;
   /** Customers see the brand filter only in Hardware; brand stays hidden on their cards. */
   const isHardwareCategory =
