@@ -7,6 +7,7 @@
  * Examples:
  * - "APM 120 Silver Grey" + slug → "SILVER GREY FN0519"
  * - "1E220 KK Slate Grey" + slug → "SLATE GREY FN0490"
+ * - "ORO PLY CLASSIC" → "ORO PLY CLASSIC" (no digit code, kept as is)
  */
 /** Category serial suffix (FN7111) hidden on customer titles for now. Code kept, not deleted. */
 const SHOW_CUSTOMER_CATEGORY_SERIAL = false;
@@ -40,6 +41,11 @@ export function formatCustomerProductTitle(
   while (start < tokens.length && isLeadingProductCodeToken(tokens[start])) {
     start += 1;
   }
+  // Short caps words alone are brand names (e.g. "ORO PLY CLASSIC"), not codes.
+  const leadingRunHasDigits = tokens
+    .slice(0, start)
+    .some((token) => /\d/.test(token));
+  if (!leadingRunHasDigits) start = 0;
 
   const remaining = tokens.slice(start);
   const base = (remaining.length > 0 ? remaining : tokens)
