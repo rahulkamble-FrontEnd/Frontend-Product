@@ -417,6 +417,16 @@ function CategoryProductsPageContent() {
       normalized === "vgroove"
     );
   }, [userRole, category?.children, category?.slug, selectedSubcategoryId]);
+  /** Core Materials WPC hides finish type and color for customers. */
+  const hideCoreWpcCustomerFilters = useMemo(() => {
+    if (userRole !== "customer") return false;
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "core materials" || !selectedSubcategoryId) return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    return normalizeSubcategoryName(selectedName) === "wpc";
+  }, [userRole, category?.children, category?.slug, selectedSubcategoryId]);
   /** Flooring & Tiles All hides finish type. */
   const hideFlooringAllFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "flooring tiles" &&
@@ -437,6 +447,7 @@ function CategoryProductsPageContent() {
   const hideFabricFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
   const hideFinishTypeFilter =
+    hideCoreWpcCustomerFilters ||
     hideCeilingAllCustomerFinishFilter ||
     hideWallDecorAllCustomerFinishFilter ||
     hideFabricFinishFilter ||
@@ -470,7 +481,8 @@ function CategoryProductsPageContent() {
     hideWoodenFlooringFilters ||
     hideCeilingGypsumFilters ||
     hideGlassCustomerColorFilter ||
-    hideMirrorCustomerColorFilter;
+    hideMirrorCustomerColorFilter ||
+    hideCoreWpcCustomerFilters;
   const hideBrandFilter = hideCeilingGypsumFilters;
   /** Customers see the brand filter only in Hardware; brand stays hidden on their cards. */
   const isHardwareCategory =
