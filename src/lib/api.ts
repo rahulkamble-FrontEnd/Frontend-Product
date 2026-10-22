@@ -3383,6 +3383,8 @@ export type DeleteLogItem = {
   deletedByName: string | null;
   deletedByEmail: string | null;
   deletedByRole: string | null;
+  deletedByCurrentName?: string | null;
+  deletedByCurrentEmail?: string | null;
   createdAt: string;
 };
 
