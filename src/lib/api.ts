@@ -3371,3 +3371,59 @@ export async function deleteTag(id: string) {
   }
   return response.json() as Promise<DeleteTagResponse>;
 }
+
+export type DeleteLogItem = {
+  id: string;
+  entityType: string;
+  action: string;
+  entityId: string | null;
+  entityName: string | null;
+  parentName: string | null;
+  deletedById: string | null;
+  deletedByName: string | null;
+  deletedByEmail: string | null;
+  deletedByRole: string | null;
+  createdAt: string;
+};
+
+export type DeleteLogFilters = {
+  type?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type DeleteLogPage = {
+  items: DeleteLogItem[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export async function getDeleteLogs(filters: DeleteLogFilters = {}) {
+  await ensureAuthenticated();
+  const params = new URLSearchParams();
+  if (filters.type) params.set("type", filters.type);
+  if (filters.search?.trim()) params.set("search", filters.search.trim());
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  params.set("page", String(filters.page ?? 1));
+  params.set("limit", String(filters.limit ?? 25));
+
+  const response = await fetch(
+    `${getApiAuthBase().replace('/auth', '')}/delete-logs?${params.toString()}`,
+    {
+      method: "GET",
+      headers: authHeaders(),
+      credentials: "include",
+    },
+  );
+  if (response.status === 401) setAccessToken(null);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch delete logs");
+  }
+  return response.json() as Promise<DeleteLogPage>;
+}
