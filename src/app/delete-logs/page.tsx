@@ -281,8 +281,12 @@ export default function DeleteLogsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-gray-900">{log.deletedByName || "-"}</p>
-                        <p className="text-[11px] text-gray-500">{log.deletedByEmail || ""}</p>
+                        <p className="text-sm font-bold text-gray-900">
+                          {log.deletedByCurrentName || log.deletedByName || "-"}
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          {log.deletedByCurrentEmail || log.deletedByEmail || ""}
+                        </p>
                         {log.deletedByRole && (
                           <p className="mt-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-400">
                             {log.deletedByRole}
