@@ -400,7 +400,7 @@ function CategoryProductsPageContent() {
       normalized === "toughened"
     );
   }, [userRole, category?.children, category?.slug, selectedSubcategoryId]);
-  /** Mirrors All, Plain, Tinted, and V Groove hide color for customers. */
+  /** Mirrors All, Plain, Tinted, and V Groove hide color and finish type for customers. */
   const hideMirrorCustomerColorFilter = useMemo(() => {
     if (userRole !== "customer") return false;
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
@@ -447,6 +447,7 @@ function CategoryProductsPageContent() {
   const hideFabricFinishFilter =
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
   const hideFinishTypeFilter =
+    hideMirrorCustomerColorFilter ||
     hideCoreWpcCustomerFilters ||
     hideCeilingAllCustomerFinishFilter ||
     hideWallDecorAllCustomerFinishFilter ||
