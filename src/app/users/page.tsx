@@ -19,6 +19,8 @@ type EditableUser = User & {
   assignedDesignerId?: string;
 };
 
+const USER_MANAGER_ROLES = new Set(["admin", "useradmin"]);
+
 export default function UsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
@@ -47,7 +49,7 @@ export default function UsersPage() {
         await ensureAuthenticated();
         const user = await getMe();
         if (!active) return;
-        if (user.role !== "admin") {
+        if (!USER_MANAGER_ROLES.has(user.role)) {
           router.push("/dashboard");
           return;
         }
@@ -148,7 +150,7 @@ export default function UsersPage() {
     }
   };
 
-  if (userRole !== "admin") return null;
+  if (!USER_MANAGER_ROLES.has(userRole)) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -171,7 +173,7 @@ export default function UsersPage() {
           <div className="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 md:mr-2">Filter by Role:</span>
              <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:gap-1 md:rounded-full md:bg-gray-100 md:p-1">
-                {['all', 'customer', 'designer', 'dataadmin'].map((role) => (
+                {['all', 'customer', 'designer', 'dataadmin', 'blogadmin', 'useradmin', 'admin'].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleFilterChange(role)}
@@ -233,6 +235,7 @@ export default function UsersPage() {
                       <td className="px-4 py-4 sm:px-6">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
                           user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                          user.role === 'useradmin' ? 'bg-green-100 text-green-700' :
                           user.role === 'designer' ? 'bg-blue-100 text-blue-700' :
                           'bg-orange-100 text-orange-700'
                         }`}>
@@ -356,6 +359,9 @@ export default function UsersPage() {
                     <option value="customer">Customer</option>
                     <option value="designer">Designer</option>
                     <option value="dataadmin">Data Admin</option>
+                    <option value="blogadmin">Blog Admin</option>
+                    <option value="useradmin">User Admin</option>
+                    <option value="admin">Admin</option>
                   </select>
                 </div>
                 <div>
