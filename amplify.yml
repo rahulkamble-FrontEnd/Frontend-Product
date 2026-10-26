@@ -15,7 +15,7 @@ frontend:
             echo "NEXT_PUBLIC_SITE_URL=https://productstg.customfurnish.in" >> .env.production
           else
             echo "NEXT_PUBLIC_API_BASE_URL=https://pmsapi.customfurnish.com/api/auth" >> .env.production
-            echo "NEXT_PUBLIC_SITE_URL=https://product.customfurnish.com" >> .env.production
+            echo "NEXT_PUBLIC_SITE_URL=https://studio.customfurnish.com" >> .env.production
             export API_PROXY_TARGET=""
           fi
         - npm run build
