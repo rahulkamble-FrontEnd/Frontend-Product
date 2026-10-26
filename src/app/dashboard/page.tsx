@@ -251,8 +251,11 @@ function DashboardPageContent() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const canManageProductData = userRole === "admin" || userRole === "dataadmin";
-  const canManageUsers = userRole === "admin";
-  const canViewBlogsNav = userRole !== "dataadmin";
+  const canManageUsers = userRole === "admin" || userRole === "useradmin";
+  const canViewDeleteLogs = userRole === "admin";
+  const showAdminMenus =
+    userRole === "admin" || userRole === "dataadmin" || userRole === "useradmin";
+  const canViewBlogsNav = userRole !== "dataadmin" && userRole !== "useradmin";
   const canManageCategoryMasters = userRole === "admin" || userRole === "dataadmin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isUsersMenuOpen, setIsUsersMenuOpen] = useState(false);
@@ -2909,7 +2912,7 @@ function DashboardPageContent() {
                 )}
               </div>
             )}
-            {(userRole === "admin" || userRole === "dataadmin") && (
+            {showAdminMenus && (
                 <>
                   {canManageUsers && (
                   <div className="relative hidden md:block">
@@ -2954,6 +2957,7 @@ function DashboardPageContent() {
                         >
                           Create User
                         </button>
+                        {canViewDeleteLogs && (
                         <button
                           type="button"
                           onClick={() => {
@@ -2964,11 +2968,14 @@ function DashboardPageContent() {
                         >
                           Delete Logs
                         </button>
+                        )}
                       </div>
                     )}
                   </div>
                   )}
 
+                  {canManageProductData && (
+                  <>
                   <div className="relative hidden md:block">
                     <button
                       type="button"
@@ -3206,6 +3213,8 @@ function DashboardPageContent() {
                       </div>
                     )}
                   </div>
+                  </>
+                  )}
                 </>
             )}
             {SHOW_NOTIFICATION_BELL && userRole !== "customer" && (
@@ -3447,9 +3456,15 @@ function DashboardPageContent() {
         </div>
       )}
 
-      {(userRole === "admin" || userRole === "dataadmin") && (
+      {showAdminMenus && (
         <div className="relative z-[315] border-b border-gray-100 bg-[#F8F0E4] px-3 py-2 md:hidden">
-          <div className={`grid gap-2 grid-cols-2 ${canManageUsers ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
+          <div
+            className={`grid gap-2 ${
+              canManageProductData
+                ? `grid-cols-2 ${canManageUsers ? "sm:grid-cols-4" : "sm:grid-cols-3"}`
+                : "grid-cols-1"
+            }`}
+          >
             {canManageUsers && (
             <div className="relative">
               <button
@@ -3495,6 +3510,7 @@ function DashboardPageContent() {
                   >
                     Create User
                   </button>
+                  {canViewDeleteLogs && (
                   <button
                     type="button"
                     onClick={() => {
@@ -3505,11 +3521,14 @@ function DashboardPageContent() {
                   >
                     Delete Logs
                   </button>
+                  )}
                 </div>
               )}
             </div>
             )}
 
+            {canManageProductData && (
+            <>
             <div className="relative">
               <button
                 type="button"
@@ -3775,6 +3794,8 @@ function DashboardPageContent() {
                 </div>
               )}
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
@@ -5775,6 +5796,9 @@ function DashboardPageContent() {
                   <option value="customer">Customer</option>
                   <option value="designer">Designer</option>
                   <option value="dataadmin">Data Admin</option>
+                  <option value="blogadmin">Blog Admin</option>
+                  <option value="useradmin">User Admin</option>
+                  <option value="admin">Admin</option>
                 </select>
               </div>
 
