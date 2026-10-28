@@ -3808,9 +3808,9 @@ function DashboardPageContent() {
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div
-          className={`${dashboardShellClass} flex items-center justify-start gap-6 py-2.5 text-[13px] font-semibold leading-5 overflow-x-auto whitespace-nowrap scrollbar-hide sm:justify-center sm:gap-5 sm:text-[16px] sm:leading-6`}
-        >
+        <div className={`${dashboardShellClass} overflow-x-auto scrollbar-hide`}>
+        {/* w-max + mx-auto centres the row when it fits, but keeps it left-aligned (fully scrollable) when it overflows. */}
+        <div className="mx-auto flex w-max items-center gap-6 py-2.5 text-[13px] font-semibold leading-5 whitespace-nowrap sm:gap-5 sm:text-[14px] sm:leading-6 xl:text-[16px]">
           {resolvedMenuCategories.map((category) => {
             return (
               <div
@@ -3831,6 +3831,7 @@ function DashboardPageContent() {
               </div>
             );
           })}
+        </div>
         </div>
       </nav>
 
