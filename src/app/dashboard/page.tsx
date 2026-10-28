@@ -1545,7 +1545,7 @@ function DashboardPageContent() {
         }, {})
       );
       const notesList = Array.isArray(data.notes)
-        ? data.notes.map((note) => note as Record<string, unknown>)
+        ? data.notes.filter((note) => note.isOwn !== false).map((note) => note as Record<string, unknown>)
         : [];
       setDesignerReplyDrafts(
         (Array.isArray(data.shortlist) ? data.shortlist : []).reduce<Record<string, string>>((acc, item) => {
@@ -1640,7 +1640,7 @@ function DashboardPageContent() {
     const existingNote =
       designerCustomerDetails?.notes.find((note) => {
         const noteProductId = typeof note.productId === "string" ? note.productId.trim() : "";
-        return noteProductId === linkedProductId && typeof note.id === "string";
+        return noteProductId === linkedProductId && typeof note.id === "string" && note.isOwn !== false;
       }) ?? null;
 
     setSavingDesignerReplyId(shortlistItemId);
@@ -4382,6 +4382,7 @@ function DashboardPageContent() {
                       <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">Assigned Designer</div>
                       <div className="mt-1 font-medium text-gray-900">
                         {customer.assignedDesigner?.name || "-"}
+                        {customer.secondaryDesigner?.name ? ` + ${customer.secondaryDesigner.name}` : ""}
                       </div>
                     </div>
 
@@ -5266,7 +5267,13 @@ function DashboardPageContent() {
                           <div className="text-[9px] font-black uppercase tracking-[0.08em] text-gray-400 sm:text-[10px] sm:tracking-widest">Assigned Designer</div>
                           <div className="mt-1 font-medium text-gray-900">
                             {designerCustomerDetails.customer.assignedDesigner?.name || "-"}
+                            {designerCustomerDetails.customer.assignedDesigner?.name && designerCustomerDetails.customer.secondaryDesigner?.name ? " (Primary)" : ""}
                           </div>
+                          {designerCustomerDetails.customer.secondaryDesigner?.name && (
+                            <div className="mt-0.5 font-medium text-gray-700">
+                              {designerCustomerDetails.customer.secondaryDesigner.name} (Secondary)
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -5443,6 +5450,21 @@ function DashboardPageContent() {
                                         placeholder="Reply to this customer note"
                                         className="mt-2 block min-h-[56px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-inner"
                                       />
+                                      {designerCustomerDetails.notes
+                                        .filter(
+                                          (note) =>
+                                            note.isOwn === false &&
+                                            typeof note.productId === "string" &&
+                                            note.productId.trim() === (item.productId || "").trim()
+                                        )
+                                        .map((note, index) => (
+                                          <div key={String(note.id ?? index)} className="mt-2 rounded-lg bg-gray-50 p-2.5 text-xs text-gray-700">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                              Reply by {note.designerName || "other designer"}
+                                            </div>
+                                            <div className="mt-1 whitespace-pre-wrap">{getDesignerNoteText(note)}</div>
+                                          </div>
+                                        ))}
                                     </div>
                                     <div className="mt-3 flex flex-col gap-3 rounded-xl bg-white p-3 sm:flex-row sm:flex-wrap sm:items-end">
                                       <div className="min-w-0 flex-1 sm:min-w-[180px]">
@@ -5549,6 +5571,7 @@ function DashboardPageContent() {
                                               </div>
                                               <div className="mt-1 text-[11px] font-bold text-gray-500">
                                                 Created: {new Date(recommendation.createdAt).toLocaleString()}
+                                                {recommendation.designerName ? ` • By ${recommendation.designerName}` : ""}
                                               </div>
                                             </div>
                                           ))
