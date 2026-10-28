@@ -276,6 +276,14 @@ export default function UsersPage() {
                       </td>
                       <td className="px-4 py-4 text-right sm:px-6">
                         <div className="flex justify-end gap-3">
+                          {user.role === "customer" && (
+                            <button
+                              onClick={() => router.push(`/customers/${user.id}/wishlist`)}
+                              className="text-[10px] font-black uppercase tracking-widest text-[#0468a3] hover:underline"
+                            >
+                              Wishlist
+                            </button>
+                          )}
                           {user.email !== adminEmail && (
                             <button 
                               onClick={() => {

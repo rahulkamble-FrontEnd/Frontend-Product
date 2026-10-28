@@ -727,6 +727,23 @@ export async function getDesignerCustomerDetails(customerId: string) {
   };
 }
 
+/** Admin / user admin: read-only view of any customer's wishlist. */
+export async function getCustomerWishlistForAdmin(customerId: string) {
+  const id = customerId.trim();
+  if (!id) throw new Error("Customer id is required");
+
+  const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users/${encodeURIComponent(id)}/wishlist`, {
+    method: 'GET',
+    headers: authHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || 'Failed to fetch customer wishlist');
+  }
+  return (await response.json()) as { customer: DesignerCustomer; wishlist: WishlistItem[] };
+}
+
 export async function createDesignerNote(payload: CreateDesignerNotePayload) {
   const customerId = payload?.customerId?.trim();
   if (!customerId) throw new Error("Customer id is required");
