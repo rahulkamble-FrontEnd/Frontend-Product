@@ -94,6 +94,9 @@ const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   ceilings: "False celings1.webp",
   "false-ceiling": "False celings1.webp",
   "false-ceilings": "False celings1.webp",
+  "shutter-types": "shutter-types.webp",
+  "shutter-type": "shutter-types.webp",
+  shutters: "shutter-types.webp",
 };
 
 function normalizeCategoryBannerKey(value: string) {

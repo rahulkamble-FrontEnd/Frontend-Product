@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { addWishlistItem, clearWishlist, getWishlist, removeWishlistItem } from "@/lib/api";
 
-const WISHLIST_ITEM_LIMIT = 15;
+const WISHLIST_ITEM_LIMIT = 25;
 
 type WishlistContextValue = {
   productIds: Set<string>;
