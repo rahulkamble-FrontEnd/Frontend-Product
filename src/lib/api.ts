@@ -329,6 +329,17 @@ export type DeleteShortlistResponse = {
   message: string;
 };
 
+export type DesignerCustomerDesigner = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  projectName?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type DesignerCustomer = {
   id: string;
   email: string;
@@ -338,19 +349,8 @@ export type DesignerCustomer = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  assignedDesigner?: {
-    id: string;
-    email: string;
-    passwordHash: string;
-    name: string;
-    role: string;
-    projectName?: string | null;
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-    resetPasswordToken: string | null;
-    resetPasswordExpires: string | null;
-  } | null;
+  assignedDesigner?: DesignerCustomerDesigner | null;
+  secondaryDesigner?: DesignerCustomerDesigner | null;
 };
 
 export type DesignerCustomerDetailNote = {
@@ -364,6 +364,9 @@ export type DesignerCustomerDetailNote = {
   message?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  designerName?: string | null;
+  /** False when the note belongs to the customer's other designer (read-only). */
+  isOwn?: boolean;
   [key: string]: unknown;
 };
 
@@ -415,6 +418,8 @@ export type DesignerRecommendationResponse = {
   note: string;
   createdAt: string;
   product?: ShortlistProduct | null;
+  designerName?: string | null;
+  isOwn?: boolean;
 };
 
 export async function getProducts(params?: {
@@ -2909,7 +2914,7 @@ export async function deleteUser(id: string) {
   return response.json();
 }
 
-export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string }) {
+export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string; secondaryDesignerId?: string | null }) {
   const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users/${id}`, {
     method: 'PUT',
     headers: authHeaders(),

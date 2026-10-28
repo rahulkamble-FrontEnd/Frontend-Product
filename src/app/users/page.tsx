@@ -13,10 +13,13 @@ type User = {
   isActive: boolean;
   createdAt: string;
   assignedDesigner?: { id: string; name: string };
+  secondaryDesigner?: { id: string; name: string } | null;
 };
 
 type EditableUser = User & {
   assignedDesignerId?: string;
+  /** "" means "None" (remove); undefined means untouched. */
+  secondaryDesignerId?: string;
 };
 
 const USER_MANAGER_ROLES = new Set(["admin", "useradmin"]);
@@ -124,6 +127,7 @@ export default function UsersPage() {
         role: string;
         projectName?: string;
         assignedDesignerId?: string;
+        secondaryDesignerId?: string | null;
       } = {
         name: editingUser.name,
         email: editingUser.email,
@@ -133,6 +137,10 @@ export default function UsersPage() {
 
       if (editingUser.role === "customer" && editingUser.assignedDesignerId) {
         payload.assignedDesignerId = editingUser.assignedDesignerId;
+      }
+
+      if (editingUser.role === "customer" && editingUser.secondaryDesignerId !== undefined) {
+        payload.secondaryDesignerId = editingUser.secondaryDesignerId || null;
       }
 
       await updateUser(editingUser.id, payload);
@@ -247,6 +255,9 @@ export default function UsersPage() {
                         {user.assignedDesigner ? (
                           <div className="flex flex-col">
                              <span className="font-bold text-[#4d2c1e]">{user.assignedDesigner.name}</span>
+                             {user.secondaryDesigner && (
+                               <span className="text-xs font-semibold text-gray-500">+ {user.secondaryDesigner.name}</span>
+                             )}
                           </div>
                         ) : (
                           <span className="text-gray-300 italic">None</span>
@@ -375,23 +386,51 @@ export default function UsersPage() {
                 </div>
               </div>
 
-              {editingUser.role === "customer" && (
-                <div>
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Assign Designer</label>
-                  <select
-                    className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
-                    value={editingUser.assignedDesignerId || editingUser.assignedDesigner?.id || ""}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, assignedDesignerId: e.target.value })
-                    }
-                  >
-                    <option value="">Select a designer</option>
-                    {designers.map(d => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.email})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {editingUser.role === "customer" && (() => {
+                const primaryId = editingUser.assignedDesignerId || editingUser.assignedDesigner?.id || "";
+                const secondaryId = editingUser.secondaryDesignerId ?? editingUser.secondaryDesigner?.id ?? "";
+                return (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Primary Designer</label>
+                      <select
+                        className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                        value={primaryId}
+                        onChange={(e) =>
+                          setEditingUser({
+                            ...editingUser,
+                            assignedDesignerId: e.target.value,
+                            ...(e.target.value && e.target.value === secondaryId ? { secondaryDesignerId: "" } : {}),
+                          })
+                        }
+                      >
+                        <option value="">Select a designer</option>
+                        {designers.map(d => (
+                          <option key={d.id} value={d.id}>{d.name} ({d.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Secondary Designer (optional)</label>
+                      <select
+                        className="mt-1 block w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner disabled:opacity-50"
+                        value={secondaryId}
+                        disabled={!primaryId}
+                        onChange={(e) =>
+                          setEditingUser({ ...editingUser, secondaryDesignerId: e.target.value })
+                        }
+                      >
+                        <option value="">None</option>
+                        {designers
+                          .filter(d => d.id !== primaryId)
+                          .map(d => (
+                            <option key={d.id} value={d.id}>{d.name} ({d.email})</option>
+                          ))}
+                      </select>
+                    </div>
+                  </>
+                );
+              })()}
 
               {updateMsg && <div className="text-xs font-bold text-green-600 bg-green-50 p-3 rounded-lg text-center">{updateMsg}</div>}
               {error && <div className="text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg text-center">{error}</div>}
