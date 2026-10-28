@@ -103,16 +103,19 @@ export default function CommonStoreHeader({
             "linear-gradient(90deg, #8A6A3A 0%, #A9844F 25%, #C9A46A 50%, #B8925A 75%, #7A5C2E 100%)",
         }}
       >
-        <div className="mx-auto flex w-full max-w-[1680px] items-center justify-start gap-4 overflow-x-auto whitespace-nowrap px-3 py-2 sm:justify-center sm:gap-6 sm:px-6 lg:px-8 2xl:max-w-[2200px] 2xl:px-6">
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={category.slug ? `/categories/${category.slug}` : "#"}
-              className="text-[14px] font-semibold leading-6 tracking-normal text-white/95 hover:text-white sm:text-[16px]"
-            >
-              {formatLabel(category.name)}
-            </Link>
-          ))}
+        <div className="mx-auto w-full max-w-[1680px] overflow-x-auto [scrollbar-width:thin] 2xl:max-w-[2200px]">
+          {/* w-max + mx-auto centres the row when it fits, but keeps it left-aligned (fully scrollable) when it overflows. */}
+          <div className="mx-auto flex w-max items-center gap-4 whitespace-nowrap px-3 py-2 sm:px-6 lg:gap-5 lg:px-8 xl:gap-6 2xl:px-6">
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                href={category.slug ? `/categories/${category.slug}` : "#"}
+                className="text-[14px] font-semibold leading-6 tracking-normal text-white/95 hover:text-white xl:text-[16px]"
+              >
+                {formatLabel(category.name)}
+              </Link>
+            ))}
+          </div>
         </div>
       </nav>
 
