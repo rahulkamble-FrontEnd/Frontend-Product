@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import CommonStoreHeader from "@/components/common-store-header";
 import {
+  getCustomerWishlistForAdmin,
   getDesignerCustomerDetails,
   type ProductImageUploadResponse,
   type WishlistItem,
@@ -34,6 +35,9 @@ function productImageUrl(product: WishlistItem["product"]) {
   return buildProductImageUrl(image.url ?? image.s3Key ?? image.s3_key);
 }
 
+const ALLOWED_ROLES = new Set(["designer", "admin", "useradmin"]);
+const USER_MANAGER_ROLES = new Set(["admin", "useradmin"]);
+
 export default function DesignerCustomerWishlistPage() {
   const router = useRouter();
   const params = useParams<{ customerId: string }>();
@@ -56,7 +60,7 @@ export default function DesignerCustomerWishlistPage() {
       router.push("/wishlist");
       return;
     }
-    if (storedRole !== "designer" && storedRole !== "admin") {
+    if (!ALLOWED_ROLES.has(storedRole)) {
       router.push("/dashboard");
       return;
     }
@@ -65,13 +69,15 @@ export default function DesignerCustomerWishlistPage() {
   }, [router]);
 
   useEffect(() => {
-    if ((userRole !== "designer" && userRole !== "admin") || !customerId) return;
+    if (!ALLOWED_ROLES.has(userRole) || !customerId) return;
     let cancelled = false;
     const load = async () => {
       setIsLoading(true);
       setError("");
       try {
-        const details = await getDesignerCustomerDetails(customerId);
+        const details = USER_MANAGER_ROLES.has(userRole)
+          ? await getCustomerWishlistForAdmin(customerId)
+          : await getDesignerCustomerDetails(customerId);
         if (cancelled) return;
         setCustomerName(details.customer?.name?.trim() || "Customer");
         setItems(Array.isArray(details.wishlist) ? details.wishlist : []);
@@ -90,7 +96,7 @@ export default function DesignerCustomerWishlistPage() {
     };
   }, [userRole, customerId]);
 
-  if (!userName || (userRole !== "designer" && userRole !== "admin")) return null;
+  if (!userName || !ALLOWED_ROLES.has(userRole)) return null;
 
   const pageTitle = customerName ? `${customerName} Wishlist` : "Wishlist";
 
@@ -101,6 +107,7 @@ export default function DesignerCustomerWishlistPage() {
         breadcrumbText="HOME  >  WISHLIST"
         breadcrumbItems={[
           { label: "HOME", href: "/dashboard" },
+          ...(USER_MANAGER_ROLES.has(userRole) ? [{ label: "USERS", href: "/users" }] : []),
           { label: "WISHLIST" },
         ]}
         userName={userName}
