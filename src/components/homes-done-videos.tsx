@@ -4,7 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { PRODUCT_IMAGE_BASE_URL } from "@/lib/s3-image-base";
 
 /** S3 object names under `video/` (must match bucket keys exactly, in both prod and test buckets). */
-const HOME_VIDEO_FILES = ["1.mp4", "2.mp4", "3.mp4", "4.mp4", "5.mp4", "6.mp4"];
+const HOME_VIDEO_FILES = [
+  "1.mp4",
+  "2.mp4",
+  "3.mp4",
+  "4.mp4",
+  "5.mp4",
+  "6.mp4",
+  "7.mp4",
+  "8.mp4",
+  "9.mp4",
+  "10.mp4",
+];
 
 function homeVideoUrl(fileName: string) {
   return `${PRODUCT_IMAGE_BASE_URL}/video/${encodeURIComponent(fileName)}`;
