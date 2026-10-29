@@ -3112,6 +3112,7 @@ export type CategoryDetails = {
   displayOrder?: number;
   isActive?: boolean;
   children?: CategoryDetails[];
+  parent?: { id: string; name: string; slug: string; isActive?: boolean } | null;
 };
 
 export async function deleteCategory(id: string) {

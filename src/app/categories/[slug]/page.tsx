@@ -119,13 +119,16 @@ function categoryBannerS3Url(fileName: string) {
   return `${BLOG_IMAGE_BASE_URL}/${path}?v=${CATEGORY_BANNER_VERSION}`;
 }
 
-function resolveCategoryBannerUrl(slug: string, categoryName?: string | null) {
-  const keys = [slug, categoryName ?? ""].filter((v) => v.trim().length > 0).map(normalizeCategoryBannerKey);
+/** First mapped banner among the candidates (own slug/name, then parent's), or null. */
+function resolveCategoryBannerUrl(candidates: Array<string | null | undefined>) {
+  const keys = candidates
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map(normalizeCategoryBannerKey);
   for (const key of keys) {
     const file = CATEGORY_BANNER_FILE_BY_KEY[key];
     if (file) return categoryBannerS3Url(file);
   }
-  return DEFAULT_CATEGORY_BANNER_URL;
+  return null;
 }
 
 function cleanUrl(value: string) {
@@ -231,6 +234,7 @@ function CategoryProductsPageContent() {
   const [apiFilters, setApiFilters] = useState<ProductListFilters>({});
   const [relevantBlogs, setRelevantBlogs] = useState<BlogItem[]>([]);
   const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+  const [categoryLoadedSlug, setCategoryLoadedSlug] = useState("");
   const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isLoadingRelevantBlogs, setIsLoadingRelevantBlogs] = useState(false);
@@ -331,6 +335,11 @@ function CategoryProductsPageContent() {
       normalized === "tandem drawers"
     );
   }, [category?.children, category?.slug, selectedSubcategoryId]);
+  /** Shutter Types keeps the left panel but hides the "Filter" heading and every filter group (none of them apply). */
+  const hideFilterGroups = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    return slug === "shutter types" || slug === "shutter type";
+  }, [category?.slug]);
   /** Ceiling Gypsum and Wooden hide brand, finish, color, thickness, and book name. */
   const hideCeilingGypsumFilters = useMemo(() => {
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
@@ -545,9 +554,17 @@ function CategoryProductsPageContent() {
 
       try {
         const categoryData = await getCategoryBySlug(slug);
-        if (!cancelled) {
-          setCategory(categoryData);
+        if (cancelled) return;
+        const parent = categoryData?.parent;
+        // Sub-categories live under their parent page (chips + filters), so open them there pre-selected.
+        if (parent?.slug && parent.isActive !== false && categoryData?.id) {
+          cancelled = true;
+          router.replace(
+            `/categories/${encodeURIComponent(parent.slug)}?subcategory=${encodeURIComponent(categoryData.id)}`,
+          );
+          return;
         }
+        setCategory(categoryData);
       } catch (err: unknown) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to load category.");
@@ -556,6 +573,7 @@ function CategoryProductsPageContent() {
       } finally {
         if (!cancelled) {
           setIsCategoryLoading(false);
+          setCategoryLoadedSlug(slug);
         }
       }
     };
@@ -564,7 +582,7 @@ function CategoryProductsPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [slug, userName]);
+  }, [slug, userName, router]);
 
   useEffect(() => {
     const categoryId = category?.id?.trim();
@@ -827,7 +845,11 @@ function CategoryProductsPageContent() {
     (hideThicknessSection ? 0 : selectedThicknesses.size) +
     (showSizeFilter ? selectedSizes.size : 0) +
     (isLightingCategory ? selectedWatts.size : 0);
-  const categoryBannerUrl = resolveCategoryBannerUrl(slug, category?.name);
+  // Sub-category pages use their parent's banner; wait for the category before falling back to the default.
+  const bannerCategory = category?.slug === slug ? category : null;
+  const categoryBannerUrl =
+    resolveCategoryBannerUrl([slug, bannerCategory?.name, bannerCategory?.parent?.slug, bannerCategory?.parent?.name]) ??
+    (categoryLoadedSlug === slug ? DEFAULT_CATEGORY_BANNER_URL : null);
 
   return (
     <div className="min-h-screen bg-[#f4eee5] text-gray-900">
@@ -868,10 +890,13 @@ function CategoryProductsPageContent() {
               Close
             </button>
           </div>
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45]">
+          <div
+            className={`text-[11px] font-black uppercase tracking-[0.2em] text-[#8b6b45] ${hideFilterGroups ? "hidden" : ""}`}
+          >
             Filter
           </div>
 
+          <div className={hideFilterGroups ? "hidden" : undefined}>
           {showBrandFilter && !hideBrandFilter ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
@@ -1120,6 +1145,7 @@ function CategoryProductsPageContent() {
             </div>
           </div>
           ) : null}
+          </div>
         </aside>
 
         <section className="bg-[#f4eee5] p-3.5 sm:p-5">
@@ -1140,7 +1166,11 @@ function CategoryProductsPageContent() {
                 />
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="mb-4 overflow-hidden rounded-xl border border-[#d9cab5] bg-white">
+              <div className="aspect-[4489/1170] w-full animate-pulse bg-[#efe6d8]" />
+            </div>
+          )}
 
           <div className="mb-5 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="text-[13px] font-black uppercase tracking-wide text-[#8b6b45] sm:text-base">
