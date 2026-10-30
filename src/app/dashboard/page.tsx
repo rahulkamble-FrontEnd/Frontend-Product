@@ -119,6 +119,9 @@ const CATEGORY_TILE_FILE_BY_KEY: Record<string, string> = {
   ceilings: "False_Celing.webp",
   "false-ceiling": "False_Celing.webp",
   "false-ceilings": "False_Celing.webp",
+  "shutter-types": "SHUTTER TYPES.png",
+  "shutter-type": "SHUTTER TYPES.png",
+  shutters: "SHUTTER TYPES.png",
 };
 
 function normalizeCategoryTileKey(value: string) {
