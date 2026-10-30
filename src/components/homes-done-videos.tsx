@@ -15,6 +15,10 @@ const HOME_VIDEO_FILES = [
   "8.mp4",
   "9.mp4",
   "10.mp4",
+  "11.mp4",
+  "12.mp4",
+  "13.mp4",
+  "14.mp4",
 ];
 
 function homeVideoUrl(fileName: string) {
