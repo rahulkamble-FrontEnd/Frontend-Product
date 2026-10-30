@@ -39,6 +39,37 @@ const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
   finishes: ["laminates", "acrylic", "pu paints"],
 };
 
+/**
+ * Pinned product order for a category's "All" view with the default sort, matched on DB product name
+ * (case-insensitive). Unlisted products follow in API order.
+ */
+const ALL_PRODUCT_ORDER_BY_SLUG: Record<string, string[]> = {
+  "shutter-types": [
+    "printed shutters wardrobe",
+    "pu shutters wardrobe",
+    "fabric shutters wardrobe",
+    "laminate shutters wardrobe",
+    "textured shutters wardrobe",
+    "wire mesh shutters wardrobe",
+    "fluted glass shutters wardrobe",
+    "multi finish shutters wardrobe (more then 2 colors)",
+    "tinted glass shutters wardrobe",
+    "shutters with panel wardrobe",
+    "laquered glass shutters wardrobe",
+    "flexi ply shutters wardrobe",
+    "childrens bedroom shutters wardrobe",
+    "grove shutters wardrobe",
+    "mirror shutters wardrobe",
+    "frosted glass shutters wardrobe",
+    "acrylic shutters wardrobe",
+    "multi finish shutters wardrobe (2 color)",
+  ],
+};
+
+function normalizeProductOrderName(name: string | null | undefined): string {
+  return (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
 function normalizeSubcategoryName(name: string): string {
   const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
   if (normalized === "laminate") return "laminates";
@@ -750,6 +781,23 @@ function CategoryProductsPageContent() {
     [apiFilters],
   );
 
+  const pinnedProductOrder =
+    !selectedSubcategoryId && sortBy === "newest"
+      ? ALL_PRODUCT_ORDER_BY_SLUG[(category?.slug ?? "").trim().toLowerCase()]
+      : undefined;
+  const displayProducts = useMemo(() => {
+    if (!pinnedProductOrder) return products;
+    const rank = new Map(pinnedProductOrder.map((name, index) => [name, index]));
+    return products
+      .map((product, index) => ({ product, index }))
+      .sort((a, b) => {
+        const aRank = rank.get(normalizeProductOrderName(a.product.name)) ?? Number.POSITIVE_INFINITY;
+        const bRank = rank.get(normalizeProductOrderName(b.product.name)) ?? Number.POSITIVE_INFINITY;
+        return aRank - bRank || a.index - b.index;
+      })
+      .map(({ product }) => product);
+  }, [products, pinnedProductOrder]);
+
   const productImageMap = useMemo(() => {
     return Object.fromEntries(
       products.map((product) => [product.id, getProductImageUrls(product)]),
@@ -1283,7 +1331,7 @@ function CategoryProductsPageContent() {
 
               <div className={isProductsLoading ? "opacity-60" : ""}>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3 2xl:grid-cols-4">
-                {products.map((product) => {
+                {displayProducts.map((product) => {
                   const imageUrls = productImageMap[product.id] ?? [];
                   const activeImageIndex =
                     imageUrls.length > 0
