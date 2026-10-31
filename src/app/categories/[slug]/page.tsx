@@ -24,6 +24,8 @@ const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 const SHOW_CATEGORY_RELEVANT_ARTICLES = false;
 /** Shutter Types left filter panel. Set to true to hide its "Filter" heading and filter groups again. */
 const HIDE_SHUTTER_TYPES_FILTERS = false;
+/** CNC left filter panel. Set to false to show its "Filter" heading and filter groups. */
+const HIDE_CNC_FILTERS = true;
 
 /** Pinned chip order by category slug. Unlisted chips keep API order. */
 const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
@@ -375,10 +377,11 @@ function CategoryProductsPageContent() {
       normalized === "tandem drawers"
     );
   }, [category?.children, category?.slug, selectedSubcategoryId]);
-  /** Shutter Types can keep the left panel but hide the "Filter" heading and every filter group. */
+  /** Shutter Types and CNC can keep the left panel but hide the "Filter" heading and every filter group. */
   const hideFilterGroups = useMemo(() => {
-    if (!HIDE_SHUTTER_TYPES_FILTERS) return false;
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (HIDE_CNC_FILTERS && slug === "cnc") return true;
+    if (!HIDE_SHUTTER_TYPES_FILTERS) return false;
     return slug === "shutter types" || slug === "shutter type";
   }, [category?.slug]);
   /** Shutter Types (All and its subcategories) filters on product materialType, labelled "Category". */
