@@ -22,6 +22,8 @@ const BLOG_IMAGE_BASE_URL = "https://products-customfurnish.s3.ap-south-1.amazon
 const DEFAULT_CATEGORY_BANNER_URL = "/handle.jpg";
 /** Category page relevant-articles block. Turn back on when this section should return. */
 const SHOW_CATEGORY_RELEVANT_ARTICLES = false;
+/** Shutter Types left filter panel. Set to true to hide its "Filter" heading and filter groups again. */
+const HIDE_SHUTTER_TYPES_FILTERS = false;
 
 /** Pinned chip order by category slug. Unlisted chips keep API order. */
 const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
@@ -45,24 +47,24 @@ const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
  */
 const ALL_PRODUCT_ORDER_BY_SLUG: Record<string, string[]> = {
   "shutter-types": [
-    "printed shutters wardrobe",
-    "pu shutters wardrobe",
-    "fabric shutters wardrobe",
-    "laminate shutters wardrobe",
-    "textured shutters wardrobe",
-    "wire mesh shutters wardrobe",
-    "fluted glass shutters wardrobe",
-    "multi finish shutters wardrobe (more then 2 colors)",
-    "tinted glass shutters wardrobe",
-    "shutters with panel wardrobe",
-    "laquered glass shutters wardrobe",
-    "flexi ply shutters wardrobe",
-    "childrens bedroom shutters wardrobe",
-    "grove shutters wardrobe",
-    "mirror shutters wardrobe",
-    "frosted glass shutters wardrobe",
-    "acrylic shutters wardrobe",
-    "multi finish shutters wardrobe (2 color)",
+    "printed shutters",
+    "pu shutters",
+    "fabric shutters",
+    "laminate shutters",
+    "textured shutters",
+    "wire mesh shutters",
+    "fluted glass shutters",
+    "multi finish shutters (more than 2 colours)",
+    "tinted glass shutters",
+    "shutters with panel",
+    "laquered glass shutters",
+    "flexi ply shutters",
+    "childrens bedroom shutters",
+    "grooved shutters",
+    "mirror shutters",
+    "frosted glass shutters",
+    "acrylic shutters",
+    "multi finish shutters (2 color)",
   ],
 };
 
@@ -205,6 +207,12 @@ function formatProductName(value: string | null | undefined) {
     .join(" ");
 }
 
+/** Card meta lines are hidden when the DB value is empty or a "-" placeholder. */
+function hasCardValue(value: string | null | undefined): value is string {
+  const text = (value ?? "").trim();
+  return text.length > 0 && text !== "-";
+}
+
 function formatProductCardTitle(product: ProductListItem) {
   return formatCustomerProductTitle(product.name, product.slug);
 }
@@ -283,6 +291,7 @@ function CategoryProductsPageContent() {
   const selectedBrands = useMemo(() => csvToSet(listQuery.get("brand")), [listQuery]);
   const selectedBookNames = useMemo(() => csvToSet(listQuery.get("bookName")), [listQuery]);
   const selectedFinishTypes = useMemo(() => csvToSet(listQuery.get("finishType")), [listQuery]);
+  const selectedMaterialTypes = useMemo(() => csvToSet(listQuery.get("materialType")), [listQuery]);
   const selectedColors = useMemo(() => csvToSet(listQuery.get("colorName")), [listQuery]);
   const selectedThicknesses = useMemo(() => csvToSet(listQuery.get("thickness")), [listQuery]);
   const selectedSizes = useMemo(() => csvToSet(listQuery.get("dimensions")), [listQuery]);
@@ -366,11 +375,20 @@ function CategoryProductsPageContent() {
       normalized === "tandem drawers"
     );
   }, [category?.children, category?.slug, selectedSubcategoryId]);
-  /** Shutter Types keeps the left panel but hides the "Filter" heading and every filter group (none of them apply). */
+  /** Shutter Types can keep the left panel but hide the "Filter" heading and every filter group. */
   const hideFilterGroups = useMemo(() => {
+    if (!HIDE_SHUTTER_TYPES_FILTERS) return false;
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
     return slug === "shutter types" || slug === "shutter type";
   }, [category?.slug]);
+  /** Shutter Types (All and its subcategories) filters on product materialType, labelled "Category". */
+  const showMaterialTypeFilter = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    return slug === "shutter types" || slug === "shutter type";
+  }, [category?.slug]);
+  /** Shutter Types hides filter groups that have no options; they reappear once products carry that data. */
+  const hideEmptyFilterGroups = showMaterialTypeFilter;
+  const hasFilterOptions = (options: string[]) => !hideEmptyFilterGroups || options.length > 0;
   /** Ceiling Gypsum and Wooden hide brand, finish, color, thickness, and book name. */
   const hideCeilingGypsumFilters = useMemo(() => {
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
@@ -635,6 +653,7 @@ function CategoryProductsPageContent() {
           brand: showBrandFilter && !hideBrandFilter ? setToCsv(selectedBrands) : undefined,
           bookName: shouldShowBookName && !hideBookNameFilter ? setToCsv(selectedBookNames) : undefined,
           finishType: hideFinishTypeFilter ? undefined : setToCsv(selectedFinishTypes),
+          materialType: showMaterialTypeFilter ? setToCsv(selectedMaterialTypes) : undefined,
           thickness: hideThicknessSection ? undefined : setToCsv(selectedThicknesses),
           dimensions: showSizeFilter ? setToCsv(selectedSizes) : undefined,
           watt: setToCsv(selectedWatts),
@@ -673,6 +692,8 @@ function CategoryProductsPageContent() {
     selectedBookNames,
     shouldShowBookName,
     selectedFinishTypes,
+    selectedMaterialTypes,
+    showMaterialTypeFilter,
     selectedColors,
     selectedThicknesses,
     selectedSizes,
@@ -781,6 +802,11 @@ function CategoryProductsPageContent() {
     [apiFilters],
   );
 
+  const availableMaterialTypes = useMemo(
+    () => [...(apiFilters?.materialTypes ?? [])].sort((a, b) => a.localeCompare(b)),
+    [apiFilters],
+  );
+
   const pinnedProductOrder =
     !selectedSubcategoryId && sortBy === "newest"
       ? ALL_PRODUCT_ORDER_BY_SLUG[(category?.slug ?? "").trim().toLowerCase()]
@@ -843,6 +869,7 @@ function CategoryProductsPageContent() {
         brand?: string;
         bookName?: string;
         finishType?: string;
+        materialType?: string;
         thickness?: string;
         dimensions?: string;
         watt?: string;
@@ -862,6 +889,7 @@ function CategoryProductsPageContent() {
       if ("brand" in patch) setParam("brand", patch.brand);
       if ("bookName" in patch) setParam("bookName", patch.bookName);
       if ("finishType" in patch) setParam("finishType", patch.finishType);
+      if ("materialType" in patch) setParam("materialType", patch.materialType);
       if ("thickness" in patch) setParam("thickness", patch.thickness);
       if ("dimensions" in patch) setParam("dimensions", patch.dimensions);
       if ("watt" in patch) setParam("watt", patch.watt);
@@ -889,6 +917,7 @@ function CategoryProductsPageContent() {
     (showBrandFilter && !hideBrandFilter ? selectedBrands.size : 0) +
     (shouldShowBookName && !hideBookNameFilter ? selectedBookNames.size : 0) +
     (hideFinishTypeFilter ? 0 : selectedFinishTypes.size) +
+    (showMaterialTypeFilter ? selectedMaterialTypes.size : 0) +
     (hideColorFilter ? 0 : selectedColors.size) +
     (hideThicknessSection ? 0 : selectedThicknesses.size) +
     (showSizeFilter ? selectedSizes.size : 0) +
@@ -945,7 +974,39 @@ function CategoryProductsPageContent() {
           </div>
 
           <div className={hideFilterGroups ? "hidden" : undefined}>
-          {showBrandFilter && !hideBrandFilter ? (
+          {showMaterialTypeFilter && hasFilterOptions(availableMaterialTypes) ? (
+            <div className="mt-6 border-t border-[#cbbca6] pt-5">
+              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
+                Category
+              </div>
+              <div className="mt-4 space-y-3">
+                {availableMaterialTypes.length === 0 ? (
+                  <div className="text-xs text-gray-400">
+                    {isProductsLoading ? "Loading category options..." : "No category options"}
+                  </div>
+                ) : (
+                  availableMaterialTypes.map((materialType) => (
+                    <label key={materialType} className="flex cursor-pointer items-center gap-2.5 text-sm text-[#3d4f67]">
+                      <input
+                        type="checkbox"
+                        checked={selectedMaterialTypes.has(materialType)}
+                        onChange={() => {
+                          replaceListQuery(
+                            { materialType: setToCsv(toggleSetValue(selectedMaterialTypes, materialType)) },
+                            { resetPage: true },
+                          );
+                        }}
+                        className="h-4 w-4 rounded-[3px] border border-[#8f8a80] bg-white align-middle accent-[#3d4f67]"
+                      />
+                      <span className="text-[14px] font-semibold uppercase tracking-wide leading-5">{materialType}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {showBrandFilter && !hideBrandFilter && hasFilterOptions(availableBrands) ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Brand
@@ -977,7 +1038,7 @@ function CategoryProductsPageContent() {
             </div>
           ) : null}
 
-          {shouldShowBookName && !hideBookNameFilter ? (
+          {shouldShowBookName && !hideBookNameFilter && hasFilterOptions(availableBookNames) ? (
             <div className="mt-6 border-t border-[#cbbca6] pt-5">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
                 Book Name
@@ -1009,7 +1070,7 @@ function CategoryProductsPageContent() {
             </div>
           ) : null}
 
-          {!hideFinishTypeFilter ? (
+          {!hideFinishTypeFilter && hasFilterOptions(availableFinishTypes) ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Finish Type
@@ -1048,7 +1109,7 @@ function CategoryProductsPageContent() {
           </div>
           ) : null}
 
-          {!hideThicknessSection ? (
+          {!hideThicknessSection && hasFilterOptions(availableThicknesses) ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               {thicknessFilterLabel}
@@ -1159,7 +1220,7 @@ function CategoryProductsPageContent() {
           </div>
           ) : null}
 
-          {!hideColorFilter ? (
+          {!hideColorFilter && hasFilterOptions(availableColors) ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
               Color
@@ -1398,20 +1459,27 @@ function CategoryProductsPageContent() {
                               ? formatProductCardTitle(product)
                               : formatProductName(product.name)}
                           </div>
-                          {shouldShowBrand ? (
-                            <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                              {`${product.brand ?? "-"} | ${product.finishType ?? "-"}`}
-                            </div>
-                          ) : (product.finishType ?? "").trim() && (product.finishType ?? "").trim() !== "-" ? (
-                            <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                              {product.finishType}
+                          {(() => {
+                            const meta = (shouldShowBrand ? [product.brand, product.finishType] : [product.finishType])
+                              .filter(hasCardValue)
+                              .map((value) => value.trim());
+                            return meta.length > 0 ? (
+                              <div className="mt-1 line-clamp-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
+                                {meta.join(" | ")}
+                              </div>
+                            ) : null;
+                          })()}
+                          {isLightingCategory ? (
+                            hasCardValue(product.watt) ? (
+                              <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
+                                {`Watt: ${product.watt.trim()}`}
+                              </div>
+                            ) : null
+                          ) : hasCardValue(product.thickness) ? (
+                            <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
+                              {`Thickness: ${product.thickness.trim()}`}
                             </div>
                           ) : null}
-                          <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-gray-500 sm:text-[10px]">
-                            {isLightingCategory
-                              ? `Watt: ${product.watt || "-"}`
-                              : `Thickness: ${product.thickness || "-"}`}
-                          </div>
                           <div className="mt-2 rounded-full bg-[#b38a50] px-2 py-1 text-center text-[9px] font-black uppercase tracking-widest text-white sm:mt-3 sm:px-3 sm:py-1.5 sm:text-[10px]">
                             View Details
                           </div>
