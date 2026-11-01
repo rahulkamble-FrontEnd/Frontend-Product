@@ -93,7 +93,7 @@ function formatCategoryName(value: string | null | undefined) {
   return text
     .toLowerCase()
     .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => (part === "cnc" ? "CNC" : part.charAt(0).toUpperCase() + part.slice(1)))
     .join(" ");
 }
 

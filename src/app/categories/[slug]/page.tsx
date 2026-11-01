@@ -68,7 +68,10 @@ const ALL_PRODUCT_ORDER_BY_SLUG: Record<string, string[]> = {
     "acrylic shutters",
     "multi finish shutters (2 color)",
   ],
+  cnc: ["pooja back panel 03", "cnc pooja back panel 03"],
 };
+/** Categories whose pinned product order also applies on every sub-category chip, not just "All". */
+const PINNED_ORDER_IN_SUBCATEGORIES = new Set(["cnc"]);
 
 function normalizeProductOrderName(name: string | null | undefined): string {
   return (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -810,9 +813,10 @@ function CategoryProductsPageContent() {
     [apiFilters],
   );
 
+  const pinnedOrderSlug = (category?.slug ?? "").trim().toLowerCase();
   const pinnedProductOrder =
-    !selectedSubcategoryId && sortBy === "newest"
-      ? ALL_PRODUCT_ORDER_BY_SLUG[(category?.slug ?? "").trim().toLowerCase()]
+    sortBy === "newest" && (!selectedSubcategoryId || PINNED_ORDER_IN_SUBCATEGORIES.has(pinnedOrderSlug))
+      ? ALL_PRODUCT_ORDER_BY_SLUG[pinnedOrderSlug]
       : undefined;
   const displayProducts = useMemo(() => {
     if (!pinnedProductOrder) return products;
