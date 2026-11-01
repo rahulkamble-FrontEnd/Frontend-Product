@@ -10,6 +10,9 @@ const NAV_LABEL_OVERRIDES: Record<string, string> = {
   "wall decorative": "Wall Decoratives",
 };
 
+/** Words kept fully uppercase in title-cased labels. */
+const UPPERCASE_LABEL_WORDS = new Set(["cnc"]);
+
 function formatLabel(value: string | null | undefined) {
   const text = (value ?? "").trim();
   if (!text) return "";
@@ -18,7 +21,9 @@ function formatLabel(value: string | null | undefined) {
   return text
     .toLowerCase()
     .split(/\s+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) =>
+      UPPERCASE_LABEL_WORDS.has(part) ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1),
+    )
     .join(" ");
 }
 

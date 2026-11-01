@@ -199,7 +199,7 @@ export default function UsersPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <main className="mx-auto max-w-7xl px-3 py-6 sm:px-6 sm:py-8 lg:px-6">
         {error && (
           <div className="mb-6 rounded-xl bg-red-50 p-4 text-center text-sm font-bold text-red-600 border border-red-100">
             {error}
@@ -208,39 +208,39 @@ export default function UsersPage() {
 
         <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           <div className="-mx-3 overflow-x-auto px-3 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[1080px] text-left">
+            <table className="w-full min-w-[880px] text-left">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Full Name</th>
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Email</th>
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Role</th>
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Project</th>
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Assign Designer</th>
-                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Status</th>
-                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Date Created</th>
-                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-6">Actions</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Full Name</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Email</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Role</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Project</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Assign Designer</th>
+                  <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Status</th>
+                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Date Created</th>
+                  <th className="px-4 py-4 text-right text-[10px] font-black uppercase tracking-widest text-gray-400 sm:px-3 xl:px-5">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
                   [...Array(5)].map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td colSpan={8} className="px-4 py-4 sm:px-6"><div className="h-4 w-full rounded bg-gray-100" /></td>
+                      <td colSpan={8} className="px-4 py-4 sm:px-3 xl:px-5"><div className="h-4 w-full rounded bg-gray-100" /></td>
                     </tr>
                   ))
                 ) : users.length > 0 ? (
                   users.map((user) => (
                     <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-4 sm:px-6">
+                      <td className="px-4 py-4 sm:px-3 xl:px-5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#4d2c1e] text-[10px] font-bold text-[#ffde59]">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#4d2c1e] text-[10px] font-bold text-[#ffde59]">
                             {user.name.charAt(0)}
                           </div>
-                          <span className="text-sm font-bold text-gray-900">{user.name}</span>
+                          <span className="text-sm font-bold text-gray-900 break-words">{user.name}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-600 sm:px-6">{user.email}</td>
-                      <td className="px-4 py-4 sm:px-6">
+                      <td className="max-w-[220px] break-all px-4 py-4 text-sm text-gray-600 sm:px-3 xl:px-5">{user.email}</td>
+                      <td className="px-4 py-4 sm:px-3 xl:px-5">
                         <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
                           user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
                           user.role === 'useradmin' ? 'bg-green-100 text-green-700' :
@@ -250,8 +250,8 @@ export default function UsersPage() {
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-500 sm:px-6">{user.projectName || "N/A"}</td>
-                      <td className="px-4 py-4 text-sm text-gray-500 sm:px-6">
+                      <td className="px-4 py-4 text-sm text-gray-500 sm:px-3 xl:px-5">{user.projectName || "N/A"}</td>
+                      <td className="px-4 py-4 text-sm text-gray-500 sm:px-3 xl:px-5">
                         {user.assignedDesigner ? (
                           <div className="flex flex-col">
                              <span className="font-bold text-[#4d2c1e]">{user.assignedDesigner.name}</span>
@@ -263,7 +263,7 @@ export default function UsersPage() {
                           <span className="text-gray-300 italic">None</span>
                         )}
                       </td>
-                      <td className="px-4 py-4 sm:px-6">
+                      <td className="px-4 py-4 sm:px-3 xl:px-5">
                         <div className="flex items-center gap-1.5">
                           <div className={`h-1.5 w-1.5 rounded-full ${user.isActive ? 'bg-green-500' : 'bg-gray-300'}`} />
                           <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
@@ -271,11 +271,11 @@ export default function UsersPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right text-[11px] font-bold text-gray-400 sm:px-6">
+                      <td className="px-4 py-4 text-right text-[11px] font-bold text-gray-400 sm:px-3 xl:px-5">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-4 text-right sm:px-6">
-                        <div className="flex justify-end gap-3">
+                      <td className="px-4 py-4 text-right sm:px-3 xl:px-5">
+                        <div className="flex flex-wrap justify-end gap-x-3 gap-y-1">
                           {user.role === "customer" && (
                             <button
                               onClick={() => router.push(`/customers/${user.id}/wishlist`)}
@@ -316,7 +316,7 @@ export default function UsersPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center text-sm font-medium text-gray-400 sm:px-6">
+                    <td colSpan={8} className="px-4 py-12 text-center text-sm font-medium text-gray-400 sm:px-3 xl:px-5">
                       No users found for this selection.
                     </td>
                   </tr>

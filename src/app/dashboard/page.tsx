@@ -587,7 +587,8 @@ function DashboardPageContent() {
       .trim()
       .replace(/\s+/g, " ")
       .toLowerCase()
-      .replace(/\b[a-z]/g, (char) => char.toUpperCase());
+      .replace(/\b[a-z]/g, (char) => char.toUpperCase())
+      .replace(/\bCnc\b/g, "CNC");
 
   const truncateText = (value: string, maxChars: number) => {
     const normalized = value.trim();
