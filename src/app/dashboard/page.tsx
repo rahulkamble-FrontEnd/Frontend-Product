@@ -122,6 +122,9 @@ const CATEGORY_TILE_FILE_BY_KEY: Record<string, string> = {
   "shutter-types": "SHUTTER TYPES.png",
   "shutter-type": "SHUTTER TYPES.png",
   shutters: "SHUTTER TYPES.png",
+  cnc: "CNC-Cover.webp",
+  "cnc-types": "CNC-Cover.webp",
+  "cnc-type": "CNC-Cover.webp",
 };
 
 function normalizeCategoryTileKey(value: string) {
