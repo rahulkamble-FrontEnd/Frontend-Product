@@ -134,6 +134,9 @@ const CATEGORY_BANNER_FILE_BY_KEY: Record<string, string> = {
   "shutter-types": "shutter-types.webp",
   "shutter-type": "shutter-types.webp",
   shutters: "shutter-types.webp",
+  cnc: "CNC-Type.webp",
+  "cnc-types": "CNC-Type.webp",
+  "cnc-type": "CNC-Type.webp",
 };
 
 function normalizeCategoryBannerKey(value: string) {
