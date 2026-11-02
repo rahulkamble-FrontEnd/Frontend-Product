@@ -2885,7 +2885,7 @@ export async function resetPassword(payload: { token: string; newPassword: strin
   return response.json();
 }
 
-export async function createUser(payload: { email: string; name: string; role: string; projectName?: string }) {
+export async function createUser(payload: { email: string; name: string; role: string; projectName?: string; password?: string }) {
   const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users`, {
     method: 'POST',
     headers: authHeaders(),

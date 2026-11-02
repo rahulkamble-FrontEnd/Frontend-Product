@@ -293,8 +293,10 @@ function DashboardPageContent() {
     email: "",
     name: "",
     role: "customer",
-    projectName: ""
+    projectName: "",
+    password: ""
   });
+  const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createMsg, setCreateMsg] = useState("");
   const [createError, setCreateError] = useState("");
@@ -1800,7 +1802,8 @@ function DashboardPageContent() {
     try {
       await createUser(newUserData);
       setCreateMsg("User created successfully!");
-      setNewUserData({ email: "", name: "", role: "customer", projectName: "" });
+      setNewUserData({ email: "", name: "", role: "customer", projectName: "", password: "" });
+      setShowNewUserPassword(false);
       setTimeout(() => {
         setIsCreateModalOpen(false);
         setCreateMsg("");
@@ -5815,6 +5818,29 @@ function DashboardPageContent() {
                   onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
                   placeholder="e.g. priya@gmail.com"
                 />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Password</label>
+                <div className="relative mt-1">
+                  <input
+                    type={showNewUserPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    className="block w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-16 text-sm focus:outline-none focus:ring-1 focus:ring-black shadow-inner"
+                    value={newUserData.password}
+                    onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewUserPassword((v) => !v)}
+                    className="absolute inset-y-0 right-3 my-auto text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-black"
+                  >
+                    {showNewUserPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
               </div>
 
               <div>
