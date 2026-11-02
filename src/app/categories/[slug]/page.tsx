@@ -25,7 +25,7 @@ const SHOW_CATEGORY_RELEVANT_ARTICLES = false;
 /** Shutter Types left filter panel. Set to true to hide its "Filter" heading and filter groups again. */
 const HIDE_SHUTTER_TYPES_FILTERS = false;
 /** CNC left filter panel. Set to false to show its "Filter" heading and filter groups. */
-const HIDE_CNC_FILTERS = true;
+const HIDE_CNC_FILTERS = false;
 
 /** Pinned chip order by category slug. Unlisted chips keep API order. */
 const SUBCATEGORY_ORDER_BY_SLUG: Record<string, string[]> = {
@@ -68,10 +68,9 @@ const ALL_PRODUCT_ORDER_BY_SLUG: Record<string, string[]> = {
     "acrylic shutters",
     "multi finish shutters (2 color)",
   ],
-  cnc: ["pooja back panel 03", "cnc pooja back panel 03"],
 };
 /** Categories whose pinned product order also applies on every sub-category chip, not just "All". */
-const PINNED_ORDER_IN_SUBCATEGORIES = new Set(["cnc"]);
+const PINNED_ORDER_IN_SUBCATEGORIES = new Set<string>();
 
 function normalizeProductOrderName(name: string | null | undefined): string {
   return (name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -387,12 +386,12 @@ function CategoryProductsPageContent() {
     if (!HIDE_SHUTTER_TYPES_FILTERS) return false;
     return slug === "shutter types" || slug === "shutter type";
   }, [category?.slug]);
-  /** Shutter Types (All and its subcategories) filters on product materialType, labelled "Category". */
+  /** Shutter Types and CNC (All and their subcategories) filter on product materialType, labelled "Category". */
   const showMaterialTypeFilter = useMemo(() => {
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
-    return slug === "shutter types" || slug === "shutter type";
+    return slug === "shutter types" || slug === "shutter type" || slug === "cnc";
   }, [category?.slug]);
-  /** Shutter Types hides filter groups that have no options; they reappear once products carry that data. */
+  /** Shutter Types and CNC hide filter groups that have no options; they reappear once products carry that data. */
   const hideEmptyFilterGroups = showMaterialTypeFilter;
   const hasFilterOptions = (options: string[]) => !hideEmptyFilterGroups || options.length > 0;
   /** Ceiling Gypsum and Wooden hide brand, finish, color, thickness, and book name. */
