@@ -41,6 +41,7 @@ export default function LoginPage() {
       const user = await getMe();
       localStorage.setItem("userName", user.name);
       localStorage.setItem("userRole", user.role);
+      localStorage.setItem("userManagerScope", user.userManagerScope ?? "");
       localStorage.setItem("userEmail", normalizedEmail);
       localStorage.setItem("userPassword", password);
       router.push("/dashboard");
