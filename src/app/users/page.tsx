@@ -23,6 +23,8 @@ type EditableUser = User & {
 };
 
 const USER_MANAGER_ROLES = new Set(["admin", "useradmin"]);
+const ALL_ROLE_FILTERS = ["all", "customer", "designer", "dataadmin", "blogadmin", "useradmin", "admin"];
+const LIMITED_ROLE_FILTERS = ["all", "customer", "designer"];
 
 export default function UsersPage() {
   const router = useRouter();
@@ -31,6 +33,8 @@ export default function UsersPage() {
   const [error, setError] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [userRole, setUserRole] = useState("");
+  /** Designer allowed only to view customers/designers and assign designers to customers. */
+  const [isLimitedManager, setIsLimitedManager] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
 
   // Edit Modal State
@@ -52,12 +56,15 @@ export default function UsersPage() {
         await ensureAuthenticated();
         const user = await getMe();
         if (!active) return;
-        if (!USER_MANAGER_ROLES.has(user.role)) {
+        const limited = user.role === "designer" && user.userManagerScope === "limited";
+        if (!USER_MANAGER_ROLES.has(user.role) && !limited) {
           router.push("/dashboard");
           return;
         }
         localStorage.setItem("userRole", user.role);
         localStorage.setItem("userName", user.name);
+        localStorage.setItem("userManagerScope", user.userManagerScope ?? "");
+        setIsLimitedManager(limited);
         setUserRole(user.role);
         setAdminEmail(localStorage.getItem("userEmail") || "");
         await fetchUsers();
@@ -122,18 +129,20 @@ export default function UsersPage() {
 
     try {
       const payload: {
-        name: string;
-        email: string;
-        role: string;
+        name?: string;
+        email?: string;
+        role?: string;
         projectName?: string;
         assignedDesignerId?: string;
         secondaryDesignerId?: string | null;
-      } = {
-        name: editingUser.name,
-        email: editingUser.email,
-        role: editingUser.role,
-        projectName: editingUser.projectName || "",
-      };
+      } = isLimitedManager
+        ? {}
+        : {
+            name: editingUser.name,
+            email: editingUser.email,
+            role: editingUser.role,
+            projectName: editingUser.projectName || "",
+          };
 
       if (editingUser.role === "customer" && editingUser.assignedDesignerId) {
         payload.assignedDesignerId = editingUser.assignedDesignerId;
@@ -158,7 +167,7 @@ export default function UsersPage() {
     }
   };
 
-  if (!USER_MANAGER_ROLES.has(userRole)) return null;
+  if (!USER_MANAGER_ROLES.has(userRole) && !isLimitedManager) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -181,7 +190,7 @@ export default function UsersPage() {
           <div className="flex w-full flex-col items-start gap-2 md:w-auto md:flex-row md:items-center md:gap-3">
              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 md:mr-2">Filter by Role:</span>
              <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:gap-1 md:rounded-full md:bg-gray-100 md:p-1">
-                {['all', 'customer', 'designer', 'dataadmin', 'blogadmin', 'useradmin', 'admin'].map((role) => (
+                {(isLimitedManager ? LIMITED_ROLE_FILTERS : ALL_ROLE_FILTERS).map((role) => (
                   <button
                     key={role}
                     onClick={() => handleFilterChange(role)}
@@ -284,7 +293,7 @@ export default function UsersPage() {
                               Wishlist
                             </button>
                           )}
-                          {user.email !== adminEmail && (
+                          {user.email !== adminEmail && (!isLimitedManager || user.role === "customer") && (
                             <button 
                               onClick={() => {
                                 setEditingUser({ ...user });
@@ -294,10 +303,10 @@ export default function UsersPage() {
                               }}
                               className="text-[10px] font-black uppercase tracking-widest text-[#4d2c1e] hover:underline"
                             >
-                              Edit
+                              {isLimitedManager ? "Assign" : "Edit"}
                             </button>
                           )}
-                          {user.isActive && user.role !== "admin" && (
+                          {user.isActive && user.role !== "admin" && !isLimitedManager && (
                             <button 
                               onClick={() => handleDeactivate(user.id)}
                               className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 hover:underline"
@@ -331,7 +340,9 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">Edit Profile</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-[#4d2c1e]">
+                {isLimitedManager ? "Assign Designer" : "Edit Profile"}
+              </h2>
               <button 
                 onClick={() => {
                    setIsEditModalOpen(false);
@@ -345,6 +356,13 @@ export default function UsersPage() {
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
+              {isLimitedManager ? (
+                <div>
+                  <p className="text-sm font-bold text-gray-900 break-words">{editingUser.name}</p>
+                  <p className="text-xs text-gray-500 break-all">{editingUser.email}</p>
+                </div>
+              ) : (
+              <>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Full Name</label>
                 <input
@@ -393,6 +411,8 @@ export default function UsersPage() {
                   />
                 </div>
               </div>
+              </>
+              )}
 
               {editingUser.role === "customer" && (() => {
                 const primaryId = editingUser.assignedDesignerId || editingUser.assignedDesigner?.id || "";

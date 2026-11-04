@@ -2931,7 +2931,7 @@ export async function deleteUser(id: string) {
   return response.json();
 }
 
-export async function updateUser(id: string, payload: { name: string; email: string; role: string; projectName?: string; assignedDesignerId?: string; secondaryDesignerId?: string | null }) {
+export async function updateUser(id: string, payload: { name?: string; email?: string; role?: string; projectName?: string; assignedDesignerId?: string; secondaryDesignerId?: string | null }) {
   const response = await fetch(`${getApiAuthBase().replace('/auth', '')}/users/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
