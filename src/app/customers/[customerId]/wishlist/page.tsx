@@ -44,6 +44,9 @@ export default function DesignerCustomerWishlistPage() {
   const customerId = typeof params?.customerId === "string" ? params.customerId : "";
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
+  /** Designer allowed to manage users (and view any customer's wishlist), set by the API. */
+  const [isLimitedManager, setIsLimitedManager] = useState(false);
+  const canViewAnyWishlist = USER_MANAGER_ROLES.has(userRole) || isLimitedManager;
   const [customerName, setCustomerName] = useState("");
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +67,9 @@ export default function DesignerCustomerWishlistPage() {
       router.push("/dashboard");
       return;
     }
+    setIsLimitedManager(
+      storedRole === "designer" && localStorage.getItem("userManagerScope") === "limited",
+    );
     setUserName(storedName);
     setUserRole(storedRole);
   }, [router]);
@@ -75,7 +81,7 @@ export default function DesignerCustomerWishlistPage() {
       setIsLoading(true);
       setError("");
       try {
-        const details = USER_MANAGER_ROLES.has(userRole)
+        const details = canViewAnyWishlist
           ? await getCustomerWishlistForAdmin(customerId)
           : await getDesignerCustomerDetails(customerId);
         if (cancelled) return;
@@ -94,7 +100,7 @@ export default function DesignerCustomerWishlistPage() {
     return () => {
       cancelled = true;
     };
-  }, [userRole, customerId]);
+  }, [userRole, customerId, canViewAnyWishlist]);
 
   if (!userName || !ALLOWED_ROLES.has(userRole)) return null;
 
@@ -107,7 +113,7 @@ export default function DesignerCustomerWishlistPage() {
         breadcrumbText="HOME  >  WISHLIST"
         breadcrumbItems={[
           { label: "HOME", href: "/dashboard" },
-          ...(USER_MANAGER_ROLES.has(userRole) ? [{ label: "USERS", href: "/users" }] : []),
+          ...(canViewAnyWishlist ? [{ label: "USERS", href: "/users" }] : []),
           { label: "WISHLIST" },
         ]}
         userName={userName}

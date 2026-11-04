@@ -7,6 +7,7 @@ import { DashboardHeroBanner } from "@/components/dashboard-hero-banner";
 import { WishlistHeaderButton } from "@/components/wishlist-provider";
 import {
   logout,
+  getMe,
   createUser,
   createCategory,
   createProduct,
@@ -257,10 +258,13 @@ function DashboardPageContent() {
   const [userName, setUserName] = useState("");
   const [userRole, setUserRole] = useState("");
   const canManageProductData = userRole === "admin" || userRole === "dataadmin";
-  const canManageUsers = userRole === "admin" || userRole === "useradmin";
+  /** "limited" = designer allowed to create customers/designers and assign designers (set by the API). */
+  const [userManagerScope, setUserManagerScope] = useState("");
+  const isLimitedUserManager = userRole === "designer" && userManagerScope === "limited";
+  const canManageUsers = userRole === "admin" || userRole === "useradmin" || isLimitedUserManager;
   const canViewDeleteLogs = userRole === "admin";
   const showAdminMenus =
-    userRole === "admin" || userRole === "dataadmin" || userRole === "useradmin";
+    userRole === "admin" || userRole === "dataadmin" || userRole === "useradmin" || isLimitedUserManager;
   const canViewBlogsNav = userRole !== "dataadmin" && userRole !== "useradmin";
   const canManageCategoryMasters = userRole === "admin" || userRole === "dataadmin";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -1322,11 +1326,29 @@ function DashboardPageContent() {
     if (storedName) {
       setUserName(storedName);
       setUserRole(storedRole || "");
+      setUserManagerScope(localStorage.getItem("userManagerScope") || "");
     } else {
       setUserName("");
       setUserRole("");
+      setUserManagerScope("");
     }
   }, [router]);
+
+  useEffect(() => {
+    if (userRole !== "designer") return;
+    let active = true;
+    getMe()
+      .then((user: { userManagerScope?: string | null }) => {
+        if (!active) return;
+        const scope = user.userManagerScope ?? "";
+        localStorage.setItem("userManagerScope", scope);
+        setUserManagerScope(scope);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [userRole]);
 
   useEffect(() => {
     const close = () => {
@@ -5852,10 +5874,14 @@ function DashboardPageContent() {
                 >
                   <option value="customer">Customer</option>
                   <option value="designer">Designer</option>
-                  <option value="dataadmin">Data Admin</option>
-                  <option value="blogadmin">Blog Admin</option>
-                  <option value="useradmin">User Admin</option>
-                  <option value="admin">Admin</option>
+                  {!isLimitedUserManager && (
+                    <>
+                      <option value="dataadmin">Data Admin</option>
+                      <option value="blogadmin">Blog Admin</option>
+                      <option value="useradmin">User Admin</option>
+                      <option value="admin">Admin</option>
+                    </>
+                  )}
                 </select>
               </div>
 
