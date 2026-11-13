@@ -397,6 +397,16 @@ function CategoryProductsPageContent() {
   /** Shutter Types and CNC hide filter groups that have no options; they reappear once products carry that data. */
   const hideEmptyFilterGroups = showMaterialTypeFilter;
   const hasFilterOptions = (options: string[]) => !hideEmptyFilterGroups || options.length > 0;
+  /** Hardware Channels hides book name, color, and thickness, and shows the size (dimensions) filter. */
+  const hideHardwareChannelFilters = useMemo(() => {
+    const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
+    if (slug !== "hardware" || !selectedSubcategoryId) return false;
+    const children = Array.isArray(category?.children) ? category.children : [];
+    const selectedName =
+      children.find((child) => (child?.id ?? "").trim() === selectedSubcategoryId)?.name ?? "";
+    const normalized = normalizeSubcategoryName(selectedName);
+    return normalized === "channels" || normalized === "channel";
+  }, [category?.children, category?.slug, selectedSubcategoryId]);
   /** Ceiling Gypsum and Wooden hide brand, finish, color, thickness, and book name. */
   const hideCeilingGypsumFilters = useMemo(() => {
     const slug = (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ");
@@ -542,8 +552,10 @@ function CategoryProductsPageContent() {
     hideHardwareDetailFilters ||
     hideCeilingGypsumFilters ||
     hideCeilingPvcFilters ||
-    hideGlassDetailFilters;
+    hideGlassDetailFilters ||
+    hideHardwareChannelFilters;
   const hideColorFilter =
+    hideHardwareChannelFilters ||
     hideFinishAndColorFilters ||
     hideWallTrimFilters ||
     hideCounterTopDetailFilters ||
@@ -576,15 +588,18 @@ function CategoryProductsPageContent() {
     (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "fabrics";
   /** Wall Decoratives Wall Trims labels the thickness filter as Width. */
   const thicknessFilterLabel = hideWallTrimFilters ? "Width" : "Thickness";
-  const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters || hideFabricThicknessFilter;
-  /** Size from product dimensions: Handles & Knobs (All, Handle, Knob), Wall Panels, Wall Trims, and Flooring & Tiles (All, Dado Tiles, Wooden Flooring). */
+  const hideThicknessSection = hideThicknessFilter || hideWallPaperFilters || hideHardwareDetailFilters || hideCeilingGypsumFilters || hideLightingDetailFilters || hideFabricThicknessFilter || hideHardwareChannelFilters;
+  /** Size from product dimensions: Handles & Knobs (All, Handle, Knob), Wall Panels, Wall Trims, Flooring & Tiles (All, Dado Tiles, Wooden Flooring), and Hardware Channels. */
   const showSizeFilter =
     (hideThicknessFilter && (category?.slug ?? "").trim().toLowerCase().replace(/[-_]+/g, " ") === "handles knobs") ||
     hideWallPanelFinishFilter ||
     hideWallTrimFilters ||
     hideFlooringAllFinishFilter ||
     hideDadoTileFilters ||
-    hideWoodenFlooringFilters;
+    hideWoodenFlooringFilters ||
+    hideHardwareChannelFilters;
+  /** Hardware Channels labels the finish type filter as Type. */
+  const finishFilterLabel = hideHardwareChannelFilters ? "Type" : "Finish Type";
   const totalProductPages = Math.max(1, Math.ceil(productsTotal / PRODUCTS_PAGE_LIMIT));
 
   useEffect(() => {
@@ -1082,7 +1097,7 @@ function CategoryProductsPageContent() {
           {!hideFinishTypeFilter && hasFilterOptions(availableFinishTypes) ? (
           <div className="mt-6 border-t border-[#cbbca6] pt-5">
             <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#8b6b45]">
-              Finish Type
+              {finishFilterLabel}
             </div>
             <div className="mt-4 space-y-3">
               {availableFinishTypes.length === 0 ? (
